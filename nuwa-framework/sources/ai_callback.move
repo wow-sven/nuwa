@@ -3,7 +3,6 @@ module nuwa_framework::ai_callback {
     use std::vector;
     use std::string::{Self, String};
 
-    use moveos_std::object;
     use moveos_std::string_utils;
     use moveos_std::json;
     

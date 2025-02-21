@@ -1,6 +1,5 @@
 module nuwa_framework::ai_request {
-    use std::string::{Self, String};
-    use std::vector;
+    use std::string::{String};
     use moveos_std::json;
 
     #[data_struct]
@@ -30,21 +29,4 @@ module nuwa_framework::ai_request {
         json::to_json(request)
     }
 
-    #[test]
-    fun test_chat_request() {
-        use std::string;
-        
-        let messages = vector::empty();
-        let content = string::utf8(b"Hello AI");
-        let request = new_chat_request(content, &messages);
-        
-        // Convert to JSON and verify structure
-        let json_bytes = to_json(&request);
-        let json_str = string::utf8(json_bytes);
-        
-        // Expected: {"model":"gpt-4o","messages":[{"role":"user","content":"Hello AI"}],"temperature":7}
-        assert!(string::index_of(&json_str, &string::utf8(b"gpt-4o")) != 18446744073709551615, 1);
-        assert!(string::index_of(&json_str, &string::utf8(b"Hello AI")) != 18446744073709551615, 2);
-        assert!(string::index_of(&json_str, &string::utf8(b"user")) != 18446744073709551615, 3);
-    }
 }

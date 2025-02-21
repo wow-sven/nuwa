@@ -1,6 +1,6 @@
 module nuwa_framework::character {
 
-    use std::string::{String};
+    use std::string::{Self, String};
     use std::vector;
 
     use moveos_std::object::{Self, Object};
@@ -12,9 +12,9 @@ module nuwa_framework::character {
     struct Character has key,store {
         name: String,
         username: String,
-        description: String,
-        bio: vector<String>,          // Character's background stories and personalities
-        knowledge: vector<String>,    // Character's domain knowledge and capabilities
+        description: String,      // The character's system prompt
+        bio: vector<String>,      // Character's background stories and personalities
+        knowledge: vector<String>,// Character's domain knowledge and capabilities
     }
 
     #[data_struct]
@@ -65,15 +65,15 @@ module nuwa_framework::character {
         } = c;
     }
 
-    public fun create_character(caller: &signer, data: CharacterData){
-        let caller_address = signer::address_of(caller);
+    public fun create_character(data: CharacterData): Object<Character> {
         let co = new_character(data);
-        object::transfer(co, caller_address);
+        co
     } 
 
     public entry fun create_character_from_json(caller: &signer, json: vector<u8>){
         let data = json::from_json<CharacterData>(json);
-        create_character(caller, data);
+        let co = create_character(data);
+        object::transfer(co, signer::address_of(caller));
     }
 
     public entry fun add_bio(co: &mut Object<Character>, bio: String) {
@@ -113,13 +113,48 @@ module nuwa_framework::character {
         &character.knowledge
     }
 
+    /// Get personality from bio
+    public fun get_personality(character: &Character): String {
+        // For now, just return the first bio entry or a default value
+        if (vector::length(&character.bio) > 0) {
+            *vector::borrow(&character.bio, 0)
+        } else {
+            string::utf8(b"Friendly and helpful")
+        }
+    }
+
     #[test(caller = @0x42)]
-    fun test_character(caller: &signer) {
-        let agent_account = std::signer::address_of(caller);
-        // Simplified test JSON that matches new structure
-        let json_str = b"{\"name\":\"Dobby\",\"username\":\"dobby\",\"plugins\":[],\"modelProvider\":\"anthropic\",\"description\":\"You are Dobby, a helpful and loyal assistant.\",\"bio\":[\"Dobby is a free assistant who helps because of his enormous heart.\",\"Extremely devoted and will go to any length to help his friends.\",\"Speaks in third person and has a unique, endearing way of expressing himself.\",\"Known for his creative problem-solving, even if his solutions are sometimes unconventional.\",\"Once a house-elf, now a free helper who chooses to serve out of love and loyalty.\"],\"knowledge\":[\"Creative problem-solving\",\"Protective services\",\"Loyal assistance\",\"Unconventional solutions\"]}";
-        create_character_from_json(caller, json_str);
-        let created_character = object::borrow_mut(co); // 'co' needs to be defined or passed appropriately
-        add_bio(created_character, b"Dobby excels at programming and system design");
+    fun test_character() {
+        // Create test character
+        let data = new_character_data(
+            string::utf8(b"Dobby"),
+            string::utf8(b"dobby"),
+            string::utf8(b"You are Dobby, a helpful and loyal assistant."),
+            vector[string::utf8(b"Dobby is a free assistant who helps because of his enormous heart.")],
+            vector[string::utf8(b"Creative problem-solving")]
+        );
+        
+        let character_obj = create_character(data);
+        let character = object::borrow(&character_obj);
+        
+        // Verify character fields
+        assert!(*get_name(character) == string::utf8(b"Dobby"), 1);
+        assert!(*get_description(character) == string::utf8(b"You are Dobby, a helpful and loyal assistant."), 2);
+        assert!(vector::length(get_bio(character)) == 1, 3);
+        assert!(vector::length(get_knowledge(character)) == 1, 4);
+        assert!(get_personality(character) == string::utf8(b"Dobby is a free assistant who helps because of his enormous heart."), 5);
+
+        // Test add_bio
+        add_bio(&mut character_obj, string::utf8(b"Dobby excels at programming and system design"));
+        let character = object::borrow(&character_obj);
+        assert!(vector::length(get_bio(character)) == 2, 6);
+
+        // Test add_knowledge
+        add_knowledge(&mut character_obj, string::utf8(b"System architecture"));
+        let character = object::borrow(&character_obj);
+        assert!(vector::length(get_knowledge(character)) == 2, 7);
+
+        // Clean up
+        destroy_character(character_obj);
     }
 }

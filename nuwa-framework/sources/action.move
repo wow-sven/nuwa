@@ -2,7 +2,7 @@ module nuwa_framework::action {
     use std::string::{Self, String};
     use std::vector;
     use moveos_std::table::{Self, Table};
-    use moveos_std::object::{Self, Object};
+    use moveos_std::object;
     use moveos_std::type_info::{Self, TypeInfo};
     use moveos_std::hex;
     use std::bcs;
@@ -102,7 +102,7 @@ module nuwa_framework::action {
     }
 
     /// Get description for specific action
-    public fun get_action_description<T: key>(name: &String): ActionDescription {
+    public fun get_action_description<T>(name: &String): ActionDescription {
         let registry = borrow_mut_registry();
         let type_info = type_info::type_of<T>();
         let action_key = get_action_key(&type_info, name);
@@ -110,8 +110,31 @@ module nuwa_framework::action {
         *table::borrow(&registry.descriptions, action_key)
     }
 
+    /// Getter functions for ActionDescription
+    public fun get_name(action: &ActionDescription): String {
+        action.name
+    }
+
+    public fun get_description(action: &ActionDescription): String {
+        action.description
+    }
+
+    public fun get_args(action: &ActionDescription): &vector<ActionArgument> {
+        &action.args
+    }
+
+    public fun get_example(action: &ActionDescription): String {
+        action.example
+    }
+
+    // Add getters for ActionArgument
+    public fun get_arg_name(arg: &ActionArgument): String { arg.name }
+    public fun get_arg_type_desc(arg: &ActionArgument): String { arg.type_desc }
+    public fun get_arg_description(arg: &ActionArgument): String { arg.description }
+    public fun get_arg_required(arg: &ActionArgument): bool { arg.required }
+
     /// Get action key by combining type_info components and function name
-    fun get_action_key(type_info: &TypeInfo, function_name: &String): String {
+    public fun get_action_key(type_info: &TypeInfo, function_name: &String): String {
         // Format: account_address::module_name::function_name
         let key = address_to_hex(type_info::account_address(type_info));
         string::append(&mut key, string::utf8(b"::"));

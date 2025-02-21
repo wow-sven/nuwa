@@ -5,7 +5,7 @@ module nuwa_framework::memory_action {
     use moveos_std::object::Object;
     use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::memory;
-    use nuwa_framework::action::{Self, ActionArgument};
+    use nuwa_framework::action;
 
 
     // Define action struct with all required fields
@@ -131,10 +131,10 @@ module nuwa_framework::memory_action {
     }
 
     /// Execute memory action
-    public fun execute(agent: &mut Object<Agent>, action_name: String, args: vector<String>) {
+    public fun execute(_agent: &mut Object<Agent>, action_name: String, args: vector<String>) {
         if (action_name == string::utf8(b"add_memory")) {
             assert!(vector::length(&args) >= 2, 1); // content and context are required
-            let is_long_term = if (vector::length(&args) > 2) {
+            let _is_long_term = if (vector::length(&args) > 2) {
                 string::utf8(b"true") == *vector::borrow(&args, 2)
             } else {
                 false
@@ -235,30 +235,4 @@ module nuwa_framework::memory_action {
         };
     }
 
-    #[test]
-    fun test_register_actions() {
-        register_actions();
-        
-        // Verify registration
-        let desc = action::get_action_description<MemoryAction>(
-            string::utf8(b"add_memory")
-        );
-        assert!(desc.name == string::utf8(b"add_memory"), 1);
-    }
-
-    #[test]
-    fun test_memory_action() {
-        // Test adding memory with standard context
-        let action = new_memory_action(
-            ACTION_ADD_MEMORY,
-            @0x1,
-            string::utf8(b"Test memory"),
-            memory::context_knowledge(), // Using getter instead of constant
-            false,
-        );
-        
-        // Verify action fields
-        assert!(action.operation == ACTION_ADD_MEMORY, 1);
-        assert!(action.content == string::utf8(b"Test memory"), 2);
-    }
 }

@@ -1,12 +1,15 @@
 module nuwa_framework::agent {
-    use std::string::{Self, String};
+    use std::string::{String};
+    use std::vector;
     use moveos_std::object::{Self, Object};
     use moveos_std::account::{Self, Account};
     use moveos_std::signer;
     use moveos_std::timestamp;
-    use nuwa_framework::character::{Self, Character};
-    use nuwa_framework::agent_cap::{Self, AgentCap};
+    use nuwa_framework::character::{Character};
+    use nuwa_framework::agent_cap;
     use nuwa_framework::memory::{Self, MemoryStore};
+    use nuwa_framework::prompt_builder;
+    use nuwa_framework::action::ActionDescription;
 
     /// Agent represents a running instance of a Character
     struct Agent has key {
@@ -19,6 +22,7 @@ module nuwa_framework::agent {
     }
 
     struct AgentInput<I> has store {
+        sender: address,
         input_description: String,
         input_data: I,
         actions: vector<String>,
@@ -51,12 +55,19 @@ module nuwa_framework::agent {
     }
 
     /// Generate system prompt based on Character attributes
-    fun generate_system_prompt(character: &Character): String {
-        // TODO: Implement template rendering with character fields
-        // This is a simplified version
-        let prompt = string::utf8(CHARACTER_PROMPT);
-        // Replace template variables with character attributes
-        prompt
+    public fun generate_system_prompt<I: drop>(
+        agent: &Agent,
+        input: &AgentInput<I>,
+        available_actions: vector<ActionDescription>,
+    ): String {
+        let character = object::borrow(&agent.character);
+        prompt_builder::build_complete_prompt(
+            character,
+            &agent.memory_store,
+            input.sender,
+            input.input_description,
+            available_actions,
+        )
     }
 
     public fun process_input<I: drop>(
@@ -64,15 +75,30 @@ module nuwa_framework::agent {
         input: AgentInput<I>,
     ) {
         let agent = object::borrow_mut(agent_obj);
-        let character = object::borrow(&agent.character);
-        let _system_prompt = generate_system_prompt(character);
-        // Call AI service to generate response
+        // Get available actions for this input
+        let available_actions = get_available_actions(&input);
+        
+        // Generate system prompt with context
+        let _system_prompt = generate_system_prompt(
+            agent,
+            &input,
+            available_actions
+        );
+
+        // TODO: Call AI service to generate response
         let AgentInput {
+            sender: _,
             input_description: _,
             input_data: _,
             actions: _,
         } = input;
         agent.last_active_timestamp = timestamp::now_milliseconds();
+    }
+
+    // Helper function to get available actions
+    fun get_available_actions<I: drop>(_input: &AgentInput<I>): vector<ActionDescription> {
+        // TODO: Implement action resolution based on input type and context
+        vector::empty()
     }
 
     /// Get mutable reference to agent's memory store

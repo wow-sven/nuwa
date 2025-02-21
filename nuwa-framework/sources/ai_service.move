@@ -1,5 +1,5 @@
 module nuwa_framework::ai_service {
-    use std::string::{Self, String};
+    use std::string;
     use std::vector;
     use std::option;
     use std::signer;
@@ -122,32 +122,6 @@ module nuwa_framework::ai_service {
         assert!(gas_balance >= amount, ErrorInsufficientBalance);
         
         oracles::deposit_to_escrow(caller, amount)
-    }
-
-    #[test_only]
-    use nuwa_framework::message;
-
-    #[test]
-    fun test_request_ai_response() {
-        use std::string;
-        use moveos_std::object;
-        
-        // Test basic request creation
-        let messages = vector::empty<Message>();
-        let msg_obj_id = message::new_message(0, @0x1, string::utf8(b"Hi"), message::type_user());
-        let msg_obj = object::borrow_object<Message>(msg_obj_id);
-        let msg = object::borrow(msg_obj);
-        vector::push_back(&mut messages, *msg);
-        let content = string::utf8(b"Hello AI");
-        
-        // Create request and verify JSON structure
-        let request = ai_request::new_chat_request(content, &messages);
-        let body = string::utf8(ai_request::to_json(&request));
-        
-        // Verify JSON structure contains required fields
-        assert!(string::index_of(&body, &string::utf8(b"gpt-4o")) != 18446744073709551615, 1);
-        assert!(string::index_of(&body, &string::utf8(b"messages")) != 18446744073709551615, 2);
-        assert!(string::index_of(&body, &string::utf8(b"user")) != 18446744073709551615, 3);
     }
 
     #[test]

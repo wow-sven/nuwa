@@ -2,7 +2,6 @@ module nuwa_framework::memory {
     use std::string::{Self, String};
     use std::option::{Self, Option};
     use std::vector;
-    use moveos_std::object::{Self, Object};
     use moveos_std::table::{Self, Table};
     use moveos_std::table_vec::{Self, TableVec};
     use moveos_std::timestamp;
@@ -410,9 +409,9 @@ module nuwa_framework::memory {
 
         // 2. Add relevant long-term memories
         // First, get critical properties
-        let personality = get_property(store, user, &string::utf8(PROPERTY_PERSONALITY));
-        let trust_level = get_property(store, user, &string::utf8(PROPERTY_TRUST_LEVEL));
-        let preferences = get_property(store, user, &string::utf8(PROPERTY_PREFERENCE));
+        let _personality = get_property(store, user, &string::utf8(PROPERTY_PERSONALITY));
+        let _trust_level = get_property(store, user, &string::utf8(PROPERTY_TRUST_LEVEL));
+        let _preferences = get_property(store, user, &string::utf8(PROPERTY_PREFERENCE));
 
         // Then add related long-term memories
         let i = 0;
@@ -429,5 +428,65 @@ module nuwa_framework::memory {
         };
 
         results
+    }
+
+    /// Getter functions for Memory fields
+    public fun get_content(memory: &Memory): String {
+        memory.content
+    }
+
+    public fun get_context(memory: &Memory): String {
+        memory.context
+    }
+
+    public fun get_timestamp(memory: &Memory): u64 {
+        memory.timestamp
+    }
+
+    /// Struct to hold property key-value pair
+    struct PropertyEntry has copy, drop, store {
+        key: String,
+        value: String,
+    }
+
+    /// Get all properties using iteration over table entries
+    public fun get_all_properties(store: &MemoryStore, user: address): vector<PropertyEntry> {
+        let results = vector::empty();
+        if (!table::contains(&store.memories, user)) {
+            return results
+        };
+        
+        let meta_memory = table::borrow(&store.memories, user);
+        let iterator = table::list_field_keys(&meta_memory.properties, option::none(), 1000);
+        let len = table::field_keys_len(&iterator);
+        let i = 0;
+        while (i < len) {
+            let (key, value) = table::next(&mut iterator);
+            vector::push_back(&mut results, PropertyEntry { key: *key, value: *value });
+            i = i + 1;
+        };
+        results
+    }
+
+    /// Get property key from PropertyEntry
+    public fun get_property_key(prop: &PropertyEntry): String {
+        prop.key
+    }
+
+    /// Get property value from PropertyEntry
+    public fun get_property_value(prop: &PropertyEntry): String {
+        prop.value
+    }
+
+    #[test_only]
+    public fun destroy_memory_store_for_test(store: MemoryStore) {
+        let MemoryStore { memories } = store;
+        table::drop_unchecked(memories);
+    }
+    
+    #[test_only]
+    /// Create a new memory store for testing
+    public fun new_test_memory_store(): MemoryStore {
+        new_memory_store()
     }
 }
