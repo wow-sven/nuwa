@@ -6,6 +6,7 @@ module nuwa_framework::agent {
     use moveos_std::timestamp;
     use nuwa_framework::character::{Self, Character};
     use nuwa_framework::agent_cap::{Self, AgentCap};
+    use nuwa_framework::memory::{Self, MemoryStore};
 
     /// Agent represents a running instance of a Character
     struct Agent has key {
@@ -14,6 +15,7 @@ module nuwa_framework::agent {
         // The Agent account, every agent has its own account
         account: Object<Account>,
         last_active_timestamp: u64,
+        memory_store: MemoryStore,
     }
 
     struct AgentInput<I> has store {
@@ -37,6 +39,7 @@ module nuwa_framework::agent {
             character,
             account: agent_account,
             last_active_timestamp: timestamp::now_milliseconds(),
+            memory_store: memory::new_memory_store(),
         };
         //TODO transfer some RGas to the agent account
         // Every account only has one agent
@@ -72,6 +75,17 @@ module nuwa_framework::agent {
         agent.last_active_timestamp = timestamp::now_milliseconds();
     }
 
+    /// Get mutable reference to agent's memory store
+    public fun borrow_memory_store_mut(agent: &mut Object<Agent>): &mut memory::MemoryStore {
+        let agent_ref = object::borrow_mut(agent);
+        &mut agent_ref.memory_store
+    }
+
+    /// Get immutable reference to agent's memory store
+    public fun borrow_memory_store(agent: &Object<Agent>): &memory::MemoryStore {
+        let agent_ref = object::borrow(agent);
+        &agent_ref.memory_store
+    }
 
     #[test]
     fun test_agent() {
