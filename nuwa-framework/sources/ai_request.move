@@ -1,10 +1,9 @@
 module nuwa_framework::ai_request {
-    use std::string::{String};
+    use std::string::{Self, String};
     use moveos_std::json;
 
     #[data_struct]
     struct ChatMessage has store, copy, drop {
-        /// Must be "user" or "assistant" in JSON
         role: String,
         content: String,
     }
@@ -23,6 +22,25 @@ module nuwa_framework::ai_request {
             messages,
             temperature: 1,
         }
+    }
+
+    public fun new_chat_message(role: String, content: String): ChatMessage {
+        ChatMessage {
+            role,
+            content,
+        }
+    }
+
+    public fun new_system_chat_message(content: String): ChatMessage {
+        new_chat_message(string::utf8(b"system"), content)
+    }
+
+    public fun new_user_chat_message(content: String): ChatMessage {
+        new_chat_message(string::utf8(b"user"), content)
+    }
+
+    public fun new_assistant_chat_message(content: String): ChatMessage {
+        new_chat_message(string::utf8(b"assistant"), content)
     }
 
     public fun to_json(request: &ChatRequest): vector<u8> {

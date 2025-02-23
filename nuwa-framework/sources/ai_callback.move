@@ -2,21 +2,23 @@ module nuwa_framework::ai_callback {
     use std::option;
     use std::vector;
     use std::string::{Self, String};
-
+    use moveos_std::object;
     use moveos_std::string_utils;
     use moveos_std::json;
     
     use verity::oracles;
 
+    use nuwa_framework::agent::Agent;
     use nuwa_framework::ai_service;
     use nuwa_framework::ai_response;
+    use nuwa_framework::action_dispatcher;
 
     /// AI Oracle response processing callback, this function must be entry and no arguments
     public entry fun process_response() {
         let pending_requests = ai_service::get_pending_requests();
         
-        vector::for_each(pending_requests, |request_id| {
-    
+        vector::for_each(pending_requests, |pending_request| {
+            let (request_id, agent_id) = ai_service::unpack_pending_request(pending_request);
             let response_status = oracles::get_response_status(&request_id);
             
             if (response_status != 0) {
@@ -34,7 +36,9 @@ module nuwa_framework::ai_callback {
                     if(option::is_some(&chat_completion_opt)){
                         let chat_completion = option::destroy_some(chat_completion_opt);
                         let message_content = ai_response::get_message_content(&chat_completion);
-                        
+
+                        let agent = object::borrow_mut_object_shared<Agent>(agent_id);
+                        action_dispatcher::dispatch_actions(agent, message_content);
                         let refusal = ai_response::get_refusal(&chat_completion);
                         if(option::is_some(&refusal)){
                             let refusal_reason = option::destroy_some(refusal);
@@ -52,6 +56,7 @@ module nuwa_framework::ai_callback {
                     string::append(&mut error_message, response_content);
                     error_message
                 };
+                //TODO emit an event.
                 std::debug::print(&message);
                 ai_service::remove_request(request_id);
             };

@@ -27,5 +27,9 @@ response=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
   \"response_format\": { \"type\": \"json_object\" }
 }")
 
+echo "Response:";
+echo "$response"
+
+echo "Actions:";
 # Extract just the content from the response using jq
 echo "$response" | jq -r '.choices[0].message.content'

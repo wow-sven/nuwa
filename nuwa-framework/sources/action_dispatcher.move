@@ -76,6 +76,7 @@ module nuwa_framework::action_dispatcher {
     fun test_dispatch_actions() {
         use nuwa_framework::agent;
         use nuwa_framework::action;
+        use nuwa_framework::memory;
 
         // Initialize
         action::init_for_test();
@@ -83,16 +84,18 @@ module nuwa_framework::action_dispatcher {
         response_action::register_actions();
 
         let (agent, cap) = agent::create_test_agent();
+        let test_addr = @0x42;
 
-        // Build test response string
+        // Build test response string with updated action parameters
         let test_response = build_test_response(
             vector[
                 build_action_call(
                     string::utf8(b"memory::add"),
                     vector[
-                        string::utf8(b"User prefers detailed explanations"),
-                        string::utf8(b"preference"),
-                        string::utf8(b"true")
+                        string::utf8(b"0x42"),                              // target address
+                        string::utf8(b"User prefers detailed explanations"), // content
+                        string::utf8(b"preference"),                        // context
+                        string::utf8(b"true")                              // is_long_term
                     ]
                 ),
                 build_action_call(
@@ -102,7 +105,17 @@ module nuwa_framework::action_dispatcher {
             ]
         );
 
+        // Execute actions
         dispatch_actions(agent, test_response);
+
+        // Verify memory was added
+        let store = agent::borrow_memory_store(agent);
+        let memories = memory::get_context_memories(store, test_addr);
+        assert!(vector::length(&memories) == 1, 1);
+        let memory = vector::borrow(&memories, 0);
+        assert!(memory::get_content(memory) == string::utf8(b"User prefers detailed explanations"), 2);
+        assert!(memory::get_context(memory) == string::utf8(b"preference"), 3);
+
         agent::destroy_agent_cap(cap);
     }
 

@@ -234,24 +234,35 @@ module nuwa_framework::memory_action {
         action::init_for_test();
         register_actions();
 
-        let (agent,cap) = agent::create_test_agent();
+        let (agent, cap) = agent::create_test_agent();
+        let test_addr = @0x42;
         
         // Test add memory
         let add_args = vector[
-            string::utf8(b"User likes detailed explanations"),
-            string::utf8(b"preference"),
-            string::utf8(b"true"),
+            string::utf8(b"0x42"),                              // target address
+            string::utf8(b"User likes detailed explanations"),   // content
+            string::utf8(b"preference"),                        // context
+            string::utf8(b"true"),                             // is_long_term
         ];
         execute(agent, string::utf8(ACTION_NAME_ADD), add_args);
 
-        // Test update memory
+        // Test update memory - now using index
         let update_args = vector[
-            string::utf8(b"User likes detailed explanations"),
-            string::utf8(b"User prefers comprehensive explanations"),
-            string::utf8(b"preference"),
-            string::utf8(b"true"),
+            string::utf8(b"0x42"),                                    // target address
+            string::utf8(b"0"),                                       // memory index
+            string::utf8(b"User prefers comprehensive explanations"), // new content
+            string::utf8(b"preference"),                             // new context
+            string::utf8(b"true"),                                   // is_long_term
         ];
         execute(agent, string::utf8(ACTION_NAME_UPDATE), update_args);
+        
+        // Verify the update
+        let store = agent::borrow_memory_store(agent);
+        let memories = memory::get_context_memories(store, test_addr);
+        assert!(vector::length(&memories) == 1, 1);
+        let updated_memory = vector::borrow(&memories, 0);
+        assert!(memory::get_content(updated_memory) == string::utf8(b"User prefers comprehensive explanations"), 2);
+        
         agent::destroy_agent_cap(cap);
     }
 }

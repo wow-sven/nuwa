@@ -1,5 +1,6 @@
 module nuwa_framework::agent {
-    use std::string::{String};
+    use std::string::{Self, String};
+    use std::vector;
     use moveos_std::object::{Self, Object};
     use moveos_std::account::{Self, Account};
     use moveos_std::signer;
@@ -9,6 +10,8 @@ module nuwa_framework::agent {
     use nuwa_framework::memory::{Self, MemoryStore};
     use nuwa_framework::prompt_builder;
     use nuwa_framework::action::{Self, ActionDescription};
+    use nuwa_framework::ai_request;
+    use nuwa_framework::ai_service;
 
     /// Agent represents a running instance of a Character
     struct Agent has key {
@@ -18,6 +21,7 @@ module nuwa_framework::agent {
         account: Object<Account>,
         last_active_timestamp: u64,
         memory_store: MemoryStore,
+        model_provider: String,
     }
 
     struct AgentInput<I> has copy, drop, store {
@@ -26,9 +30,7 @@ module nuwa_framework::agent {
         input_data: I,
     }
 
-    /// Constants for system prompt templates
-    const CHARACTER_PROMPT: vector<u8> = b"You are {name}. {system}\n\nBio:\n{bio}\n\nLore:\n{lore}\n\nKnowledge:\n{knowledge}";
-    const MAX_CONTEXT_MESSAGES: u64 = 10;
+    const AI_GPT4O_MODEL: vector<u8> = b"gpt-4o";
 
     public fun create_agent(character: Object<Character>) : Object<AgentCap> {
         let agent_account = account::create_account();
@@ -41,6 +43,7 @@ module nuwa_framework::agent {
             account: agent_account,
             last_active_timestamp: timestamp::now_milliseconds(),
             memory_store: memory::new_memory_store(),
+            model_provider: string::utf8(AI_GPT4O_MODEL),
         };
         //TODO transfer some RGas to the agent account
         // Every account only has one agent
@@ -76,24 +79,34 @@ module nuwa_framework::agent {
     }
 
     public fun process_input<I: copy + drop>(
+        caller: &signer,
         agent_obj: &mut Object<Agent>,
         input: AgentInput<I>,
     ) {
+        let agent_id = object::id(agent_obj);
         let agent = object::borrow_mut(agent_obj);
         
-        
         // Generate system prompt with context
-        let _system_prompt = generate_system_prompt(
+        let system_prompt = generate_system_prompt(
             agent,
             &input
         );
 
-        // TODO: Call AI service to generate response
-        let AgentInput {
-            sender: _,
-            input_description: _,
-            input_data: _,
-        } = input;
+        // Create chat messages
+        let messages = vector::empty();
+        
+        // Add system message
+        vector::push_back(&mut messages, ai_request::new_system_chat_message(system_prompt));
+
+        // Create chat request
+        let chat_request = ai_request::new_chat_request(
+            agent.model_provider,
+            messages,
+        );
+
+        // Call AI service
+        ai_service::request_ai(caller, agent_id, chat_request);
+
         agent.last_active_timestamp = timestamp::now_milliseconds();
     }
 
@@ -137,11 +150,6 @@ module nuwa_framework::agent {
             input_description,
             input_data,
         }
-    }
-
-    #[test]
-    fun test_agent() {
-        // TODO: Add test cases
     }
 
     #[test_only]
