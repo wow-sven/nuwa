@@ -3,8 +3,8 @@ module nuwa_framework::prompt_builder {
     use std::vector;
     use moveos_std::json;
     use nuwa_framework::character::{Self, Character};
-    use nuwa_framework::memory::{Self, MemoryStore};
-    use nuwa_framework::action::{Self, ActionDescription, ActionArgument};
+    use nuwa_framework::memory::{Self, Memory, MemoryStore};
+    use nuwa_framework::action::{ActionDescription};
 
     /// Data structures for JSON serialization
     struct CharacterInfo has copy, drop {
@@ -22,40 +22,17 @@ module nuwa_framework::prompt_builder {
         data: D,                  // The actual input data
     }
 
-    /// Updated ContextInfo to separate self and user memories
+    /// Updated ContextInfo to use Memory directly
     struct ContextInfo<D> has copy, drop {
-        self_memories: vector<MemoryInfo>,    // AI's own memories
-        user_memories: vector<MemoryInfo>,    // Memories about the user
+        self_memories: vector<Memory>,    // AI's own memories
+        user_memories: vector<Memory>,    // Memories about the user
         input: InputContext<D>,
-    }
-
-    struct MemoryInfo has copy, drop {
-        owner: address,          // Add owner to distinguish memory ownership
-        content: String,
-        context: String,
-        timestamp: u64,
-    }
-
-    struct ActionInfo has copy, drop {
-        name: String,
-        description: String,
-        args: vector<ActionArgInfo>,
-        example: String,
-        usage_hint: String,
-        constraints: String,
-    }
-
-    struct ActionArgInfo has copy, drop {
-        name: String,
-        type_desc: String,
-        description: String,
-        required: bool,
     }
 
     struct Prompt<D> has copy, drop {
         character: CharacterInfo,
         context: ContextInfo<D>,
-        actions: vector<ActionInfo>,
+        actions: vector<ActionDescription>,
         instructions: vector<String>,
     }
 
@@ -91,7 +68,7 @@ module nuwa_framework::prompt_builder {
         // Action capabilities section
         string::append(&mut prompt, string::utf8(b"\n### Your Capabilities\n"));
         string::append(&mut prompt, string::utf8(b"You can perform the following actions, in order of priority (memory management before responses):\n"));
-        string::append(&mut prompt, build_json_section(&build_action_info(&available_actions)));
+        string::append(&mut prompt, build_json_section(&available_actions));
 
         // Updated instructions for autonomous behavior
         string::append(&mut prompt, string::utf8(b"\n### Operating Guidelines\n"));
@@ -146,78 +123,15 @@ module nuwa_framework::prompt_builder {
         user: address,
         input: InputContext<D>,
     ): ContextInfo<D> {
-        // Get both self and user memories
+        // Get both self and user memories - these now directly return Memory objects
         let self_memories = memory::get_context_memories(store, agent_address);
         let user_memories = memory::get_context_memories(store, user);
         
-        let self_memory_infos = vector::empty();
-        let user_memory_infos = vector::empty();
-        
-        // Process self memories
-        let i = 0;
-        while (i < vector::length(&self_memories)) {
-            let memory = vector::borrow(&self_memories, i);
-            vector::push_back(&mut self_memory_infos, MemoryInfo {
-                owner: agent_address,
-                content: memory::get_content(memory),
-                context: memory::get_context(memory),
-                timestamp: memory::get_timestamp(memory),
-            });
-            i = i + 1;
-        };
-
-        // Process user memories
-        let i = 0;
-        while (i < vector::length(&user_memories)) {
-            let memory = vector::borrow(&user_memories, i);
-            vector::push_back(&mut user_memory_infos, MemoryInfo {
-                owner: user,
-                content: memory::get_content(memory),
-                context: memory::get_context(memory),
-                timestamp: memory::get_timestamp(memory),
-            });
-            i = i + 1;
-        };
-
         ContextInfo {
-            self_memories: self_memory_infos,
-            user_memories: user_memory_infos,
+            self_memories,
+            user_memories,
             input,
         }
-    }
-
-    fun build_action_info(actions: &vector<ActionDescription>): vector<ActionInfo> {
-        let action_infos = vector::empty();
-        let i = 0;
-        while (i < vector::length(actions)) {
-            let action = vector::borrow(actions, i);
-            vector::push_back(&mut action_infos, ActionInfo {
-                name: action::get_name(action),
-                description: action::get_description(action),
-                args: build_action_args(action::get_args(action)),
-                example: action::get_example(action),
-                usage_hint: action::get_usage_hint(action),
-                constraints: action::get_constraints(action),
-            });
-            i = i + 1;
-        };
-        action_infos
-    }
-
-    fun build_action_args(args: &vector<ActionArgument>): vector<ActionArgInfo> {
-        let arg_infos = vector::empty();
-        let i = 0;
-        while (i < vector::length(args)) {
-            let arg = vector::borrow(args, i);
-            vector::push_back(&mut arg_infos, ActionArgInfo {
-                name: action::get_arg_name(arg),
-                type_desc: action::get_arg_type_desc(arg),
-                description: action::get_arg_description(arg),
-                required: action::get_arg_required(arg),
-            });
-            i = i + 1;
-        };
-        arg_infos
     }
 
 }

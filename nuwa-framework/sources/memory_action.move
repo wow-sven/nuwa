@@ -3,6 +3,7 @@ module nuwa_framework::memory_action {
     use std::vector;
     use std::option;
     use moveos_std::object::Object;
+    use moveos_std::string_utils;
     use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::memory;
     use nuwa_framework::action;
@@ -11,14 +12,9 @@ module nuwa_framework::memory_action {
     /// Memory action names using namespaced format
     const ACTION_NAME_ADD: vector<u8> = b"memory::add";
     const ACTION_NAME_UPDATE: vector<u8> = b"memory::update";
-    const ACTION_NAME_DELETE: vector<u8> = b"memory::delete";
-
-    /// Common property names
-    const PROPERTY_PERSONALITY: vector<u8> = b"personality";
-    const PROPERTY_INTEREST: vector<u8> = b"interest";
-    const PROPERTY_COMMUNICATION_STYLE: vector<u8> = b"communication_style";
-    const PROPERTY_TRUST_LEVEL: vector<u8> = b"trust_level";
-    const PROPERTY_EXPERTISE: vector<u8> = b"expertise";
+    
+    /// Special content to mark "deleted" memories
+    const MEMORY_DELETED_MARK: vector<u8> = b"[deleted]";
 
     /// Memory contexts
     const CONTEXT_PERSONAL: vector<u8> = b"personal";        // Personal information and preferences
@@ -121,9 +117,9 @@ module nuwa_framework::memory_action {
                 true,
             ),
             action::new_action_argument(
-                string::utf8(b"old_content"),
-                string::utf8(b"string"),
-                string::utf8(b"The content to update"),
+                string::utf8(b"index"),
+                string::utf8(b"u64"),
+                string::utf8(b"The index of the memory to update"),
                 true,
             ),
             action::new_action_argument(
@@ -133,16 +129,16 @@ module nuwa_framework::memory_action {
                 true,
             ),
             action::new_action_argument(
-                string::utf8(b"context"),
+                string::utf8(b"new_context"),
                 string::utf8(b"string"),
-                string::utf8(b"The memory context"),
-                true,
+                contexts,
+                false,
             ),
             action::new_action_argument(
                 string::utf8(b"is_long_term"),
                 string::utf8(b"bool"),
                 string::utf8(b"Whether it's a long-term memory"),
-                false,
+                true,
             ),
         ];
 
@@ -150,34 +146,9 @@ module nuwa_framework::memory_action {
             string::utf8(ACTION_NAME_UPDATE),
             string::utf8(b"Update an existing memory"),
             update_memory_args,
-            string::utf8(b"{\"action\":\"memory::update\",\"args\":[\"old content\",\"new content\",\"context\",true]}"),
-            string::utf8(b"Use this action to modify existing memories when user preferences or knowledge needs to be updated"),
-            string::utf8(b"Old content must match an existing memory exactly. New content should be factual and objective"),
-        );
-
-        // Register delete_memory action
-        let delete_memory_args = vector[
-            action::new_action_argument(
-                string::utf8(b"content"),
-                string::utf8(b"string"),
-                string::utf8(b"The content of the memory to delete"),
-                true,
-            ),
-            action::new_action_argument(
-                string::utf8(b"context"),
-                string::utf8(b"string"),
-                string::utf8(b"The context of the memory"),
-                true,
-            ),
-        ];
-
-        action::register_action(
-            string::utf8(ACTION_NAME_DELETE),
-            string::utf8(b"Delete an existing memory"),
-            delete_memory_args,
-            string::utf8(b"{\"action\":\"memory::delete\",\"args\":[\"content to delete\",\"context\"]}"),
-            string::utf8(b"Use this action to remove outdated or incorrect memories. Use with caution"),
-            string::utf8(b"Only use for memories that are explicitly contradicted or no longer relevant"),
+            string::utf8(b"{\"action\":\"memory::update\",\"args\":[\"0x123\",\"5\",\"User now prefers concise explanations\",\"preference\",\"true\"]}"),
+            string::utf8(b"Use this action to modify existing memories or mark them as deleted by setting content to '[deleted]'. The index can be found in the context memories list."),
+            string::utf8(b"Index must be valid. Content can be '[deleted]' to mark a memory as removed."),
         );
     }
 
@@ -205,21 +176,25 @@ module nuwa_framework::memory_action {
                 is_long_term,
             );
         } else if (action_name == string::utf8(ACTION_NAME_UPDATE)) {
-            assert!(vector::length(&args) >= 4, 1); // target, old_content, new_content, and context are required
+            assert!(vector::length(&args) >= 4, 1); // target, index, new_content, is_long_term required
             let target = address_utils::parse_address(vector::borrow(&args, 0));
-            let old_content = *vector::borrow(&args, 1);
-            let new_content = *vector::borrow(&args, 2);
-            let context = *vector::borrow(&args, 3);
-            let is_long_term = if (vector::length(&args) > 4) {
-                string::utf8(b"true") == *vector::borrow(&args, 4)
+            let index = string_utils::parse_u64(vector::borrow(&args, 1));
+            let new_content = vector::borrow(&args, 2);
+            let new_context = if (vector::length(&args) > 3) {
+                option::some(*vector::borrow(&args, 3))
             } else {
-                false
+                option::none()
             };
+            let is_long_term = string::utf8(b"true") == *vector::borrow(&args, 4);
 
-            update_memory(store, target, old_content, new_content, context, is_long_term);
-        } else if (action_name == string::utf8(ACTION_NAME_DELETE)) {
-            // TODO: Implement delete functionality
-            assert!(vector::length(&args) >= 2, 1);
+            memory::update_memory(
+                store,
+                target,
+                index,
+                *new_content,
+                new_context,
+                is_long_term,
+            );
         };
     }
 

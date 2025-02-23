@@ -16,8 +16,9 @@ module nuwa_framework::memory {
 
     /// Single memory entry
     struct Memory has copy, store, drop {
+        index: u64,          // Position in its container (short_term or long_term)
         content: String,
-        context: String,      // Memory context/category
+        context: String,     // Memory context/category
         timestamp: u64,
     }
 
@@ -65,7 +66,14 @@ module nuwa_framework::memory {
         };
 
         let meta_memory = table::borrow_mut(&mut store.memories, user);
+        let memories = if (is_long_term) {
+            &mut meta_memory.long_term
+        } else {
+            &mut meta_memory.short_term
+        };
+        
         let memory = Memory {
+            index: table_vec::length(memories),
             content,
             context,
             timestamp: timestamp::now_milliseconds(),
@@ -288,6 +296,11 @@ module nuwa_framework::memory {
         memory.timestamp
     }
 
+    // Add getter for index
+    public fun get_index(memory: &Memory): u64 {
+        memory.index
+    }
+
     #[test_only]
     public fun destroy_memory_store_for_test(store: MemoryStore) {
         let MemoryStore { memories } = store;
@@ -298,5 +311,25 @@ module nuwa_framework::memory {
     /// Create a new memory store for testing
     public fun new_test_memory_store(): MemoryStore {
         new_memory_store()
+    }
+
+    #[test]
+    fun test_memory_indices() {
+        use std::string;
+        let store = new_test_memory_store();
+        let test_user = @0x42;
+
+        // Add memories
+        add_memory(&mut store, test_user, string::utf8(b"First"), string::utf8(b"test"), true);
+        add_memory(&mut store, test_user, string::utf8(b"Second"), string::utf8(b"test"), true);
+        add_memory(&mut store, test_user, string::utf8(b"Third"), string::utf8(b"test"), true);
+
+        // Verify indices
+        let memories = get_all_memories(&store, test_user, false);
+        assert!(get_index(vector::borrow(&memories, 0)) == 0, 1);
+        assert!(get_index(vector::borrow(&memories, 1)) == 1, 2);
+        assert!(get_index(vector::borrow(&memories, 2)) == 2, 3);
+
+        destroy_memory_store_for_test(store);
     }
 }
