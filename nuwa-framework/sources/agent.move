@@ -60,22 +60,24 @@ module nuwa_framework::agent {
     }
 
     /// Generate system prompt based on Character attributes
-    public fun generate_system_prompt<I: drop>(
+    public fun generate_system_prompt<I: copy + drop>(
         agent: &Agent,
         input: &AgentInput<I>,
         available_actions: vector<ActionDescription>,
     ): String {
         let character = object::borrow(&agent.character);
         prompt_builder::build_complete_prompt(
+            agent.agent_address,
             character,
             &agent.memory_store,
             input.sender,
             input.input_description,
+            input.input_data,
             available_actions,
         )
     }
 
-    public fun process_input<I: drop>(
+    public fun process_input<I: copy + drop>(
         agent_obj: &mut Object<Agent>,
         input: AgentInput<I>,
     ) {

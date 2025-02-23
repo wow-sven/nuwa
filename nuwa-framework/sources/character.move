@@ -101,6 +101,10 @@ module nuwa_framework::character {
         &character.name
     }
 
+    public fun get_username(character: &Character): &String {
+        &character.username
+    }
+
     public fun get_description(character: &Character): &String {
         &character.description
     }
@@ -111,16 +115,6 @@ module nuwa_framework::character {
 
     public fun get_knowledge(character: &Character): &vector<String> {
         &character.knowledge
-    }
-
-    /// Get personality from bio
-    public fun get_personality(character: &Character): String {
-        // For now, just return the first bio entry or a default value
-        if (vector::length(&character.bio) > 0) {
-            *vector::borrow(&character.bio, 0)
-        } else {
-            string::utf8(b"Friendly and helpful")
-        }
     }
 
     #[test(caller = @0x42)]
@@ -142,8 +136,7 @@ module nuwa_framework::character {
         assert!(*get_description(character) == string::utf8(b"You are Dobby, a helpful and loyal assistant."), 2);
         assert!(vector::length(get_bio(character)) == 1, 3);
         assert!(vector::length(get_knowledge(character)) == 1, 4);
-        assert!(get_personality(character) == string::utf8(b"Dobby is a free assistant who helps because of his enormous heart."), 5);
-
+       
         // Test add_bio
         add_bio(&mut character_obj, string::utf8(b"Dobby excels at programming and system design"));
         let character = object::borrow(&character_obj);

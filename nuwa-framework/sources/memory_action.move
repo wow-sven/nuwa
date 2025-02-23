@@ -54,6 +54,8 @@ module nuwa_framework::memory_action {
             string::utf8(b"Store a new memory about the user or interaction"),
             add_memory_args,
             string::utf8(b"{\"action\":\"memory::add\",\"args\":[\"User prefers technical explanations\",\"preference\",true]}"),
+            string::utf8(b"Use this action to store important user preferences, behaviors, or interaction patterns"),
+            string::utf8(b"Content should be factual and objective. Context must be one of the predefined categories"),
         );
 
         // Register update_memory action
@@ -89,6 +91,8 @@ module nuwa_framework::memory_action {
             string::utf8(b"Update an existing memory"),
             update_memory_args,
             string::utf8(b"{\"action\":\"memory::update\",\"args\":[\"old content\",\"new content\",\"context\",true]}"),
+            string::utf8(b"Use this action to modify existing memories when user preferences or knowledge needs to be updated"),
+            string::utf8(b"Old content must match an existing memory exactly. New content should be factual and objective"),
         );
 
         // Register delete_memory action
@@ -112,6 +116,8 @@ module nuwa_framework::memory_action {
             string::utf8(b"Delete an existing memory"),
             delete_memory_args,
             string::utf8(b"{\"action\":\"memory::delete\",\"args\":[\"content to delete\",\"context\"]}"),
+            string::utf8(b"Use this action to remove outdated or incorrect memories. Use with caution"),
+            string::utf8(b"Only use for memories that are explicitly contradicted or no longer relevant"),
         );
     }
 

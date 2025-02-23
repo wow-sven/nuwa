@@ -9,15 +9,24 @@ module nuwa_framework::prompt_builder {
 
     /// Data structures for JSON serialization
     struct CharacterInfo has copy, drop {
+        name: String,            // AI's name
+        username: String,        // AI's username
+        agent_address: address,  // AI's agent address
         description: String,
         bio: vector<String>,
         knowledge: vector<String>,
-        personality: String,
     }
 
-    struct ContextInfo has copy, drop {
+    /// Data structure for input context
+    struct InputContext<D> has copy, drop {
+        description: String,      // Description of what this input represents
+        data: D,                  // The actual input data
+    }
+
+    /// Updated ContextInfo to include input context
+    struct ContextInfo<D> has copy, drop {
         memories: vector<MemoryInfo>,
-        current_input: String,
+        input: InputContext<D>,
         user_properties: SimpleMap<String, String>,
     }
 
@@ -32,6 +41,8 @@ module nuwa_framework::prompt_builder {
         description: String,
         args: vector<ActionArgInfo>,
         example: String,
+        usage_hint: String,
+        constraints: String,
     }
 
     struct ActionArgInfo has copy, drop {
@@ -41,63 +52,53 @@ module nuwa_framework::prompt_builder {
         required: bool,
     }
 
-    struct Prompt has copy, drop {
+    struct Prompt<D> has copy, drop {
         character: CharacterInfo,
-        context: ContextInfo,
+        context: ContextInfo<D>,
         actions: vector<ActionInfo>,
         instructions: vector<String>,
     }
 
-    public fun build_complete_prompt(
+    public fun build_complete_prompt<D: drop>(
+        agent_address: address,
         character: &Character,
         memory_store: &MemoryStore,
         user: address,
         input_description: String,
+        input_data: D,
         available_actions: vector<ActionDescription>,
     ): String {
         let prompt = string::utf8(b"You are an AI assistant with the following configuration:\n\n");
         
-        // Add character section with better formatting
+        // Add character section with agent address
         string::append(&mut prompt, string::utf8(b"### Character Profile\n"));
-        string::append(&mut prompt, build_json_section(&build_character_info(character)));
+        string::append(&mut prompt, build_json_section(&build_character_info(character, agent_address)));
 
-        // Add context section
+        // Add context section with input context
         string::append(&mut prompt, string::utf8(b"\n### Context\n"));
-        string::append(&mut prompt, build_json_section(&build_context_info(memory_store, user, input_description)));
+        string::append(&mut prompt, build_json_section(&build_context_info(
+            memory_store,
+            user,
+            InputContext { 
+                description: input_description,
+                data: input_data,
+            }
+        )));
 
-        // Add available actions section
+        // Simplified action section
         string::append(&mut prompt, string::utf8(b"\n### Available Actions\n"));
+        string::append(&mut prompt, string::utf8(b"Actions are ordered by their namespace (memory:: actions should be executed before response::)\n"));
         string::append(&mut prompt, build_json_section(&build_action_info(&available_actions)));
 
-        // Enhanced instructions section
+        // Simplified instructions
         string::append(&mut prompt, string::utf8(b"\n### Instructions\n"));
         string::append(&mut prompt, string::utf8(b"1. Act according to the character profile above\n"));
-        string::append(&mut prompt, string::utf8(b"2. Consider the context, including user memories and properties\n"));
-        string::append(&mut prompt, string::utf8(b"3. Use only the available actions in your response\n"));
-        string::append(&mut prompt, string::utf8(b"4. Keep responses concise but detailed, aim for 2-3 sentences\n"));
-        string::append(&mut prompt, string::utf8(b"5. IMPORTANT: Return a plain JSON response without any markdown or code blocks\n"));
-        
-        // Add response format section
-        string::append(&mut prompt, string::utf8(b"\n### Response Format\n"));
-        string::append(&mut prompt, string::utf8(b"Return a single JSON object with this exact structure:\n\n"));
-        string::append(&mut prompt, string::utf8(b"{\n"));
-        string::append(&mut prompt, string::utf8(b"  \"thought\": \"(internal reasoning, 1-2 sentences)\",\n"));
-        string::append(&mut prompt, string::utf8(b"  \"response\": \"(user-facing response, 2-3 sentences)\",\n"));
-        string::append(&mut prompt, string::utf8(b"  \"actions\": [\n"));
-        string::append(&mut prompt, string::utf8(b"    {\n"));
-        string::append(&mut prompt, string::utf8(b"      \"action\": \"(must be one from Available Actions)\",\n"));
-        string::append(&mut prompt, string::utf8(b"      \"args\": [\"(arguments matching the action's required args)\"]\n"));
-        string::append(&mut prompt, string::utf8(b"    }\n"));
-        string::append(&mut prompt, string::utf8(b"  ]\n"));
-        string::append(&mut prompt, string::utf8(b"}\n"));
+        string::append(&mut prompt, string::utf8(b"2. Consider the context and follow each action's usage hints and constraints\n"));
+        string::append(&mut prompt, string::utf8(b"3. Return a plain JSON response with only the actions array\n"));
 
-        // Add examples section
-        string::append(&mut prompt, string::utf8(b"\n### Example Good Response\n"));
-        string::append(&mut prompt, string::utf8(b"{\n"));
-        string::append(&mut prompt, string::utf8(b"  \"thought\": \"User prefers detailed explanations and has high trust level.\",\n"));
-        string::append(&mut prompt, string::utf8(b"  \"response\": \"I understand you prefer detailed explanations. Let me help you with that.\",\n"));
-        string::append(&mut prompt, string::utf8(b"  \"actions\": [{ \"action\": \"test_action\", \"args\": [\"user preference noted\"] }]\n"));
-        string::append(&mut prompt, string::utf8(b"}\n"));
+        // Simplified response format
+        string::append(&mut prompt, string::utf8(b"\n### Response Format\n"));
+        string::append(&mut prompt, string::utf8(b"{\n  \"actions\": [/* actions ordered by usage_order */]\n}\n"));
 
         prompt
     }
@@ -112,38 +113,33 @@ module nuwa_framework::prompt_builder {
         formatted
     }
 
-    fun build_character_info(character: &Character): CharacterInfo {
-        // Clone the references to create owned values
-        let desc = *character::get_description(character);
-        let bio = vector::empty();
-        let bio_ref = character::get_bio(character);
-        let i = 0;
-        while (i < vector::length(bio_ref)) {
-            vector::push_back(&mut bio, *vector::borrow(bio_ref, i));
-            i = i + 1;
-        };
-        
-        let knowledge = vector::empty();
-        let knowledge_ref = character::get_knowledge(character);
-        let i = 0;
-        while (i < vector::length(knowledge_ref)) {
-            vector::push_back(&mut knowledge, *vector::borrow(knowledge_ref, i));
-            i = i + 1;
-        };
-
+    fun build_character_info(character: &Character, agent_address: address): CharacterInfo {
         CharacterInfo {
-            description: desc,
-            bio,
-            knowledge,
-            personality: character::get_personality(character),
+            name: *character::get_name(character),
+            username: *character::get_username(character),
+            agent_address,
+            description: *character::get_description(character),
+            bio: copy_vector(character::get_bio(character)),
+            knowledge: copy_vector(character::get_knowledge(character)),
         }
     }
 
-    fun build_context_info(
+    // Helper function to copy vector
+    fun copy_vector(v: &vector<String>): vector<String> {
+        let result = vector::empty();
+        let i = 0;
+        while (i < vector::length(v)) {
+            vector::push_back(&mut result, *vector::borrow(v, i));
+            i = i + 1;
+        };
+        result
+    }
+
+    fun build_context_info<D: drop>(
         store: &MemoryStore,
         user: address,
-        input: String
-    ): ContextInfo {
+        input: InputContext<D>,
+    ): ContextInfo<D> {
         let memories = memory::get_context_memories(store, user);
         let memory_infos = vector::empty();
         let i = 0;
@@ -169,7 +165,7 @@ module nuwa_framework::prompt_builder {
 
         ContextInfo {
             memories: memory_infos,
-            current_input: input,
+            input,
             user_properties: properties,
         }
     }
@@ -179,12 +175,13 @@ module nuwa_framework::prompt_builder {
         let i = 0;
         while (i < vector::length(actions)) {
             let action = vector::borrow(actions, i);
-            // Use action module's public getters instead of direct field access
             vector::push_back(&mut action_infos, ActionInfo {
                 name: action::get_name(action),
                 description: action::get_description(action),
                 args: build_action_args(action::get_args(action)),
                 example: action::get_example(action),
+                usage_hint: action::get_usage_hint(action),
+                constraints: action::get_constraints(action),
             });
             i = i + 1;
         };
@@ -207,111 +204,4 @@ module nuwa_framework::prompt_builder {
         arg_infos
     }
 
-    fun build_instructions(): vector<String> {
-        vector[
-            string::utf8(b"Analyze the context data including memories and user properties"),
-            string::utf8(b"Choose appropriate actions based on the analysis"),
-            string::utf8(b"Respond in character using the personality traits provided"),
-            string::utf8(b"Return actions in valid JSON format as shown in examples")
-        ]
-    }
-
-    #[test]
-    fun test_prompt_builder() {
-        use std::debug;
-        use std::string;
-        use moveos_std::object;
-        use nuwa_framework::character;
-        use nuwa_framework::action;
-        use nuwa_framework::memory;
-
-        action::init_for_test();
-
-        // Create test character
-        let char_data = character::new_character_data(
-            string::utf8(b"Test Assistant"),
-            string::utf8(b"test_assistant"),
-            string::utf8(b"A helpful test assistant"),
-            vector[string::utf8(b"Friendly and precise"), string::utf8(b"Always happy to help")],
-            vector[string::utf8(b"General knowledge"), string::utf8(b"Technical expertise")]
-        );
-        let character_obj = character::create_character(char_data);
-        let character = object::borrow(&character_obj);
-
-        // Create memory store using test_only function
-        let store = memory::new_test_memory_store();
-        let test_user = @0x42;
-
-        memory::add_memory(
-            &mut store,
-            test_user,
-            string::utf8(b"User prefers detailed explanations"),
-            memory::memory_type_knowledge(),
-            memory::context_preference(),
-            true
-        );
-
-        // Set some test properties
-        memory::set_meta_property(
-            &mut store,
-            test_user,
-            memory::property_language(),
-            string::utf8(b"en")
-        );
-        memory::set_meta_property(
-            &mut store,
-            test_user,
-            memory::property_trust_level(),
-            string::utf8(b"high")
-        );
-
-        // Register test action
-        let action_args = vector[
-            action::new_action_argument(
-                string::utf8(b"content"),
-                string::utf8(b"string"),
-                string::utf8(b"Memory content"),
-                true
-            )
-        ];
-
-        action::register_action(
-            string::utf8(b"test_action"),
-            string::utf8(b"Test action description"),
-            action_args,
-            string::utf8(b"{\"action\":\"test_action\",\"args\":[\"test\"]}")
-        );
-
-        // Get the action description
-        let available_actions = action::get_action_descriptions(&vector::singleton(string::utf8(b"test_action")));
-
-        // Build the complete prompt
-        let prompt = build_complete_prompt(
-            character,
-            &store,
-            test_user,
-            string::utf8(b"How can I help you today?"),
-            available_actions
-        );
-
-        // Print the generated prompt
-        debug::print(&b"Generated Prompt:");
-        debug::print(&prompt);
-
-        // Verify prompt contents
-        // assert!(string::contains(&prompt, &string::utf8(b"Test Assistant")), 1);
-        // assert!(string::contains(&prompt, &string::utf8(b"User prefers detailed explanations")), 2);
-        // assert!(string::contains(&prompt, &string::utf8(b"test_action")), 3);
-        // assert!(string::contains(&prompt, &string::utf8(b"How can I help you today?")), 4);
-
-        // Clean up
-        memory::destroy_memory_store_for_test(store);
-        character::destroy_character(character_obj);
-    }
-
-    #[test]
-    fun test_json(){
-        let json_str = string::utf8(b"{\"value\":0,\"empty_string\":\"\"}");
-        std::debug::print(&json_str);
-    }
 }

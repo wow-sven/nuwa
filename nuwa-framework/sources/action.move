@@ -10,6 +10,8 @@ module nuwa_framework::action {
         description: String,
         args: vector<ActionArgument>,
         example: String,
+        usage_hint: String,       // When and how to use this action
+        constraints: String,      // Requirements and limitations
     }
 
     struct ActionArgument has copy, drop, store {
@@ -47,16 +49,20 @@ module nuwa_framework::action {
         description: String,
         args: vector<ActionArgument>,
         example: String,
+        usage_hint: String,
+        constraints: String,
     ) {
         let registry = borrow_mut_registry();
         assert!(!table::contains(&registry.descriptions, name), ERROR_ACTION_ALREADY_REGISTERED);
 
-        let action_desc = ActionDescription {
+        let action_desc = new_action_description(
             name,
             description,
             args,
             example,
-        };
+            usage_hint,
+            constraints,
+        );
         table::add(&mut registry.descriptions, name, action_desc);
     }
 
@@ -72,6 +78,24 @@ module nuwa_framework::action {
             type_desc,
             description,
             required,
+        }
+    }
+
+    public fun new_action_description(
+        name: String,
+        description: String,
+        args: vector<ActionArgument>,
+        example: String,
+        usage_hint: String,
+        constraints: String,
+    ): ActionDescription {
+        ActionDescription {
+            name,
+            description,
+            args,
+            example,
+            usage_hint,
+            constraints,
         }
     }
 
@@ -118,6 +142,9 @@ module nuwa_framework::action {
         action.example
     }
 
+    public fun get_usage_hint(action: &ActionDescription): String { action.usage_hint }
+    public fun get_constraints(action: &ActionDescription): String { action.constraints }
+
     // Add getters for ActionArgument
     public fun get_arg_name(arg: &ActionArgument): String { arg.name }
     public fun get_arg_type_desc(arg: &ActionArgument): String { arg.type_desc }
@@ -149,6 +176,8 @@ module nuwa_framework::action {
             string::utf8(b"Add a new memory"),
             args,
             string::utf8(b"{\"action\":\"add_memory\",\"args\":[\"test memory\"]}"),
+            string::utf8(b"Use this action to add a new memory"),
+            string::utf8(b"Memory content must be a non-empty string"),
         );
 
         // Verify registration
@@ -176,6 +205,8 @@ module nuwa_framework::action {
             string::utf8(b"Add a new memory"),
             args,
             string::utf8(b"{\"action\":\"add_memory\",\"args\":[\"test memory\"]}"),
+            string::utf8(b"Use this action to add a new memory"),
+            string::utf8(b"Memory content must be a non-empty string"),
         );
 
         let action_key = string::utf8(b"add_memory");
