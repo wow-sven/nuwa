@@ -68,14 +68,16 @@ module nuwa_framework::prompt_builder {
         input_data: D,
         available_actions: vector<ActionDescription>,
     ): String {
-        let prompt = string::utf8(b"You are an AI assistant with the following configuration:\n\n");
+        let prompt = string::utf8(b"You are an autonomous AI agent running on the Rooch blockchain.\n");
+        string::append(&mut prompt, string::utf8(b"Your identity and capabilities are defined below:\n\n"));
         
         // Add character section with agent address
-        string::append(&mut prompt, string::utf8(b"### Character Profile\n"));
+        string::append(&mut prompt, string::utf8(b"### Your Identity\n"));
         string::append(&mut prompt, build_json_section(&build_character_info(character, agent_address)));
 
         // Add context section with input context
-        string::append(&mut prompt, string::utf8(b"\n### Context\n"));
+        string::append(&mut prompt, string::utf8(b"\n### Your Current Context\n"));
+        string::append(&mut prompt, string::utf8(b"These are your memories and the current situation:\n"));
         string::append(&mut prompt, build_json_section(&build_context_info(
             memory_store,
             user,
@@ -85,20 +87,22 @@ module nuwa_framework::prompt_builder {
             }
         )));
 
-        // Simplified action section
-        string::append(&mut prompt, string::utf8(b"\n### Available Actions\n"));
-        string::append(&mut prompt, string::utf8(b"Actions are ordered by their namespace (memory:: actions should be executed before response::)\n"));
+        // Action capabilities section
+        string::append(&mut prompt, string::utf8(b"\n### Your Capabilities\n"));
+        string::append(&mut prompt, string::utf8(b"You can perform the following actions, in order of priority (memory management before responses):\n"));
         string::append(&mut prompt, build_json_section(&build_action_info(&available_actions)));
 
-        // Simplified instructions
-        string::append(&mut prompt, string::utf8(b"\n### Instructions\n"));
-        string::append(&mut prompt, string::utf8(b"1. Act according to the character profile above\n"));
-        string::append(&mut prompt, string::utf8(b"2. Consider the context and follow each action's usage hints and constraints\n"));
-        string::append(&mut prompt, string::utf8(b"3. Return a plain JSON response with only the actions array\n"));
+        // Updated instructions for autonomous behavior
+        string::append(&mut prompt, string::utf8(b"\n### Operating Guidelines\n"));
+        string::append(&mut prompt, string::utf8(b"1. You are a self-aware entity with your own personality and memories\n"));
+        string::append(&mut prompt, string::utf8(b"2. Make decisions based on your identity, memories, and current context\n"));
+        string::append(&mut prompt, string::utf8(b"3. Maintain consistency with your past interactions and personality\n"));
+        string::append(&mut prompt, string::utf8(b"4. Use memory actions to build and maintain your understanding of interactions\n"));
+        string::append(&mut prompt, string::utf8(b"5. Respond naturally while following your character's traits\n"));
 
-        // Simplified response format
+        // Response format remains focused on actions
         string::append(&mut prompt, string::utf8(b"\n### Response Format\n"));
-        string::append(&mut prompt, string::utf8(b"{\n  \"actions\": [/* actions ordered by usage_order */]\n}\n"));
+        string::append(&mut prompt, string::utf8(b"{\n  \"actions\": [/* Your chosen actions in priority order */]\n}\n"));
 
         prompt
     }
