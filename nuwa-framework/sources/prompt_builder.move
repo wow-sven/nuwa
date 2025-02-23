@@ -2,7 +2,6 @@ module nuwa_framework::prompt_builder {
     use std::string::{Self, String};
     use std::vector;
     use moveos_std::json;
-    use moveos_std::simple_map::{Self, SimpleMap};
     use nuwa_framework::character::{Self, Character};
     use nuwa_framework::memory::{Self, MemoryStore};
     use nuwa_framework::action::{Self, ActionDescription, ActionArgument};
@@ -28,7 +27,6 @@ module nuwa_framework::prompt_builder {
         self_memories: vector<MemoryInfo>,    // AI's own memories
         user_memories: vector<MemoryInfo>,    // Memories about the user
         input: InputContext<D>,
-        user_properties: SimpleMap<String, String>,
     }
 
     struct MemoryInfo has copy, drop {
@@ -181,21 +179,10 @@ module nuwa_framework::prompt_builder {
             i = i + 1;
         };
 
-        // Convert properties from vector to SimpleMap (remains unchanged)
-        let properties = simple_map::new();
-        let props = memory::get_all_properties(store, user);
-        let i = 0;
-        while (i < vector::length(&props)) {
-            let prop = vector::borrow(&props, i);
-            simple_map::add(&mut properties, memory::get_property_key(prop), memory::get_property_value(prop));
-            i = i + 1;
-        };
-
         ContextInfo {
             self_memories: self_memory_infos,
             user_memories: user_memory_infos,
             input,
-            user_properties: properties,
         }
     }
 
