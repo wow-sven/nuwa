@@ -3,13 +3,9 @@ module nuwa_framework::action {
     use std::vector;
     use moveos_std::table::{Self, Table};
     use moveos_std::object;
-    use moveos_std::type_info::{Self, TypeInfo};
-    use moveos_std::hex;
-    use std::bcs;
 
     /// Action description for AI
     struct ActionDescription has copy, drop, store {
-        type_info: TypeInfo,     // Use TypeInfo to identify action type
         name: String,
         description: String,
         args: vector<ActionArgument>,
@@ -46,25 +42,22 @@ module nuwa_framework::action {
     }
 
     /// Register a new action with its description
-    public fun register_action<T>(
+    public fun register_action(
         name: String,
         description: String,
         args: vector<ActionArgument>,
         example: String,
     ) {
         let registry = borrow_mut_registry();
-        let type_info = type_info::type_of<T>();
-        let action_key = get_action_key(&type_info, &name);
-        assert!(!table::contains(&registry.descriptions, action_key), ERROR_ACTION_ALREADY_REGISTERED);
+        assert!(!table::contains(&registry.descriptions, name), ERROR_ACTION_ALREADY_REGISTERED);
 
         let action_desc = ActionDescription {
-            type_info,
             name,
             description,
             args,
             example,
         };
-        table::add(&mut registry.descriptions, action_key, action_desc);
+        table::add(&mut registry.descriptions, name, action_desc);
     }
 
     /// Create a new action argument
@@ -102,12 +95,10 @@ module nuwa_framework::action {
     }
 
     /// Get description for specific action
-    public fun get_action_description<T>(name: &String): ActionDescription {
+    public fun get_action_description(name: &String): ActionDescription {
         let registry = borrow_mut_registry();
-        let type_info = type_info::type_of<T>();
-        let action_key = get_action_key(&type_info, name);
-        assert!(table::contains(&registry.descriptions, action_key), ERROR_ACTION_NOT_FOUND);
-        *table::borrow(&registry.descriptions, action_key)
+        assert!(table::contains(&registry.descriptions, *name), ERROR_ACTION_NOT_FOUND);
+        *table::borrow(&registry.descriptions, *name)
     }
 
     /// Getter functions for ActionDescription
@@ -133,29 +124,15 @@ module nuwa_framework::action {
     public fun get_arg_description(arg: &ActionArgument): String { arg.description }
     public fun get_arg_required(arg: &ActionArgument): bool { arg.required }
 
-    /// Get action key by combining type_info components and function name
-    public fun get_action_key(type_info: &TypeInfo, function_name: &String): String {
-        // Format: account_address::module_name::function_name
-        let key = address_to_hex(type_info::account_address(type_info));
-        string::append(&mut key, string::utf8(b"::"));
-        string::append(&mut key, type_info::module_name(type_info));
-        string::append(&mut key, string::utf8(b"::"));
-        string::append(&mut key, *function_name);
-        key
-    }
 
-    /// Convert address to hex string with 0x prefix
-    fun address_to_hex(addr: address): String {
-        let addr_bytes = bcs::to_bytes(&addr);
-        let hex_bytes = hex::encode(addr_bytes);
-        let hex_str = string::utf8(b"0x");
-        string::append(&mut hex_str, string::utf8(hex_bytes));
-        hex_str
+    #[test]
+    public fun init_for_test(){
+        init();
     }
 
     #[test]
     fun test_register_memory_action() {
-        use nuwa_framework::memory;
+        init_for_test();
         
         // Register a memory action
         let args = vector[
@@ -167,38 +144,22 @@ module nuwa_framework::action {
             )
         ];
 
-        register_action<memory::Memory>(
+        register_action(
             string::utf8(b"add_memory"),
             string::utf8(b"Add a new memory"),
             args,
             string::utf8(b"{\"action\":\"add_memory\",\"args\":[\"test memory\"]}"),
         );
+
+        // Verify registration
+        let desc = get_action_description(&string::utf8(b"add_memory"));
+        assert!(desc.name == string::utf8(b"add_memory"), 1);
     }
 
-    #[test]
-    fun test_action_key() {
-        use nuwa_framework::memory::Memory;
-        let type_info = type_info::type_of<Memory>();
-        let function_name = string::utf8(b"add_memory");
-        
-        let key = get_action_key(&type_info, &function_name);
-        // Format: account_address::module_name::function_name
-        assert!(
-            key == string::utf8(b"0x0000000000000000000000000000000000000002::memory::add_memory"), 
-            1
-        );
-    }
-
-    #[test]
-    fun test_address_to_hex() {
-        let addr = @0x42;
-        let hex_str = address_to_hex(addr);
-        assert!(hex_str == string::utf8(b"0x0000000000000000000000000000000000000042"), 1);
-    }
 
     #[test]
     fun test_get_action_descriptions() {
-        use nuwa_framework::memory;
+        init_for_test();
         
         // Register a test action
         let args = vector[
@@ -210,16 +171,14 @@ module nuwa_framework::action {
             )
         ];
 
-        register_action<memory::Memory>(
+        register_action(
             string::utf8(b"add_memory"),
             string::utf8(b"Add a new memory"),
             args,
             string::utf8(b"{\"action\":\"add_memory\",\"args\":[\"test memory\"]}"),
         );
 
-        // Get the action key
-        let type_info = type_info::type_of<memory::Memory>();
-        let action_key = get_action_key(&type_info, &string::utf8(b"add_memory"));
+        let action_key = string::utf8(b"add_memory");
         
         // Get descriptions using the key
         let keys = vector::singleton(action_key);

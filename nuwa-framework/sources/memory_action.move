@@ -1,43 +1,22 @@
 module nuwa_framework::memory_action {
     use std::string::{Self, String};
     use std::vector;
-    use std::option::{Self, Option};
+    use std::option;
     use moveos_std::object::Object;
     use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::memory;
     use nuwa_framework::action;
 
+    /// Memory action names using namespaced format
+    const ACTION_NAME_ADD: vector<u8> = b"memory::add";
+    const ACTION_NAME_UPDATE: vector<u8> = b"memory::update";
+    const ACTION_NAME_DELETE: vector<u8> = b"memory::delete";
 
-    // Define action struct with all required fields
-    struct MemoryAction has copy, drop, store {
-        operation: u8,
-        user: address,
-        content: String,
-        context: String,
-        is_long_term: bool,
-    }
 
     /// Memory operation types
     const ACTION_ADD_MEMORY: u8 = 0;
     const ACTION_UPDATE_MEMORY: u8 = 1;
     const ACTION_DELETE_MEMORY: u8 = 2;
-
-    // Create new memory action
-    public fun new_memory_action(
-        operation: u8,
-        user: address,
-        content: String,
-        context: String,
-        is_long_term: bool,
-    ): MemoryAction {
-        MemoryAction {
-            operation,
-            user,
-            content,
-            context,
-            is_long_term,
-        }
-    }
 
     /// Common property names
     const PROPERTY_PERSONALITY: vector<u8> = b"personality";
@@ -70,11 +49,11 @@ module nuwa_framework::memory_action {
             ),
         ];
 
-        action::register_action<MemoryAction>(
-            string::utf8(b"add_memory"),
+        action::register_action(
+            string::utf8(ACTION_NAME_ADD),
             string::utf8(b"Store a new memory about the user or interaction"),
             add_memory_args,
-            string::utf8(b"{\"action\":\"add_memory\",\"args\":[\"User prefers technical explanations\",\"preference\",true]}"),
+            string::utf8(b"{\"action\":\"memory::add\",\"args\":[\"User prefers technical explanations\",\"preference\",true]}"),
         );
 
         // Register update_memory action
@@ -92,18 +71,24 @@ module nuwa_framework::memory_action {
                 true,
             ),
             action::new_action_argument(
-                string::utf8(b"new_context"),
+                string::utf8(b"context"),
                 string::utf8(b"string"),
-                string::utf8(b"The new context (optional)"),
+                string::utf8(b"The memory context"),
+                true,
+            ),
+            action::new_action_argument(
+                string::utf8(b"is_long_term"),
+                string::utf8(b"bool"),
+                string::utf8(b"Whether it's a long-term memory"),
                 false,
             ),
         ];
 
-        action::register_action<MemoryAction>(
-            string::utf8(b"update_memory"),
+        action::register_action(
+            string::utf8(ACTION_NAME_UPDATE),
             string::utf8(b"Update an existing memory"),
             update_memory_args,
-            string::utf8(b"{\"action\":\"update_memory\",\"args\":[\"old content\",\"new content\",\"new context\"]}"),
+            string::utf8(b"{\"action\":\"memory::update\",\"args\":[\"old content\",\"new content\",\"context\",true]}"),
         );
 
         // Register delete_memory action
@@ -122,103 +107,69 @@ module nuwa_framework::memory_action {
             ),
         ];
 
-        action::register_action<MemoryAction>(
-            string::utf8(b"delete_memory"),
+        action::register_action(
+            string::utf8(ACTION_NAME_DELETE),
             string::utf8(b"Delete an existing memory"),
             delete_memory_args,
-            string::utf8(b"{\"action\":\"delete_memory\",\"args\":[\"content to delete\",\"context\"]}"),
+            string::utf8(b"{\"action\":\"memory::delete\",\"args\":[\"content to delete\",\"context\"]}"),
         );
     }
 
-    /// Execute memory action
-    public fun execute(_agent: &mut Object<Agent>, action_name: String, args: vector<String>) {
-        if (action_name == string::utf8(b"add_memory")) {
+    /// Execute memory actions
+    public fun execute(agent: &mut Object<Agent>, action_name: String, args: vector<String>) {
+        let user = agent::get_agent_address(agent);
+        let store = agent::borrow_memory_store_mut(agent);
+        
+
+        if (action_name == string::utf8(ACTION_NAME_ADD)) {
             assert!(vector::length(&args) >= 2, 1); // content and context are required
-            let _is_long_term = if (vector::length(&args) > 2) {
+            let is_long_term = if (vector::length(&args) > 2) {
                 string::utf8(b"true") == *vector::borrow(&args, 2)
             } else {
                 false
             };
 
-            // memory::add_memory(
-            //     &mut agent.memory_store,
-            //     *vector::borrow(&args, 0), // content
-            //     memory::MEMORY_TYPE_KNOWLEDGE,
-            //     *vector::borrow(&args, 1), // context
-            //     is_long_term,
-            // );
-        } else if (action_name == string::utf8(b"update_memory")) {
-            // ... handle update
-        } else if (action_name == string::utf8(b"delete_memory")) {
-            // ... handle delete
-        };
-    }
-
-    // public fun execute_property_action(
-    //     agent: &mut Object<Agent>, 
-    //     action: UpdatePropertyAction
-    // ) {
-    //     let store = agent::borrow_memory_store_mut(agent);
-    //     memory::set_meta_property(
-    //         store,
-    //         action.user,
-    //         action.property_name,
-    //         action.property_value,
-    //     );
-    // }
-
-    public(friend) fun execute_memory_action(
-        store: &mut memory::MemoryStore,
-        action: MemoryAction
-    ) {
-        if (action.operation == ACTION_ADD_MEMORY) {
             memory::add_memory(
                 store,
-                action.user,
-                action.content,
-                memory::memory_type_knowledge(), // Using getter instead of constant
-                action.context,
-                action.is_long_term,
+                user,
+                *vector::borrow(&args, 0), // content
+                memory::memory_type_knowledge(),
+                *vector::borrow(&args, 1), // context
+                is_long_term,
             );
-        } else if (action.operation == ACTION_UPDATE_MEMORY) {
-            // Handle update using memory module functions
-            let index_opt = memory::find_memory_index(
-                store,
-                action.user,
-                &action.content,
-                &action.context,
-                action.is_long_term
-            );
-            
-            if (option::is_some(&index_opt)) {
-                let index = option::destroy_some(index_opt);
-                memory::update_memory(
-                    store,
-                    action.user,
-                    index,
-                    action.content,
-                    option::some(action.context),
-                    action.is_long_term
-                );
+        } else if (action_name == string::utf8(ACTION_NAME_UPDATE)) {
+            assert!(vector::length(&args) >= 3, 1); // old_content, new_content, and context are required
+            let is_long_term = if (vector::length(&args) > 3) {
+                string::utf8(b"true") == *vector::borrow(&args, 3)
+            } else {
+                false
             };
+
+            let old_content = *vector::borrow(&args, 0);
+            let new_content = *vector::borrow(&args, 1);
+            let context = *vector::borrow(&args, 2);
+
+            update_memory(store, user, old_content, new_content, context, is_long_term);
+        } else if (action_name == string::utf8(ACTION_NAME_DELETE)) {
+            // TODO: Implement delete functionality
+            assert!(vector::length(&args) >= 2, 1);
         };
     }
 
-    public fun update_memory_action(
-        agent: &mut Object<Agent>,
+    /// Helper function to update memory
+    fun update_memory(
+        store: &mut memory::MemoryStore,
         user: address,
         old_content: String,
-        old_context: String,
         new_content: String,
-        new_context: Option<String>,
+        context: String,
         is_long_term: bool,
     ) {
-        let store = agent::borrow_memory_store_mut(agent);
         let index_opt = memory::find_memory_index(
             store,
             user,
             &old_content,
-            &old_context,
+            &context,
             is_long_term
         );
         
@@ -229,10 +180,37 @@ module nuwa_framework::memory_action {
                 user,
                 index,
                 new_content,
-                new_context,
+                option::some(context),
                 is_long_term
             );
         };
+    }
+
+    #[test]
+    fun test_memory_actions() {
+        use nuwa_framework::agent;
+        action::init_for_test();
+        register_actions();
+
+        let (agent,cap) = agent::create_test_agent();
+        
+        // Test add memory
+        let add_args = vector[
+            string::utf8(b"User likes detailed explanations"),
+            string::utf8(b"preference"),
+            string::utf8(b"true"),
+        ];
+        execute(agent, string::utf8(ACTION_NAME_ADD), add_args);
+
+        // Test update memory
+        let update_args = vector[
+            string::utf8(b"User likes detailed explanations"),
+            string::utf8(b"User prefers comprehensive explanations"),
+            string::utf8(b"preference"),
+            string::utf8(b"true"),
+        ];
+        execute(agent, string::utf8(ACTION_NAME_UPDATE), update_args);
+        agent::destroy_agent_cap(cap);
     }
 
 }

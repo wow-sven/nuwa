@@ -54,7 +54,7 @@ module nuwa_framework::agent_cap {
         object::new(cap)
     }
 
-    public entry fun destroy_agent_cap(cap: Object<AgentCap>) {
+    public(friend) fun destroy_agent_cap(cap: Object<AgentCap>) {
         let agent_cap = object::remove(cap);
         let AgentCap { agent_obj_id } = agent_cap;
         event::emit(AgentCapDestroyedEvent { agent_obj_id });
@@ -91,6 +91,11 @@ module nuwa_framework::agent_cap {
     public fun check_memory_update_cap(cap: &mut Object<MemoryCap>) : ObjectID {
         let cap = object::borrow(cap);
         assert!(cap.update, ErrorCallerHasNoMemoryUpdateCap);
+        cap.agent_obj_id
+    }
+
+    public fun get_agent_obj_id(cap: &Object<AgentCap>) : ObjectID {
+        let cap = object::borrow(cap);
         cap.agent_obj_id
     }
 
