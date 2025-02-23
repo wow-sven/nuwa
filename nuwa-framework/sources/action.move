@@ -1,6 +1,7 @@
 module nuwa_framework::action {
     use std::string::{Self, String};
     use std::vector;
+    use std::option;
     use moveos_std::table::{Self, Table};
     use moveos_std::object;
 
@@ -97,6 +98,20 @@ module nuwa_framework::action {
             usage_hint,
             constraints,
         }
+    }
+
+    /// Get all registered action descriptions
+    public fun get_all_action_descriptions(): vector<ActionDescription> {
+        let registry = borrow_mut_registry();
+        let descriptions = vector::empty();
+        
+        let iter = table::list_field_keys(&registry.descriptions, option::none(), 100);
+        while (table::field_keys_len(&iter) > 0) {
+            let (_key, value) = table::next(&mut iter);
+            vector::push_back(&mut descriptions, *value);
+        };
+        
+        descriptions
     }
 
     /// Get action descriptions for the specified keys
@@ -218,5 +233,70 @@ module nuwa_framework::action {
         assert!(vector::length(&descriptions) == 1, 1);
         let desc = vector::borrow(&descriptions, 0);
         assert!(desc.name == string::utf8(b"add_memory"), 2);
+    }
+
+    #[test]
+    fun test_get_all_action_descriptions() {
+        init_for_test();
+        
+        // Register test actions
+        let memory_args = vector[
+            new_action_argument(
+                string::utf8(b"target"),
+                string::utf8(b"address"),
+                string::utf8(b"The target address"),
+                true,
+            )
+        ];
+
+        let response_args = vector[
+            new_action_argument(
+                string::utf8(b"content"),
+                string::utf8(b"string"),
+                string::utf8(b"Response content"),
+                true,
+            )
+        ];
+
+        register_action(
+            string::utf8(b"memory::add"),
+            string::utf8(b"Add a new memory"),
+            memory_args,
+            string::utf8(b"{\"action\":\"memory::add\",\"args\":[\"0x123\",\"test memory\"]}"),
+            string::utf8(b"Use this action to store memories"),
+            string::utf8(b"Target must be valid address"),
+        );
+
+        register_action(
+            string::utf8(b"response::say"),
+            string::utf8(b"Send a response"),
+            response_args,
+            string::utf8(b"{\"action\":\"response::say\",\"args\":[\"hello\"]}"),
+            string::utf8(b"Use this action to respond"),
+            string::utf8(b"Content must not be empty"),
+        );
+
+        // Get all descriptions
+        let descriptions = get_all_action_descriptions();
+        
+        // Verify we got both actions
+        assert!(vector::length(&descriptions) == 2, 1);
+        
+        // Verify action names
+        let found_memory = false;
+        let found_response = false;
+        let i = 0;
+        while (i < vector::length(&descriptions)) {
+            let desc = vector::borrow(&descriptions, i);
+            if (desc.name == string::utf8(b"memory::add")) {
+                found_memory = true;
+            };
+            if (desc.name == string::utf8(b"response::say")) {
+                found_response = true;
+            };
+            i = i + 1;
+        };
+        
+        assert!(found_memory && found_response, 2);
     }
 }

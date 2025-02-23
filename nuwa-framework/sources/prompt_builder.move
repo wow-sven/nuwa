@@ -23,14 +23,16 @@ module nuwa_framework::prompt_builder {
         data: D,                  // The actual input data
     }
 
-    /// Updated ContextInfo to include input context
+    /// Updated ContextInfo to separate self and user memories
     struct ContextInfo<D> has copy, drop {
-        memories: vector<MemoryInfo>,
+        self_memories: vector<MemoryInfo>,    // AI's own memories
+        user_memories: vector<MemoryInfo>,    // Memories about the user
         input: InputContext<D>,
         user_properties: SimpleMap<String, String>,
     }
 
     struct MemoryInfo has copy, drop {
+        owner: address,          // Add owner to distinguish memory ownership
         content: String,
         context: String,
         timestamp: u64,
@@ -80,6 +82,7 @@ module nuwa_framework::prompt_builder {
         string::append(&mut prompt, string::utf8(b"These are your memories and the current situation:\n"));
         string::append(&mut prompt, build_json_section(&build_context_info(
             memory_store,
+            agent_address,  // Pass agent_address
             user,
             InputContext { 
                 description: input_description,
@@ -141,15 +144,23 @@ module nuwa_framework::prompt_builder {
 
     fun build_context_info<D: drop>(
         store: &MemoryStore,
+        agent_address: address,   // Add agent_address parameter
         user: address,
         input: InputContext<D>,
     ): ContextInfo<D> {
-        let memories = memory::get_context_memories(store, user);
-        let memory_infos = vector::empty();
+        // Get both self and user memories
+        let self_memories = memory::get_context_memories(store, agent_address);
+        let user_memories = memory::get_context_memories(store, user);
+        
+        let self_memory_infos = vector::empty();
+        let user_memory_infos = vector::empty();
+        
+        // Process self memories
         let i = 0;
-        while (i < vector::length(&memories)) {
-            let memory = vector::borrow(&memories, i);
-            vector::push_back(&mut memory_infos, MemoryInfo {
+        while (i < vector::length(&self_memories)) {
+            let memory = vector::borrow(&self_memories, i);
+            vector::push_back(&mut self_memory_infos, MemoryInfo {
+                owner: agent_address,
                 content: memory::get_content(memory),
                 context: memory::get_context(memory),
                 timestamp: memory::get_timestamp(memory),
@@ -157,7 +168,20 @@ module nuwa_framework::prompt_builder {
             i = i + 1;
         };
 
-        // Convert properties from vector to SimpleMap
+        // Process user memories
+        let i = 0;
+        while (i < vector::length(&user_memories)) {
+            let memory = vector::borrow(&user_memories, i);
+            vector::push_back(&mut user_memory_infos, MemoryInfo {
+                owner: user,
+                content: memory::get_content(memory),
+                context: memory::get_context(memory),
+                timestamp: memory::get_timestamp(memory),
+            });
+            i = i + 1;
+        };
+
+        // Convert properties from vector to SimpleMap (remains unchanged)
         let properties = simple_map::new();
         let props = memory::get_all_properties(store, user);
         let i = 0;
@@ -168,7 +192,8 @@ module nuwa_framework::prompt_builder {
         };
 
         ContextInfo {
-            memories: memory_infos,
+            self_memories: self_memory_infos,
+            user_memories: user_memory_infos,
             input,
             user_properties: properties,
         }

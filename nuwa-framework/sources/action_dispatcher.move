@@ -26,7 +26,7 @@ module nuwa_framework::action_dispatcher {
 
     /// Main entry point to dispatch actions from AI response
     public fun dispatch_actions(agent: &mut Object<Agent>, response_json: String) {
-        let response = json::from_json<ActionResponse>(string::into_bytes(response_json));
+        let response = parse_response(response_json);
         
         // Execute each action in sequence
         let actions = response.actions;
@@ -49,6 +49,27 @@ module nuwa_framework::action_dispatcher {
             response_action::execute(agent, *action_name, action_call.args);
         };
         // Add other action types here
+    }
+
+    public fun parse_response(json_str: String): ActionResponse {
+        json::from_json<ActionResponse>(string::into_bytes(json_str))
+    }
+    
+    // ====================== ActionResponse and ActionCall getters ======================
+    
+    /// Get actions from ActionResponse
+    public fun get_actions(response: &ActionResponse): &vector<ActionCall> {
+        &response.actions
+    }
+
+    /// Get action name from ActionCall
+    public fun get_action_name(call: &ActionCall): &String {
+        &call.action
+    }
+
+    /// Get action arguments from ActionCall
+    public fun get_action_args(call: &ActionCall): &vector<String> {
+        &call.args
     }
 
     #[test]
@@ -83,6 +104,37 @@ module nuwa_framework::action_dispatcher {
 
         dispatch_actions(agent, test_response);
         agent::destroy_agent_cap(cap);
+    }
+
+    #[test]
+    fun test_action_response_getters() {
+        // Create test action call
+        let action_call = build_action_call(
+            string::utf8(b"memory::add"),
+            vector[
+                string::utf8(b"test content"),
+                string::utf8(b"test context"),
+                string::utf8(b"true")
+            ]
+        );
+
+        // Create test response
+        let response = ActionResponse {
+            actions: vector::singleton(action_call)
+        };
+
+        // Test getters
+        let actions = get_actions(&response);
+        assert!(vector::length(actions) == 1, 1);
+
+        let call = vector::borrow(actions, 0);
+        assert!(*get_action_name(call) == string::utf8(b"memory::add"), 2);
+
+        let args = get_action_args(call);
+        assert!(vector::length(args) == 3, 3);
+        assert!(*vector::borrow(args, 0) == string::utf8(b"test content"), 4);
+        assert!(*vector::borrow(args, 1) == string::utf8(b"test context"), 5);
+        assert!(*vector::borrow(args, 2) == string::utf8(b"true"), 6);
     }
 
     #[test_only]

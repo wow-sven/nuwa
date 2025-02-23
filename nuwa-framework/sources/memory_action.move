@@ -2,6 +2,7 @@ module nuwa_framework::memory_action {
     use std::string::{Self, String};
     use std::vector;
     use std::option;
+    use moveos_std::address;
     use moveos_std::object::Object;
     use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::memory;
@@ -30,6 +31,12 @@ module nuwa_framework::memory_action {
         // Register add_memory action
         let add_memory_args = vector[
             action::new_action_argument(
+                string::utf8(b"target"),
+                string::utf8(b"address"),
+                string::utf8(b"The address to store memory for (user address or self address)"),
+                true,
+            ),
+            action::new_action_argument(
                 string::utf8(b"content"),
                 string::utf8(b"string"),
                 string::utf8(b"The content of the memory"),
@@ -51,15 +58,21 @@ module nuwa_framework::memory_action {
 
         action::register_action(
             string::utf8(ACTION_NAME_ADD),
-            string::utf8(b"Store a new memory about the user or interaction"),
+            string::utf8(b"Store a memory about yourself or a user"),
             add_memory_args,
-            string::utf8(b"{\"action\":\"memory::add\",\"args\":[\"User prefers technical explanations\",\"preference\",true]}"),
-            string::utf8(b"Use this action to store important user preferences, behaviors, or interaction patterns"),
+            string::utf8(b"{\"action\":\"memory::add\",\"args\":[\"0x123\",\"User prefers technical explanations\",\"preference\",true]}"),
+            string::utf8(b"Use this action to store memories. Use your own address for self-memories, user's address for user-related memories"),
             string::utf8(b"Content should be factual and objective. Context must be one of the predefined categories"),
         );
 
         // Register update_memory action
         let update_memory_args = vector[
+            action::new_action_argument(
+                string::utf8(b"target"),
+                string::utf8(b"address"),
+                string::utf8(b"The address whose memory to update"),
+                true,
+            ),
             action::new_action_argument(
                 string::utf8(b"old_content"),
                 string::utf8(b"string"),
@@ -123,43 +136,77 @@ module nuwa_framework::memory_action {
 
     /// Execute memory actions
     public fun execute(agent: &mut Object<Agent>, action_name: String, args: vector<String>) {
-        let user = agent::get_agent_address(agent);
+        //let agent_address = agent::get_agent_address(agent);
         let store = agent::borrow_memory_store_mut(agent);
-        
 
         if (action_name == string::utf8(ACTION_NAME_ADD)) {
-            assert!(vector::length(&args) >= 2, 1); // content and context are required
-            let is_long_term = if (vector::length(&args) > 2) {
-                string::utf8(b"true") == *vector::borrow(&args, 2)
-            } else {
-                false
-            };
-
-            memory::add_memory(
-                store,
-                user,
-                *vector::borrow(&args, 0), // content
-                memory::memory_type_knowledge(),
-                *vector::borrow(&args, 1), // context
-                is_long_term,
-            );
-        } else if (action_name == string::utf8(ACTION_NAME_UPDATE)) {
-            assert!(vector::length(&args) >= 3, 1); // old_content, new_content, and context are required
+            assert!(vector::length(&args) >= 3, 1); // target, content and context are required
+            //TODO check the target_opt
+            let target = parse_address(vector::borrow(&args, 0));
+            let content = vector::borrow(&args, 1);
+            let context = vector::borrow(&args, 2);
             let is_long_term = if (vector::length(&args) > 3) {
                 string::utf8(b"true") == *vector::borrow(&args, 3)
             } else {
                 false
             };
 
-            let old_content = *vector::borrow(&args, 0);
-            let new_content = *vector::borrow(&args, 1);
-            let context = *vector::borrow(&args, 2);
+            memory::add_memory(
+                store,
+                target,
+                *content,
+                memory::memory_type_knowledge(),
+                *context,
+                is_long_term,
+            );
+        } else if (action_name == string::utf8(ACTION_NAME_UPDATE)) {
+            assert!(vector::length(&args) >= 4, 1); // target, old_content, new_content, and context are required
+            let target = parse_address(vector::borrow(&args, 0));
+            let old_content = *vector::borrow(&args, 1);
+            let new_content = *vector::borrow(&args, 2);
+            let context = *vector::borrow(&args, 3);
+            let is_long_term = if (vector::length(&args) > 4) {
+                string::utf8(b"true") == *vector::borrow(&args, 4)
+            } else {
+                false
+            };
 
-            update_memory(store, user, old_content, new_content, context, is_long_term);
+            update_memory(store, target, old_content, new_content, context, is_long_term);
         } else if (action_name == string::utf8(ACTION_NAME_DELETE)) {
             // TODO: Implement delete functionality
             assert!(vector::length(&args) >= 2, 1);
         };
+    }
+
+    //TODO Migrate this function to address.move module
+    /// Convert string address to Move address, handling both short and full-length addresses
+    fun parse_address(arg: &String): address {
+        let bytes = *string::bytes(arg);
+        let result = vector::empty();
+        
+        // Remove "0x" prefix if present
+        if (vector::length(&bytes) >= 2 && 
+            *vector::borrow(&bytes, 0) == 0x30 && 
+            *vector::borrow(&bytes, 1) == 0x78) {
+            let i = 2;
+            while (i < vector::length(&bytes)) {
+                vector::push_back(&mut result, *vector::borrow(&bytes, i));
+                i = i + 1;
+            };
+        } else {
+            result = bytes;
+        };
+
+        // Left pad with zeros to make it 64 characters long
+        let padded = vector::empty();
+        let needed_zeros = 64 - vector::length(&result);
+        while (needed_zeros > 0) {
+            vector::push_back(&mut padded, 0x30); // '0' in ASCII
+            needed_zeros = needed_zeros - 1;
+        };
+        vector::append(&mut padded, result);
+        
+        address::from_ascii_bytes(&padded)
     }
 
     /// Helper function to update memory
@@ -219,4 +266,21 @@ module nuwa_framework::memory_action {
         agent::destroy_agent_cap(cap);
     }
 
+    #[test]
+    fun test_parse_address() {
+        // Test short address
+        let address_str = string::utf8(b"0x42");
+        let address = parse_address(&address_str);
+        assert!(address == @0x42, 1);
+
+        // Test short address without prefix
+        let address_str = string::utf8(b"42");
+        let address = parse_address(&address_str);
+        assert!(address == @0x42, 2);
+
+        // Test full length address
+        let address_str = string::utf8(b"0x0000000000000000000000000000000000000000000000000000000000000042");
+        let address = parse_address(&address_str);
+        assert!(address == @0x42, 3);
+    }
 }

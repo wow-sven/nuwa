@@ -1,6 +1,5 @@
 module nuwa_framework::agent {
     use std::string::{String};
-    use std::vector;
     use moveos_std::object::{Self, Object};
     use moveos_std::account::{Self, Account};
     use moveos_std::signer;
@@ -9,7 +8,7 @@ module nuwa_framework::agent {
     use nuwa_framework::agent_cap::{Self, AgentCap};
     use nuwa_framework::memory::{Self, MemoryStore};
     use nuwa_framework::prompt_builder;
-    use nuwa_framework::action::ActionDescription;
+    use nuwa_framework::action::{Self, ActionDescription};
 
     /// Agent represents a running instance of a Character
     struct Agent has key {
@@ -21,11 +20,10 @@ module nuwa_framework::agent {
         memory_store: MemoryStore,
     }
 
-    struct AgentInput<I> has store {
+    struct AgentInput<I> has copy, drop, store {
         sender: address,
         input_description: String,
         input_data: I,
-        actions: vector<String>,
     }
 
     /// Constants for system prompt templates
@@ -63,9 +61,9 @@ module nuwa_framework::agent {
     public fun generate_system_prompt<I: copy + drop>(
         agent: &Agent,
         input: &AgentInput<I>,
-        available_actions: vector<ActionDescription>,
     ): String {
         let character = object::borrow(&agent.character);
+        let available_actions = get_available_actions(input);
         prompt_builder::build_complete_prompt(
             agent.agent_address,
             character,
@@ -82,14 +80,12 @@ module nuwa_framework::agent {
         input: AgentInput<I>,
     ) {
         let agent = object::borrow_mut(agent_obj);
-        // Get available actions for this input
-        let available_actions = get_available_actions(&input);
+        
         
         // Generate system prompt with context
         let _system_prompt = generate_system_prompt(
             agent,
-            &input,
-            available_actions
+            &input
         );
 
         // TODO: Call AI service to generate response
@@ -97,15 +93,13 @@ module nuwa_framework::agent {
             sender: _,
             input_description: _,
             input_data: _,
-            actions: _,
         } = input;
         agent.last_active_timestamp = timestamp::now_milliseconds();
     }
 
     // Helper function to get available actions
     fun get_available_actions<I: drop>(_input: &AgentInput<I>): vector<ActionDescription> {
-        // TODO: Implement action resolution based on input type and context
-        vector::empty()
+        action::get_all_action_descriptions()
     }
 
     /// Get mutable reference to agent's memory store
@@ -131,6 +125,20 @@ module nuwa_framework::agent {
         agent_cap::destroy_agent_cap(cap);
     }
 
+    // ================== AgentInput ==========================
+
+    public fun create_agent_input<I: copy + drop>(
+        sender: address,
+        input_description: String,
+        input_data: I,
+    ): AgentInput<I> {
+        AgentInput {
+            sender,
+            input_description,
+            input_data,
+        }
+    }
+
     #[test]
     fun test_agent() {
         // TODO: Add test cases
@@ -140,7 +148,6 @@ module nuwa_framework::agent {
     /// Create a test agent for unit testing
     public fun create_test_agent(): (&mut Object<Agent>, Object<AgentCap>) {
         use std::string;
-        use moveos_std::object;
         use nuwa_framework::character;
         
         let char_data = character::new_character_data(
@@ -151,7 +158,14 @@ module nuwa_framework::agent {
             vector[string::utf8(b"General knowledge")]
         );
         let character_obj = character::create_character(char_data);
-        let agent_cap = create_agent(character_obj);
+        create_test_agent_with_character(character_obj)
+    }
+
+    #[test_only]
+    public fun create_test_agent_with_character(character: Object<Character>): (&mut Object<Agent>, Object<AgentCap>) {
+        use moveos_std::object;
+
+        let agent_cap = create_agent(character);
         
         let agent_obj_id = agent_cap::get_agent_obj_id(&agent_cap);
         let agent_obj = object::borrow_mut_object_shared<Agent>(agent_obj_id);
