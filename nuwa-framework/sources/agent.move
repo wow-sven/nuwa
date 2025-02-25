@@ -5,13 +5,16 @@ module nuwa_framework::agent {
     use moveos_std::account::{Self, Account};
     use moveos_std::signer;
     use moveos_std::timestamp;
-    use nuwa_framework::character::{Character};
+    use nuwa_framework::character::{Self, Character};
     use nuwa_framework::agent_cap::{Self, AgentCap};
     use nuwa_framework::memory::{Self, MemoryStore};
     use nuwa_framework::prompt_builder;
     use nuwa_framework::action::{Self, ActionDescription};
     use nuwa_framework::ai_request;
     use nuwa_framework::ai_service;
+
+    friend nuwa_framework::memory_action;
+    friend nuwa_framework::action_dispatcher;
 
     /// Agent represents a running instance of a Character
     struct Agent has key {
@@ -116,13 +119,13 @@ module nuwa_framework::agent {
     }
 
     /// Get mutable reference to agent's memory store
-    public fun borrow_memory_store_mut(agent: &mut Object<Agent>): &mut memory::MemoryStore {
+    public(friend) fun borrow_mut_memory_store(agent: &mut Object<Agent>): &mut memory::MemoryStore {
         let agent_ref = object::borrow_mut(agent);
         &mut agent_ref.memory_store
     }
 
     /// Get immutable reference to agent's memory store
-    public fun borrow_memory_store(agent: &Object<Agent>): &memory::MemoryStore {
+    public(friend) fun borrow_memory_store(agent: &Object<Agent>): &memory::MemoryStore {
         let agent_ref = object::borrow(agent);
         &agent_ref.memory_store
     }
@@ -131,6 +134,12 @@ module nuwa_framework::agent {
     public fun get_agent_address(agent: &Object<Agent>): address {
         let agent_ref = object::borrow(agent);
         agent_ref.agent_address
+    }
+
+    public fun get_agent_username(agent: &Object<Agent>): &String {
+        let agent_ref = object::borrow(agent);
+        let character = object::borrow(&agent_ref.character);
+        character::get_username(character)
     }
 
     public entry fun destroy_agent_cap(cap: Object<AgentCap>) {

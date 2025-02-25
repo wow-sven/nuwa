@@ -1,11 +1,14 @@
 module nuwa_framework::channel {
-    use std::string::String;
+    use std::string::{Self, String};
     use std::vector;
     use moveos_std::table::{Self, Table};
     use moveos_std::object::{Self, Object, ObjectID};
     use moveos_std::timestamp;
     use moveos_std::signer;
     use nuwa_framework::message::{Self, Message};
+    use nuwa_framework::agent::{Self, Agent};
+
+    friend nuwa_framework::response_action;
 
     // Error codes
     const ErrorChannelNotFound: u64 = 1;
@@ -60,10 +63,16 @@ module nuwa_framework::channel {
 
     /// Initialize a new AI home channel
     public fun create_ai_home_channel(
-        agent_account: &signer,
-        title: String,
+        agent: &mut Object<Agent>,
     ): ObjectID {
-        let creator = signer::address_of(agent_account);
+        let agent_address = agent::get_agent_address(agent);
+        let channel_id = object::account_named_object_id<Channel>(agent_address);
+        assert!(!object::exists_object(channel_id), ErrorChannelAlreadyExists);
+        
+        let agent_username = *agent::get_agent_username(agent);
+        let title = string::utf8(b"Home channel for ");
+        string::append(&mut title, agent_username);
+        let creator = agent_address;
         let now = timestamp::now_milliseconds();
         
         let channel = Channel {
@@ -80,8 +89,8 @@ module nuwa_framework::channel {
 
         // Add AI as member
         add_member_internal(&mut channel, creator, now);
-        
-        let channel_obj = object::new(channel);
+        // Every AI can only have one AI_HOME channel
+        let channel_obj = object::new_account_named_object(creator, channel);
         let channel_id = object::id(&channel_obj);
         object::to_shared(channel_obj);
         channel_id

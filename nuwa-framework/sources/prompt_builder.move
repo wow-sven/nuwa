@@ -77,10 +77,22 @@ module nuwa_framework::prompt_builder {
         string::append(&mut prompt, string::utf8(b"3. Maintain consistency with your past interactions and personality\n"));
         string::append(&mut prompt, string::utf8(b"4. Use memory actions to build and maintain your understanding of interactions\n"));
         string::append(&mut prompt, string::utf8(b"5. Respond naturally while following your character's traits\n"));
+        string::append(&mut prompt, string::utf8(b"6. Provide action args as a JSON object instead of an array\n"));
 
-        // Response format remains focused on actions
+        // New simplified line-based response format
         string::append(&mut prompt, string::utf8(b"\n### Response Format\n"));
-        string::append(&mut prompt, string::utf8(b"{\n  \"actions\": [/* Your chosen actions in priority order */]\n}\n"));
+        string::append(&mut prompt, string::utf8(b"Return your actions one per line in this format:\n\n"));
+        string::append(&mut prompt, string::utf8(b"```\n"));
+        string::append(&mut prompt, string::utf8(b"action_name {\"param1\":\"value1\",\"param2\":\"value2\"}\n"));
+        string::append(&mut prompt, string::utf8(b"```\n\n"));
+        
+        // Format examples from action descriptions
+        string::append(&mut prompt, string::utf8(b"Examples:\n```\n"));
+        string::append(&mut prompt, format_action_examples(&available_actions));
+        string::append(&mut prompt, string::utf8(b"```\n\n"));
+        
+        string::append(&mut prompt, string::utf8(b"IMPORTANT: Each line must contain an action name followed by a valid JSON object.\n"));
+        string::append(&mut prompt, string::utf8(b"Process information with memory actions before sending responses.\n"));
 
         prompt
     }
@@ -132,6 +144,36 @@ module nuwa_framework::prompt_builder {
             user_memories,
             input,
         }
+    }
+
+    // Simplified example formatting
+    fun format_action_examples(actions: &vector<ActionDescription>): String {
+        use std::vector;
+        use nuwa_framework::action;
+        
+        let result = string::utf8(b"");
+        let i = 0;
+        let max_examples = 3;
+        let example_count = 0;
+        
+        while (i < vector::length(actions) && example_count < max_examples) {
+            let action_desc = vector::borrow(actions, i);
+            let name = action::get_name(action_desc);
+            let args_example = action::get_args_example(action_desc);
+            
+            if (string::length(args_example) > 0) {
+                if (example_count > 0) {
+                    string::append(&mut result, string::utf8(b"\n"));
+                };
+                string::append(&mut result, *name);
+                string::append(&mut result, string::utf8(b" "));
+                string::append(&mut result, *args_example);
+                example_count = example_count + 1;
+            };
+            i = i + 1;
+        };
+        
+        result
     }
 
 }

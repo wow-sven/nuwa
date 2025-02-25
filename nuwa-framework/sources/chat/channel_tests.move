@@ -8,6 +8,7 @@ module nuwa_framework::channel_tests {
     use moveos_std::object;
     use nuwa_framework::channel;
     use nuwa_framework::message;
+    use nuwa_framework::agent;
 
     // Test helpers
     #[test_only]
@@ -17,15 +18,15 @@ module nuwa_framework::channel_tests {
 
     #[test]
     fun test_create_ai_home_channel() {
-        let ai_account = create_account_with_address(@0x42);
+        let (agent, cap) = agent::create_test_agent();
+        let ai_account = agent::get_agent_address(agent);
         timestamp::update_global_time_for_test(1000);
 
-        let title = string::utf8(b"AI Home Channel");
-        let channel_id = channel::create_ai_home_channel(&ai_account, title);
+        let channel_id = channel::create_ai_home_channel(agent);
         let channel = object::borrow_object(channel_id);
         
         // Verify AI is a member
-        assert!(channel::is_member(channel, signer::address_of(&ai_account)), 0);
+        assert!(channel::is_member(channel, ai_account), 0);
         
         // Try joining as a user
         let user = create_account_with_address(@0x43);
@@ -37,6 +38,7 @@ module nuwa_framework::channel_tests {
         assert!(channel::is_member(channel, signer::address_of(&user)), 1);
 
         channel::delete_channel_for_testing(channel_id);
+        agent::destroy_agent_cap(cap);
     }
 
     #[test]

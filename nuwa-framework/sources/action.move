@@ -5,16 +5,19 @@ module nuwa_framework::action {
     use moveos_std::table::{Self, Table};
     use moveos_std::object;
 
+    
+    #[data_struct]
     /// Action description for AI
     struct ActionDescription has copy, drop, store {
         name: String,
         description: String,
         args: vector<ActionArgument>,
-        example: String,
+        args_example: String,  // Changed from 'example' to 'args_example'
         usage_hint: String,       // When and how to use this action
         constraints: String,      // Requirements and limitations
     }
 
+    #[data_struct]
     struct ActionArgument has copy, drop, store {
         name: String,
         type_desc: String,
@@ -49,7 +52,7 @@ module nuwa_framework::action {
         name: String,
         description: String,
         args: vector<ActionArgument>,
-        example: String,
+        args_example: String,  // Example in format: {"target":"0x42","content":"some text"}
         usage_hint: String,
         constraints: String,
     ) {
@@ -60,7 +63,7 @@ module nuwa_framework::action {
             name,
             description,
             args,
-            example,
+            args_example,
             usage_hint,
             constraints,
         );
@@ -86,7 +89,7 @@ module nuwa_framework::action {
         name: String,
         description: String,
         args: vector<ActionArgument>,
-        example: String,
+        args_example: String,
         usage_hint: String,
         constraints: String,
     ): ActionDescription {
@@ -94,7 +97,7 @@ module nuwa_framework::action {
             name,
             description,
             args,
-            example,
+            args_example,
             usage_hint,
             constraints,
         }
@@ -141,20 +144,20 @@ module nuwa_framework::action {
     }
 
     /// Getter functions for ActionDescription
-    public fun get_name(action: &ActionDescription): String {
-        action.name
+    public fun get_name(action: &ActionDescription): &String {
+        &action.name
     }
 
-    public fun get_description(action: &ActionDescription): String {
-        action.description
+    public fun get_description(action: &ActionDescription): &String {
+        &action.description
     }
 
     public fun get_args(action: &ActionDescription): &vector<ActionArgument> {
         &action.args
     }
 
-    public fun get_example(action: &ActionDescription): String {
-        action.example
+    public fun get_args_example(action: &ActionDescription): &String {
+        &action.args_example
     }
 
     public fun get_usage_hint(action: &ActionDescription): String { action.usage_hint }
