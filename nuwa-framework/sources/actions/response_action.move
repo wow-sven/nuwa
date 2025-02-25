@@ -1,19 +1,24 @@
 module nuwa_framework::response_action {
     use std::string::{Self, String};
+    use std::vector;
     use moveos_std::object::{Self, Object, ObjectID};
     use moveos_std::json;
+    use moveos_std::bcs;
+    use moveos_std::hex;
     use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::action;
     use nuwa_framework::channel;
+    use nuwa_framework::string_utils;
 
     const ACTION_NAME_SAY: vector<u8> = b"response::say";
     // Action example
-    const SAY_ACTION_EXAMPLE: vector<u8> = b"{\"channel_id\":\"0x123\",\"content\":\"I understand you prefer detailed explanations.\"}";
+    const SAY_ACTION_EXAMPLE: vector<u8> = b"{\"channel_id\":\"0x01374a879f3fd3a79be9c776b3f36adb2eedf298beed3900db77347065eb59e5d6\",\"content\":\"I understand you prefer detailed explanations.\"}";
 
     #[data_struct]
     /// Arguments for the say action
     struct SayActionArgs has copy, drop {
-        channel_id: ObjectID,
+        //TODO change to ObjectID after #https://github.com/rooch-network/rooch/issues/3362 is resolved
+        channel_id: String,
         content: String,     // Response content
     }
 
@@ -23,7 +28,7 @@ module nuwa_framework::response_action {
         content: String
     ): SayActionArgs {
         SayActionArgs {
-            channel_id,
+            channel_id: channel_id_to_string(channel_id),
             content
         }
     }
@@ -33,7 +38,7 @@ module nuwa_framework::response_action {
         let say_args = vector[
             action::new_action_argument(
                 string::utf8(b"channel_id"),
-                string::utf8(b"ObjectID"),
+                string::utf8(b"string"),
                 string::utf8(b"The channel to send response to"),
                 true,
             ),
@@ -58,7 +63,7 @@ module nuwa_framework::response_action {
     public fun execute(agent: &mut Object<Agent>, action_name: String, args_json: String) {
         if (action_name == string::utf8(ACTION_NAME_SAY)) {
             let args = json::from_json<SayActionArgs>(string::into_bytes(args_json));
-            send_response(agent, args.channel_id, args.content);
+            send_response(agent, string_to_channel_id(args.channel_id), args.content);
         };
     }
 
@@ -68,10 +73,36 @@ module nuwa_framework::response_action {
         channel::add_ai_response(channel, content, agent_addr);
     }
 
+    fun channel_id_to_string(channel_id: ObjectID): String {
+        let bytes = bcs::to_bytes(&channel_id);
+        let prefix = string::utf8(b"0x");
+        let hex = string::utf8(hex::encode(bytes));
+        string::append(&mut prefix, hex);
+        prefix
+    }
+
+    fun string_to_channel_id(channel_id_str: String): ObjectID {
+        let bytes = string::into_bytes(channel_id_str);
+        let len = vector::length(&bytes);
+        let bytes = string_utils::get_substr(&bytes, 2, len);
+        let bytes = hex::decode(&bytes);
+        let channel_id = bcs::from_bytes<ObjectID>(bytes);
+        return channel_id
+    }
+
     #[test]
     fun test_response_action_examples() {
         // Test say action example
         let say_args = json::from_json<SayActionArgs>(SAY_ACTION_EXAMPLE);
         assert!(say_args.content == string::utf8(b"I understand you prefer detailed explanations."), 2);
+    }
+
+    #[test]
+    fun test_channel_id_conversion() {
+        let channel_id = object::named_object_id<channel::Channel>();
+        let channel_id_str = channel_id_to_string(channel_id);
+        std::debug::print(&channel_id_str);
+        let channel_id_converted = string_to_channel_id(channel_id_str);
+        assert!(channel_id == channel_id_converted, 0);
     }
 }

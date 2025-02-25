@@ -118,7 +118,7 @@ module nuwa_framework::message {
     // =============== Tests helper functions ===============
     
     #[test_only]
-    fun new_message_for_test(
+    public fun new_message_for_test(
         id: u64, 
         channel_id: ObjectID, 
         sender: address, 

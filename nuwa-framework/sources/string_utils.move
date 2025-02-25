@@ -3,6 +3,7 @@ module nuwa_framework::string_utils {
     use std::string::{Self, String};
     
     friend nuwa_framework::action_dispatcher;
+    friend nuwa_framework::response_action;
 
     //TODO migrate to std::string::starts_with
     public(friend) fun starts_with(haystack_str: &String, needle: &vector<u8>): bool {
