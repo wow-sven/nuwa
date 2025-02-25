@@ -25,29 +25,14 @@ module nuwa_framework::action_dispatcher {
     /// Each action call has:
     /// - "action": specifies the action name, e.g., "memory::add"
     /// - "args": contains a nested JSON string with action-specific parameters
-    /// Example:
-    /// {
-    ///   "actions": [
-    ///     {
-    ///       "action": "memory::add",
-    ///       "args": "{\"target\":\"0x42\",\"content\":\"Some memory\",\"context\":\"conversation\",\"is_long_term\":true}"
-    ///     },
-    ///     {
-    ///       "action": "response::say",
-    ///       "args": "{\"channel_id\":\"0x123\",\"content\":\"Hello user\"}"
-    ///     }
-    ///   ]
-    /// }
     struct ActionResponse has copy, drop {
         actions: vector<ActionCall>
     }
 
-    /// Main entry point to dispatch actions from AI response
-    public fun dispatch_actions(agent: &mut Object<Agent>, response_json: String) {
-        let response = parse_response(response_json);
-        
-        // Execute each action in sequence
-        let actions = response.actions;
+    /// Dispatch all actions from a line-based format
+    public fun dispatch_actions(agent: &mut Object<Agent>, response: String) {
+        let action_response = parse_line_based_response(&response);
+        let actions = action_response.actions;
         let i = 0;
         let len = vector::length(&actions);
         while (i < len) {
@@ -102,13 +87,6 @@ module nuwa_framework::action_dispatcher {
         ActionCall { action, args: args_json }
     }
 
-    /// Build a response from a vector of action calls
-    /// Useful for creating structured responses programmatically
-    public fun create_response(actions: vector<ActionCall>): String {
-        let response_obj = ActionResponse { actions };
-        string::utf8(json::to_json(&response_obj))
-    }
-
     /// Create a new empty ActionResponse
     public fun create_empty_response(): ActionResponse {
         ActionResponse { actions: vector::empty() }
@@ -122,6 +100,89 @@ module nuwa_framework::action_dispatcher {
     /// Convert ActionResponse to JSON string
     public fun response_to_json(response: &ActionResponse): String {
         string::utf8(json::to_json(response))
+    }    
+
+    /// Create an ActionResponse from a vector of ActionCalls
+    public fun create_action_response(actions: vector<ActionCall>): ActionResponse {
+        ActionResponse { actions }
+    }
+
+    
+    const SPACE_CHAR: u8 = 32u8;
+
+    /// Parse a line-based response string into an ActionResponse
+    /// Each line should be in format: "action_name {\"param1\":\"value1\",...}"
+    public fun parse_line_based_response(response: &String): ActionResponse {
+        let actions = vector::empty<ActionCall>();
+        let lines = string_utils::split(response, &string::utf8(b"\n"));
+        let i = 0;
+        let len = vector::length(&lines);
+        
+        while (i < len) {
+            let line = vector::borrow(&lines, i);
+            if (!string::is_empty(line)) {
+                // Find the first space
+                let line_bytes = string::bytes(line);
+                let line_len = vector::length(line_bytes);
+                let j = 0;
+                while (j < line_len) {
+                    if (*vector::borrow(line_bytes, j) == SPACE_CHAR) {
+                        break
+                    };
+                    j = j + 1;
+                };
+                
+                if (j < line_len) {
+                    let action = string::utf8(string_utils::get_substr(line_bytes, 0, j));
+                    let args = string::utf8(string_utils::get_substr(line_bytes, j + 1, line_len));
+                    
+                    let action_call = create_action_call(action, args);
+                    vector::push_back(&mut actions, action_call);
+                };
+            };
+            i = i + 1;
+        };
+        ActionResponse { actions }
+    }
+
+    /// Convert ActionResponse to line-based string format
+    public fun response_to_str(response: &ActionResponse): String {
+        let result = string::utf8(b"");
+        let actions = &response.actions;
+        let len = vector::length(actions);
+        let i = 0;
+        
+        while (i < len) {
+            let action_call = vector::borrow(actions, i);
+            // Add action name
+            string::append(&mut result, action_call.action);
+            // Add space
+            string::append(&mut result, string::utf8(b" "));
+            // Add args
+            string::append(&mut result, action_call.args);
+            // Add newline if not the last action
+            if (i + 1 < len) {
+                string::append(&mut result, string::utf8(b"\n"));
+            };
+            i = i + 1;
+        };
+        
+        result
+    }
+
+    #[test]
+    fun test_parse_line_based_response() {
+        let response = string::utf8(b"memory::add {\"target\":\"0x42\",\"content\":\"test content\"}\nresponse::say {\"channel_id\":\"0x123\",\"content\":\"Hello\"}");
+        let action_response = parse_line_based_response(&response);
+        let actions = get_actions(&action_response);
+        
+        assert!(vector::length(actions) == 2, 1);
+        
+        let first_action = vector::borrow(actions, 0);
+        assert!(get_action_name(first_action) == &string::utf8(b"memory::add"), 2);
+        
+        let second_action = vector::borrow(actions, 1);
+        assert!(get_action_name(second_action) == &string::utf8(b"response::say"), 3);
     }
 
     #[test]
@@ -169,7 +230,7 @@ module nuwa_framework::action_dispatcher {
         let mut_response = create_empty_response();
         add_action(&mut mut_response, memory_action);
         add_action(&mut mut_response, response_action);
-        let test_response = response_to_json(&mut_response);
+        let test_response = response_to_str(&mut_response);
 
         // Execute actions
         dispatch_actions(agent, test_response);
@@ -218,5 +279,35 @@ module nuwa_framework::action_dispatcher {
 
         assert!(vector::borrow(actions, 0).action == string::utf8(b"response::say"), 2);
         assert!(vector::borrow(actions, 1).action == string::utf8(b"test::action"), 3);
+    }
+
+    #[test]
+    fun test_response_to_str() {
+        let mut_response = create_empty_response();
+        
+        add_action(&mut mut_response, create_action_call(
+            string::utf8(b"memory::add"),
+            string::utf8(b"{\"target\":\"0x42\",\"content\":\"test content\"}")
+        ));
+        
+        add_action(&mut mut_response, create_action_call(
+            string::utf8(b"response::say"),
+            string::utf8(b"{\"channel_id\":\"0x123\",\"content\":\"Hello\"}")
+        ));
+        
+        let str = response_to_str(&mut_response);
+        
+        // Parse back and verify
+        let parsed = parse_line_based_response(&str);
+        let actions = get_actions(&parsed);
+        assert!(vector::length(actions) == 2, 1);
+        
+        let first_action = vector::borrow(actions, 0);
+        assert!(get_action_name(first_action) == &string::utf8(b"memory::add"), 2);
+        assert!(get_action_args(first_action) == &string::utf8(b"{\"target\":\"0x42\",\"content\":\"test content\"}"), 3);
+        
+        let second_action = vector::borrow(actions, 1);
+        assert!(get_action_name(second_action) == &string::utf8(b"response::say"), 4);
+        assert!(get_action_args(second_action) == &string::utf8(b"{\"channel_id\":\"0x123\",\"content\":\"Hello\"}"), 5);
     }
 }
