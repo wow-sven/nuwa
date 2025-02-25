@@ -128,15 +128,16 @@ module nuwa_framework::channel {
     }
 
     /// Add message to channel - use message_counter as id
-    fun add_message(channel_obj: &mut Object<Channel>, sender: address, content: String, message_type: u8) {
+    fun add_message(channel_obj: &mut Object<Channel>, sender: address, content: String, message_type: u8, mentions: vector<address>) {
         let channel_id = object::id(channel_obj);
         let channel = object::borrow_mut(channel_obj);
-        let msg_id = message::new_message(
+        let msg_id = message::new_message_object(
             channel.message_counter,
             channel_id,
             sender,
             content,
-            message_type
+            message_type,
+            mentions
         );
         table::add(&mut channel.messages, channel.message_counter, msg_id);
         channel.message_counter = channel.message_counter + 1;
@@ -147,6 +148,7 @@ module nuwa_framework::channel {
         account: &signer,
         channel_obj: &mut Object<Channel>,
         content: String,
+        mentions: vector<address>
     ) {
         let sender = signer::address_of(account);
         let now = timestamp::now_milliseconds();
@@ -161,7 +163,7 @@ module nuwa_framework::channel {
         member.last_active = now;
         channel.last_active = now;
 
-        add_message(channel_obj, sender, content, message::type_user());
+        add_message(channel_obj, sender, content, message::type_user(), mentions);
     }
 
     /// Add AI response to the channel
@@ -170,7 +172,7 @@ module nuwa_framework::channel {
         response_message: String, 
         ai_agent_address: address
     ){
-        add_message(channel_obj, ai_agent_address, response_message, message::type_ai());
+        add_message(channel_obj, ai_agent_address, response_message, message::type_ai(), vector::empty());
     }
 
     /// Get all messages in the channel
@@ -263,26 +265,29 @@ module nuwa_framework::channel {
 
     /// Send a message and trigger AI response if needed
     public entry fun send_message_entry(
-        account: &signer,
+        caller: &signer,
         channel_obj: &mut Object<Channel>,
-        content: String
+        content: String,
+        mentions: vector<address>
     ) {
-        // let channel_id = object::id(channel_obj);
-        // let is_ai_channel = object::borrow(channel_obj).channel_type == CHANNEL_TYPE_AI;
-        
-        // // If it's an AI channel, request AI response
-        // if (is_ai_channel) {
-        //     //TODO make the number of messages to fetch configurable
-        //     let message_limit: u64 = 10;
-        //     let prev_messages = get_last_messages(channel_obj, message_limit);
-        //     ai_service::request_ai_response(
-        //         account,
-        //         channel_id,
-        //         content,
-        //         prev_messages
-        //     );
-        // };
-        send_message(account, channel_obj, content);
+        send_message(caller, channel_obj, content, mentions);
+
+        let mentioned_ai_agents = vector::empty();
+        vector::for_each(mentions, |addr| {
+            if (agent::is_agent_account(addr)) {
+                vector::push_back(&mut mentioned_ai_agents, addr);
+            }
+        });
+        if (vector::length(&mentioned_ai_agents) > 0) {
+            //TODO make the number of messages to fetch configurable
+            let message_limit: u64 = 11;
+            let messages = get_last_messages(channel_obj, message_limit);
+            let message_input = message::new_agent_input(messages);
+            vector::for_each(mentioned_ai_agents, |ai_addr| {
+                let agent = agent::borrow_mut_agent_by_address(ai_addr);
+                agent::process_input(caller, agent, message_input);
+            });
+        }
     }
 
     /// Update channel title

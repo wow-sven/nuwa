@@ -1,7 +1,7 @@
 module nuwa_framework::agent {
     use std::string::{Self, String};
     use std::vector;
-    use moveos_std::object::{Self, Object};
+    use moveos_std::object::{Self, Object, ObjectID};
     use moveos_std::account::{Self, Account};
     use moveos_std::signer;
     use moveos_std::timestamp;
@@ -12,6 +12,7 @@ module nuwa_framework::agent {
     use nuwa_framework::action::{Self, ActionDescription};
     use nuwa_framework::ai_request;
     use nuwa_framework::ai_service;
+    use nuwa_framework::agent_input::{AgentInput};
 
     friend nuwa_framework::memory_action;
     friend nuwa_framework::action_dispatcher;
@@ -25,12 +26,6 @@ module nuwa_framework::agent {
         last_active_timestamp: u64,
         memory_store: MemoryStore,
         model_provider: String,
-    }
-
-    struct AgentInput<I> has copy, drop, store {
-        sender: address,
-        input_description: String,
-        input_data: I,
     }
 
     const AI_GPT4O_MODEL: vector<u8> = b"gpt-4o";
@@ -66,17 +61,15 @@ module nuwa_framework::agent {
     /// Generate system prompt based on Character attributes
     public fun generate_system_prompt<I: copy + drop>(
         agent: &Agent,
-        input: &AgentInput<I>,
+        input: AgentInput<I>,
     ): String {
         let character = object::borrow(&agent.character);
-        let available_actions = get_available_actions(input);
+        let available_actions = get_available_actions(&input);
         prompt_builder::build_complete_prompt(
             agent.agent_address,
             character,
             &agent.memory_store,
-            input.sender,
-            input.input_description,
-            input.input_data,
+            input,
             available_actions,
         )
     }
@@ -92,7 +85,7 @@ module nuwa_framework::agent {
         // Generate system prompt with context
         let system_prompt = generate_system_prompt(
             agent,
-            &input
+            input
         );
 
         // Create chat messages
@@ -116,6 +109,15 @@ module nuwa_framework::agent {
     // Helper function to get available actions
     fun get_available_actions<I: drop>(_input: &AgentInput<I>): vector<ActionDescription> {
         action::get_all_action_descriptions()
+    }
+
+    public fun borrow_mut_agent(agent_obj_id: ObjectID): &mut Object<Agent> {
+        object::borrow_mut_object_shared(agent_obj_id)
+    }
+
+    public fun borrow_mut_agent_by_address(agent_addr: address): &mut Object<Agent> {
+        let agent_obj_id = object::account_named_object_id<Agent>(agent_addr);
+        object::borrow_mut_object_shared(agent_obj_id)
     }
 
     /// Get mutable reference to agent's memory store
@@ -147,18 +149,9 @@ module nuwa_framework::agent {
         agent_cap::destroy_agent_cap(cap);
     }
 
-    // ================== AgentInput ==========================
-
-    public fun create_agent_input<I: copy + drop>(
-        sender: address,
-        input_description: String,
-        input_data: I,
-    ): AgentInput<I> {
-        AgentInput {
-            sender,
-            input_description,
-            input_data,
-        }
+    public fun is_agent_account(addr: address): bool {
+        let agent_obj_id = object::account_named_object_id<Agent>(addr);
+        object::exists_object(agent_obj_id)
     }
 
     #[test_only]

@@ -5,6 +5,7 @@ module nuwa_framework::prompt_builder {
     use nuwa_framework::character::{Self, Character};
     use nuwa_framework::memory::{Self, Memory, MemoryStore};
     use nuwa_framework::action::{ActionDescription};
+    use nuwa_framework::agent_input::{Self, AgentInput};
 
     /// Data structures for JSON serialization
     struct CharacterInfo has copy, drop {
@@ -40,11 +41,10 @@ module nuwa_framework::prompt_builder {
         agent_address: address,
         character: &Character,
         memory_store: &MemoryStore,
-        user: address,
-        input_description: String,
-        input_data: D,
+        input: AgentInput<D>,
         available_actions: vector<ActionDescription>,
     ): String {
+        let (user, input_description, input_data) = agent_input::unpack(input);
         let prompt = string::utf8(b"You are an autonomous AI agent running on the Rooch blockchain.\n");
         string::append(&mut prompt, string::utf8(b"Your identity and capabilities are defined below:\n\n"));
         

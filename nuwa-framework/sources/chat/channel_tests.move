@@ -73,7 +73,8 @@ module nuwa_framework::channel_tests {
         // Send message
         let channel = object::borrow_mut_object_shared(channel_id);
         let msg_content = string::utf8(b"Hello AI!");
-        channel::send_message(&user, channel, msg_content);
+        let mentions = vector::empty();
+        channel::send_message(&user, channel, msg_content, mentions);
         
         // Verify message
         let channel = object::borrow_object(channel_id);
@@ -103,7 +104,9 @@ module nuwa_framework::channel_tests {
         
         // Try sending message from unauthorized user
         let channel = object::borrow_mut_object_shared(channel_id);
-        channel::send_message(&user2, channel, string::utf8(b"Unauthorized message"));
+        
+        let mentions = vector::empty();
+        channel::send_message(&user2, channel, string::utf8(b"Unauthorized message"), mentions);
 
         channel::delete_channel_for_testing(channel_id);
     }
@@ -122,8 +125,9 @@ module nuwa_framework::channel_tests {
         // Send multiple messages
         let channel = object::borrow_mut_object_shared(channel_id);
         let i = 0;
+        let mentions = vector::empty();
         while (i < 5) {
-            channel::send_message(&user, channel, string::utf8(b"Message"));
+            channel::send_message(&user, channel, string::utf8(b"Message"), mentions);
             i = i + 1;
         };
         
