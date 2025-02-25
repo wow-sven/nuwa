@@ -1,6 +1,6 @@
 module nuwa_framework::character {
 
-    use std::string::{Self, String};
+    use std::string::String;
     use std::vector;
 
     use moveos_std::object::{Self, Object};
@@ -119,6 +119,7 @@ module nuwa_framework::character {
 
     #[test(caller = @0x42)]
     fun test_character() {
+        use std::string;
         // Create test character
         let data = new_character_data(
             string::utf8(b"Dobby"),

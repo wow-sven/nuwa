@@ -1,0 +1,159 @@
+#[test_only]
+module nuwa_framework::channel_tests {
+    use std::string;
+    use std::signer;
+    use std::vector;
+    use moveos_std::account;
+    use moveos_std::timestamp;
+    use moveos_std::object;
+    use nuwa_framework::channel;
+    use nuwa_framework::message;
+
+    // Test helpers
+    #[test_only]
+    fun create_account_with_address(addr: address): signer {
+        account::create_signer_for_testing(addr)
+    }
+
+    #[test]
+    fun test_create_ai_home_channel() {
+        let ai_account = create_account_with_address(@0x42);
+        timestamp::update_global_time_for_test(1000);
+
+        let title = string::utf8(b"AI Home Channel");
+        let channel_id = channel::create_ai_home_channel(&ai_account, title);
+        let channel = object::borrow_object(channel_id);
+        
+        // Verify AI is a member
+        assert!(channel::is_member(channel, signer::address_of(&ai_account)), 0);
+        
+        // Try joining as a user
+        let user = create_account_with_address(@0x43);
+        let channel = object::borrow_mut_object_shared(channel_id);
+        channel::join_channel(&user, channel);
+        
+        // Verify user is now a member
+        let channel = object::borrow_object(channel_id);
+        assert!(channel::is_member(channel, signer::address_of(&user)), 1);
+
+        channel::delete_channel_for_testing(channel_id);
+    }
+
+    #[test]
+    fun test_create_ai_peer_channel() {
+        let user = create_account_with_address(@0x42);
+        let ai_address = @0x43;
+        timestamp::update_global_time_for_test(1000);
+
+        let title = string::utf8(b"AI Peer Channel");
+        let channel_id = channel::create_ai_peer_channel(&user, ai_address, title);
+        let channel = object::borrow_object(channel_id);
+        
+        // Verify both user and AI are members
+        assert!(channel::is_member(channel, signer::address_of(&user)), 0);
+        assert!(channel::is_member(channel, ai_address), 1);
+
+        channel::delete_channel_for_testing(channel_id);
+    }
+
+    #[test]
+    fun test_message_sending() {
+        let user = create_account_with_address(@0x42);
+        let ai_address = @0x43;
+        
+        // Create peer channel
+        let channel_id = channel::create_ai_peer_channel(
+            &user,
+            ai_address,
+            string::utf8(b"Test Chat")
+        );
+        
+        // Send message
+        let channel = object::borrow_mut_object_shared(channel_id);
+        let msg_content = string::utf8(b"Hello AI!");
+        channel::send_message(&user, channel, msg_content);
+        
+        // Verify message
+        let channel = object::borrow_object(channel_id);
+        let messages = channel::get_messages(channel);
+        assert!(vector::length(&messages) == 1, 0);
+        
+        let msg = vector::borrow(&messages, 0);
+        assert!(message::get_content(msg) == msg_content, 1);
+        assert!(message::get_sender(msg) == signer::address_of(&user), 2);
+        assert!(message::get_type(msg) == message::type_user(), 3);
+
+        channel::delete_channel_for_testing(channel_id);
+    }
+
+    #[test]
+    #[expected_failure(abort_code = channel::ErrorNotMember)]
+    fun test_unauthorized_message() {
+        let user1 = create_account_with_address(@0x42);
+        let user2 = create_account_with_address(@0x44);
+        let ai_address = @0x43;
+        
+        let channel_id = channel::create_ai_peer_channel(
+            &user1,
+            ai_address,
+            string::utf8(b"Private Chat")
+        );
+        
+        // Try sending message from unauthorized user
+        let channel = object::borrow_mut_object_shared(channel_id);
+        channel::send_message(&user2, channel, string::utf8(b"Unauthorized message"));
+
+        channel::delete_channel_for_testing(channel_id);
+    }
+
+    #[test]
+    fun test_message_pagination() {
+        let user = create_account_with_address(@0x42);
+        let ai_address = @0x43;
+        
+        let channel_id = channel::create_ai_peer_channel(
+            &user,
+            ai_address,
+            string::utf8(b"Test Chat")
+        );
+        
+        // Send multiple messages
+        let channel = object::borrow_mut_object_shared(channel_id);
+        let i = 0;
+        while (i < 5) {
+            channel::send_message(&user, channel, string::utf8(b"Message"));
+            i = i + 1;
+        };
+        
+        // Test pagination
+        let channel = object::borrow_object(channel_id);
+        let messages = channel::get_messages_paginated(channel, 1, 2);
+        assert!(vector::length(&messages) == 2, 0);
+        
+        // Test last messages
+        let messages = channel::get_last_messages(channel, 3);
+        assert!(vector::length(&messages) == 3, 1);
+
+        channel::delete_channel_for_testing(channel_id);
+    }
+
+    #[test]
+    fun test_member_info() {
+        let user = create_account_with_address(@0x42);
+        let ai_address = @0x43;
+        timestamp::update_global_time_for_test(1000);
+        
+        let channel_id = channel::create_ai_peer_channel(
+            &user,
+            ai_address,
+            string::utf8(b"Test Chat")
+        );
+        
+        let channel = object::borrow_object(channel_id);
+        let (joined_at, last_active) = channel::get_member_info(channel, signer::address_of(&user));
+        assert!(joined_at == 1000, 0);
+        assert!(last_active == 1000, 1);
+
+        channel::delete_channel_for_testing(channel_id);
+    }
+}

@@ -1,5 +1,5 @@
 module nuwa_framework::action {
-    use std::string::{Self, String};
+    use std::string::String;
     use std::vector;
     use std::option;
     use moveos_std::table::{Self, Table};
@@ -174,6 +174,7 @@ module nuwa_framework::action {
 
     #[test]
     fun test_register_memory_action() {
+        use std::string;
         init_for_test();
         
         // Register a memory action
@@ -203,6 +204,7 @@ module nuwa_framework::action {
 
     #[test]
     fun test_get_action_descriptions() {
+        use std::string;
         init_for_test();
         
         // Register a test action
@@ -237,6 +239,7 @@ module nuwa_framework::action {
 
     #[test]
     fun test_get_all_action_descriptions() {
+        use std::string;
         init_for_test();
         
         // Register test actions
