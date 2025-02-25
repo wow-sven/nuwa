@@ -119,9 +119,12 @@ module nuwa_framework::channel {
     }
 
     /// Add message to channel - use message_counter as id
-    fun add_message(channel: &mut Channel, sender: address, content: String, message_type: u8) {
+    fun add_message(channel_obj: &mut Object<Channel>, sender: address, content: String, message_type: u8) {
+        let channel_id = object::id(channel_obj);
+        let channel = object::borrow_mut(channel_obj);
         let msg_id = message::new_message(
             channel.message_counter,
+            channel_id,
             sender,
             content,
             message_type
@@ -144,17 +147,21 @@ module nuwa_framework::channel {
         assert!(table::contains(&channel.members, sender), ErrorNotMember);
         assert!(channel.status == CHANNEL_STATUS_ACTIVE, ErrorChannelInactive);
         
-        add_message(channel, sender, content, message::type_user());
-        
         // Update member's last active time
         let member = table::borrow_mut(&mut channel.members, sender);
         member.last_active = now;
         channel.last_active = now;
+
+        add_message(channel_obj, sender, content, message::type_user());
     }
 
-    /// Add AI response to the channel (will be implemented by the framework)
-    public(friend) fun add_ai_response(channel: &mut Channel, response_message: String, ai_agent_address: address){
-        add_message(channel, ai_agent_address, response_message, message::type_ai());
+    /// Add AI response to the channel
+    public(friend) fun add_ai_response(
+        channel_obj: &mut Object<Channel>, 
+        response_message: String, 
+        ai_agent_address: address
+    ){
+        add_message(channel_obj, ai_agent_address, response_message, message::type_ai());
     }
 
     /// Get all messages in the channel

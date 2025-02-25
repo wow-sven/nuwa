@@ -12,6 +12,7 @@ module nuwa_framework::message {
     /// But it is no `store` ability, so the owner can't transfer it to another account
     struct Message has key, copy, drop {
         id: u64,
+        channel_id: ObjectID,  // Added channel_id
         sender: address,
         content: String,
         timestamp: u64,
@@ -19,9 +20,16 @@ module nuwa_framework::message {
     }
 
     /// Constructor - message belongs to the sender
-    public fun new_message(id: u64, sender: address, content: String, message_type: u8): ObjectID {
+    public fun new_message(
+        id: u64, 
+        channel_id: ObjectID,  // Added channel_id parameter
+        sender: address, 
+        content: String, 
+        message_type: u8
+    ): ObjectID {
         let message = Message {
             id,
+            channel_id,
             sender,
             content,
             timestamp: timestamp::now_milliseconds(),
@@ -36,6 +44,10 @@ module nuwa_framework::message {
     // Getters
     public fun get_id(message: &Message): u64 {
         message.id
+    }
+
+    public fun get_channel_id(message: &Message): ObjectID {
+        message.channel_id
     }
 
     public fun get_content(message: &Message): String {
@@ -61,15 +73,24 @@ module nuwa_framework::message {
     #[test]
     fun test_message_creation() {
         use std::string;
- 
-        let msg_id = new_message(1, @0x42, string::utf8(b"test content"), type_user());
+        
+        //TODO provide a test function to generate ObjectID in object.move
+        let test_channel_id = object::named_object_id<Message>();
+        let msg_id = new_message(
+            1, 
+            test_channel_id, 
+            @0x42, 
+            string::utf8(b"test content"), 
+            type_user()
+        );
         let msg_obj = object::borrow_object<Message>(msg_id);
         let msg = object::borrow(msg_obj);
         
         assert!(get_id(msg) == 1, 0);
-        assert!(get_content(msg) == string::utf8(b"test content"), 1);
-        assert!(get_type(msg) == type_user(), 2);
-        assert!(get_sender(msg) == @0x42, 3);
-        assert!(object::owner(msg_obj) == @0x42, 4);
+        assert!(get_channel_id(msg) == test_channel_id, 1);
+        assert!(get_content(msg) == string::utf8(b"test content"), 2);
+        assert!(get_type(msg) == type_user(), 3);
+        assert!(get_sender(msg) == @0x42, 4);
+        assert!(object::owner(msg_obj) == @0x42, 5);
     }
 }
