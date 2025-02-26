@@ -1,13 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useRoochClient, useRoochClientQuery, useCurrentSession } from '@roochnetwork/rooch-sdk-kit';
 import { useNetworkVariable } from '../hooks/useNetworkVariable';
-import { Args, Transaction } from '@roochnetwork/rooch-sdk';
+import { Args, Transaction, bcs } from '@roochnetwork/rooch-sdk';
 import { Layout } from '../components/Layout';
 import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
 import { TypingIndicator } from '../components/TypingIndicator';
-import { Channel, Message, CHANNEL_STATUS } from '../types/channel';
+import { Channel, Message, CHANNEL_STATUS, MessageSchema } from '../types/channel'; // Add MessageSchema to imports
 import { formatTimestamp } from '../utils/time';
 
 export function ChannelPage() {
@@ -22,45 +22,100 @@ export function ChannelPage() {
   
   // Fetch channel details
   const { data: channelData, isLoading: isChannelLoading } = useRoochClientQuery(
-    'executeViewFunction',
+    'queryObjectStates',
     {
-      target: `${packageId}::nuwa_service::get_channel`,
-      args: [Args.object_id(channelId)],
+      filter: {
+        object_id: channelId,
+      },
     },
     {
       enabled: !!packageId && !!channelId,
     }
   );
   
-  const channel: Channel | undefined = channelData?.return_values?.[0]?.decoded_value;
+  // Extract channel data from the response
+  const channel = channelData?.data?.[0]?.decoded_value?.value;
+  
+  // Check if the channel is active
+  const isChannelActive = channel?.status === CHANNEL_STATUS.ACTIVE;
   
   // Fetch channel messages
   const { data: messagesData, isLoading: isMessagesLoading, refetch: refetchMessages } = useRoochClientQuery(
     'executeViewFunction',
     {
-      target: `${packageId}::nuwa_service::get_channel_messages`,
-      args: [Args.object_id(channelId)],
+      target: `${packageId}::channel::get_messages`,
+      args: [Args.objectId(channelId)],
     },
     {
       enabled: !!packageId && !!channelId,
       refetchInterval: 5000,
     }
   );
+  console.log('Messages data response:', messagesData);
   
-  const messages: Message[] = messagesData?.return_values?.[0]?.decoded_value || [];
+  // Define function to deserialize messages
+  const deserializeMessages = useMemo(() => {
+    if (!messagesData?.return_values?.[0]?.value?.value) {
+      console.log('No message data available');
+      return [];
+    }
+
+    try {
+      // Get the hex value from the response
+      const hexValue = messagesData.return_values[0].value.value;
+      console.log('Hex value:', hexValue);
+      
+      // Convert hex to bytes
+      const cleanHexValue = hexValue.startsWith('0x') ? hexValue.slice(2) : hexValue;
+      const bytes = new Uint8Array(
+        cleanHexValue.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
+      );
+      
+      // Parse using BCS
+      if (!MessageSchema) {
+        console.error('MessageSchema is not defined!');
+        return [];
+      }
+      
+      console.log('Parsing bytes with BCS:', bytes);
+      const parsedMessages = bcs.vector(MessageSchema).parse(bytes);
+      console.log('Parsed messages:', parsedMessages);
+      
+      // Map to our Message interface format
+      return parsedMessages.map((message: any) => ({
+        id: message.id,
+        sender: message.sender,
+        content: message.content,
+        timestamp: message.timestamp,
+        message_type: message.message_type, 
+      }));
+    } catch (error) {
+      console.error('BCS deserialization error:', error);
+      return [];
+    }
+  }, [messagesData]);
+  
+  // Use the deserialized messages
+  const messages: Message[] = deserializeMessages;
+  console.log('Processed messages:', messages);
   
   // Check if user is a member of the channel
   const { data: isMemberData } = useRoochClientQuery(
     'executeViewFunction',
     {
-      target: `${packageId}::nuwa_service::is_channel_member`,
-      args: [Args.object_id(channelId), Args.address(session.address)],
+      target: `${packageId}::channel::is_channel_member`,
+      args: channelId && session ? [
+        Args.objectId(channelId), 
+        Args.address(session.getRoochAddress())
+      ] : [],
     },
     {
-      enabled: !!packageId && !!channelId && !!session?.address,
+      // Only run this query when session is available
+      enabled: !!packageId && !!channelId && !!session,
     }
   );
   
+  // Default to false if not a member or if session doesn't exist
   const isMember: boolean = isMemberData?.return_values?.[0]?.decoded_value || false;
   
   // Auto-scroll to bottom when messages change
@@ -79,12 +134,12 @@ export function ChannelPage() {
       const tx = new Transaction();
       tx.callFunction({
         target: `${packageId}::channel::join_channel_entry`,
-        arguments: [Args.object_id(channelId)],
+        args: [Args.objectId(channelId)],
       });
       
       const result = await client.signAndExecuteTransaction({
         transaction: tx,
-        signer: session.address,
+        signer: session,
       });
       
       if (result.execution_info.status.type !== 'executed') {
@@ -115,16 +170,16 @@ export function ChannelPage() {
       const tx = new Transaction();
       tx.callFunction({
         target: `${packageId}::channel::send_message_entry`,
-        arguments: [
-          Args.object_id(channelId), 
+        args: [
+          Args.objectId(channelId), 
           Args.string(content),
-          Args.vector([]) // Empty mentions for now
+          Args.vec('address',[]) // Empty mentions for now
         ],
       });
       
       const result = await client.signAndExecuteTransaction({
         transaction: tx,
-        signer: session.address,
+        signer: session,
       });
       
       if (result.execution_info.status.type !== 'executed') {
@@ -166,9 +221,6 @@ export function ChannelPage() {
       </Layout>
     );
   }
-  
-  // Check if channel is inactive
-  const isChannelActive = channel.status === CHANNEL_STATUS.ACTIVE;
   
   return (
     <Layout>
@@ -219,17 +271,17 @@ export function ChannelPage() {
             <div className="flex justify-center items-center h-full">
               <div className="animate-spin h-8 w-8 border-t-2 border-blue-500 border-r-2 rounded-full"></div>
             </div>
-          ) : messages.length === 0 ? (
+          ) : messages && messages.length === 0 ? (
             <div className="flex justify-center items-center h-full text-gray-500">
               No messages yet. Be the first to send a message!
             </div>
           ) : (
             <div className="space-y-4">
-              {messages.map((message) => (
+              {Array.isArray(messages) && messages.map((message, index) => (
                 <ChatMessage 
-                  key={message.id} 
+                  key={`${message.id}-${index}`}
                   message={message} 
-                  isCurrentUser={message.sender === session?.address}
+                  isCurrentUser={message.sender === session?.getRoochAddress()}
                   isAI={message.message_type === 1}
                 />
               ))}
@@ -252,7 +304,7 @@ export function ChannelPage() {
             <>
               {isSending && <TypingIndicator />}
               <ChatInput 
-                onSendMessage={handleSendMessage} 
+                onSend={handleSendMessage} 
                 disabled={!isMember || isSending || !isChannelActive}
                 placeholder="Type your message..."
               />

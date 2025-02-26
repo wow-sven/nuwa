@@ -1,55 +1,53 @@
-import { bcs} from '@roochnetwork/rooch-sdk'
+import { bcs } from '@roochnetwork/rooch-sdk';
+
+export enum CHANNEL_STATUS {
+  ACTIVE = 0,
+  INACTIVE = 1,
+}
 
 export interface Channel {
   id: string;
   title: string;
   creator: string;
-  created_at: number;
-  last_active: number;
-  status: number;
+  status: CHANNEL_STATUS;
+  created_at: string;
+  message_counter: string;
   channel_type: number;
-  message_counter: number;
-  last_message?: Message;
+  last_active: string;
 }
 
 export interface Message {
-  id: string;
-  channel_id: string;
+  id: string;  // Changed from u64 to string for consistency
   sender: string;
+  channel_id: string;
   content: string;
-  timestamp: number;
-  message_type: number; // 0 for user, 1 for AI
-  mentions: string[]; // Changed from HexString[] to string[]
+  timestamp: string;
+  message_type: number;
 }
 
+// Define BCS MessageSchema for deserialization that matches the Move type
 export const MessageSchema = bcs.struct('Message', {
-  id: bcs.u64(),
-  channel_id: bcs.String,
-  sender: bcs.Address,
-  content: bcs.string(),
-  timestamp: bcs.u64(),
-  message_type: bcs.u8(),
-  mentions: bcs.vector(bcs.Address),
-})
+  id: bcs.u64(),             // ID is a u64 in Move
+  channel_id: bcs.string(),  // Object ID as string
+  sender: bcs.Address,      // Address as string
+  content: bcs.string(),     // Message content
+  timestamp: bcs.u64(),   // Timestamp as string
+  message_type: bcs.u8(),    // Message type as u8
+  mentions: bcs.vector(bcs.Address), // Vector of addresses
+});
 
 export const ChannelSchema = bcs.struct('Channel', {
-  id: bcs.String,
-  title: bcs.String,
-  creator: bcs.Address,
-  created_at: bcs.U64,
-  last_active: bcs.U64,
-  status: bcs.U8,
-  channel_type: bcs.U8,
-  message_counter: bcs.U64,
+  id: bcs.string(),
+  title: bcs.string(),
+  creator: bcs.string(),
+  created_at: bcs.string(),
+  last_active: bcs.string(),
+  status: bcs.u8(),
+  channel_type: bcs.u8(),
+  message_counter: bcs.string(),
 });
 
 // Channel constants matching the Move code
-export const CHANNEL_STATUS = {
-  ACTIVE: 0,
-  CLOSED: 1,
-  BANNED: 2
-} as const;
-
 export const CHANNEL_TYPE = {
   AI_HOME: 0, // AI's home channel, always public
   AI_PEER: 1, // 1:1 AI-User channel, always private

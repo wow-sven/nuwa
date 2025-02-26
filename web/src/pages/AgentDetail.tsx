@@ -40,13 +40,6 @@ export function AgentDetail() {
     },
     {
       enabled: !!client && !!packageId && !!agentId,
-      onSuccess: (data) => {
-        console.log('Home channel response:', data);
-        if (data?.return_values?.[0]?.decoded_value) {
-          setHomeChannelId(data.return_values[0].decoded_value);
-          console.log('Home channel ID:', data.return_values[0].decoded_value);
-        }
-      },
       onError: (err) => {
         console.error('Failed to fetch home channel ID:', err);
       }
@@ -69,8 +62,13 @@ export function AgentDetail() {
 
     const processAgentData = async () => {
       try {
+        console.log('Agent response:', agentResponse);
+        console.log('Home channel response:', homeChannelResponse);
+        if (homeChannelResponse?.return_values?.[0]?.decoded_value) {
+          setHomeChannelId(homeChannelResponse.return_values[0].decoded_value);
+        }
+
         if (agentResponse?.data && agentResponse.data.length > 0) {
-          console.log('Agent response:', agentResponse);
           
           // Get the first agent from the array
           const agentObj = agentResponse.data[0];
