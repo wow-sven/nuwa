@@ -9,8 +9,7 @@ module nuwa_framework::agent_tests {
     use nuwa_framework::memory_action;  
     use nuwa_framework::response_action;
     use nuwa_framework::agent;
-    use nuwa_framework::action_dispatcher;
-    use nuwa_framework::channel::{Self, Channel};
+    use nuwa_framework::channel;
     use nuwa_framework::message;
 
 

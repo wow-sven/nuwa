@@ -76,6 +76,12 @@ module nuwa_framework::character {
         object::transfer(co, signer::address_of(caller));
     }
 
+    public entry fun create_character_entry(caller: &signer, name: String, username: String, description: String){
+        let data = new_character_data(name, username, description, vector::empty(), vector::empty());
+        let co = create_character(data);
+        object::transfer(co, signer::address_of(caller));
+    }
+
     public entry fun add_bio(co: &mut Object<Character>, bio: String) {
         let c = object::borrow_mut(co);
         if(vector::contains(&c.bio, &bio)){

@@ -52,12 +52,6 @@ module nuwa_framework::agent {
         agent_cap
     }
 
-    public entry fun create_agent_entry(creater: &signer, character: Object<Character>) {
-        let creater_addr = signer::address_of(creater);
-        let agent_cap = create_agent(character);
-        object::transfer(agent_cap, creater_addr);    
-    }
-
     /// Generate system prompt based on Character attributes
     public fun generate_system_prompt<I: copy + drop>(
         agent: &Agent,
