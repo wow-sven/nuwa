@@ -1,9 +1,13 @@
 module nuwa_framework::string_utils {
     use std::vector;
     use std::string::{Self, String};
+    use moveos_std::object::ObjectID;
+    use moveos_std::bcs;
+    use moveos_std::hex;
     
     friend nuwa_framework::action_dispatcher;
     friend nuwa_framework::response_action;
+    friend nuwa_framework::message;
 
     //TODO migrate to std::string::starts_with
     public(friend) fun starts_with(haystack_str: &String, needle: &vector<u8>): bool {
@@ -79,6 +83,22 @@ module nuwa_framework::string_utils {
         result
     }
 
+    public(friend) fun channel_id_to_string(channel_id: ObjectID): String {
+        let bytes = bcs::to_bytes(&channel_id);
+        let prefix = string::utf8(b"0x");
+        let hex = string::utf8(hex::encode(bytes));
+        string::append(&mut prefix, hex);
+        prefix
+    }
+
+    public(friend) fun string_to_channel_id(channel_id_str: String): ObjectID {
+        let bytes = string::into_bytes(channel_id_str);
+        let len = vector::length(&bytes);
+        let bytes = get_substr(&bytes, 2, len);
+        let bytes = hex::decode(&bytes);
+        let channel_id = bcs::from_bytes<ObjectID>(bytes);
+        return channel_id
+    }
     
     #[test]
     fun test_split() {

@@ -5,6 +5,7 @@ module nuwa_framework::message {
     use moveos_std::object::{Self, ObjectID};
 
     use nuwa_framework::agent_input::{Self, AgentInput};
+    use nuwa_framework::string_utils::{channel_id_to_string};
 
     friend nuwa_framework::channel;
 
@@ -26,12 +27,25 @@ module nuwa_framework::message {
         mentions: vector<address>,
     }
 
+    //TODO remove this after https://github.com/rooch-network/rooch/issues/3362
+    struct MessageForAgent has copy, drop {
+        id: u64,
+        // Convert ObjectID to String
+        channel_id: String,
+        sender: address,
+        content: String,
+        timestamp: u64,
+        message_type: u8,
+        /// The addresses mentioned in the message
+        mentions: vector<address>,
+    }
+
     /// Message Input Description
     const MESSAGE_INPUT_DESCRIPTION: vector<u8> = b"Message Input structure: A MessageInput contains a history of previous messages and the current message to process. | Message fields: | - id: message sequence number | - channel_id: channel identifier this message belongs to | - sender: sender's address | - content: message text | - timestamp: creation time in milliseconds | - message_type: 0=user message, 1=AI message | - mentions: addresses mentioned in message | Use message history to maintain conversation context and respond appropriately to the current message.";
 
     struct MessageInput has copy, drop {
-        history: vector<Message>,
-        current: Message,
+        history: vector<MessageForAgent>,
+        current: MessageForAgent,
     }
 
     /// Constructor - message belongs to the sender
@@ -70,12 +84,25 @@ module nuwa_framework::message {
     }
 
     public fun new_agent_input(messages: vector<Message>) : AgentInput<MessageInput> {
-        let current = vector::pop_back(&mut messages);
+        let messages_for_agent = vector::empty();
+        vector::for_each(messages, |msg| {
+            let msg: Message = msg;
+            vector::push_back(&mut messages_for_agent, MessageForAgent {
+                id: msg.id,
+                channel_id: channel_id_to_string(msg.channel_id),
+                sender: msg.sender,
+                content: msg.content,
+                timestamp: msg.timestamp,
+                message_type: msg.message_type,
+                mentions: msg.mentions,
+            });
+        });
+        let current = vector::pop_back(&mut messages_for_agent);
         agent_input::new_agent_input(
             current.sender,
             string::utf8(MESSAGE_INPUT_DESCRIPTION),
             MessageInput {
-                history: messages,
+                history: messages_for_agent,
                 current,
             }
         )

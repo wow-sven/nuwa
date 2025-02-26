@@ -1,14 +1,11 @@
 module nuwa_framework::response_action {
     use std::string::{Self, String};
-    use std::vector;
     use moveos_std::object::{Self, Object, ObjectID};
     use moveos_std::json;
-    use moveos_std::bcs;
-    use moveos_std::hex;
     use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::action;
     use nuwa_framework::channel;
-    use nuwa_framework::string_utils;
+    use nuwa_framework::string_utils::{channel_id_to_string, string_to_channel_id};
 
     const ACTION_NAME_SAY: vector<u8> = b"response::say";
     // Action example
@@ -71,23 +68,6 @@ module nuwa_framework::response_action {
         let channel = object::borrow_mut_object_shared<channel::Channel>(channel_id);
         let agent_addr = agent::get_agent_address(agent);
         channel::add_ai_response(channel, content, agent_addr);
-    }
-
-    fun channel_id_to_string(channel_id: ObjectID): String {
-        let bytes = bcs::to_bytes(&channel_id);
-        let prefix = string::utf8(b"0x");
-        let hex = string::utf8(hex::encode(bytes));
-        string::append(&mut prefix, hex);
-        prefix
-    }
-
-    fun string_to_channel_id(channel_id_str: String): ObjectID {
-        let bytes = string::into_bytes(channel_id_str);
-        let len = vector::length(&bytes);
-        let bytes = string_utils::get_substr(&bytes, 2, len);
-        let bytes = hex::decode(&bytes);
-        let channel_id = bcs::from_bytes<ObjectID>(bytes);
-        return channel_id
     }
 
     #[test]
