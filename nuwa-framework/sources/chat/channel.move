@@ -180,6 +180,11 @@ module nuwa_framework::channel {
         add_message(channel_obj, ai_agent_address, response_message, message::type_ai(), vector::empty());
     }
 
+    public fun is_channel_member(channel: &Object<Channel>, addr: address): bool {
+        let channel_ref = object::borrow(channel);
+        table::contains(&channel_ref.members, addr)
+    }
+
     /// Get all messages in the channel
     public fun get_messages(channel: &Object<Channel>): vector<Message> {
         let channel_ref = object::borrow(channel);
