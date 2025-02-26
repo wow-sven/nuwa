@@ -96,6 +96,11 @@ module nuwa_framework::channel {
         channel_id
     }
 
+    public fun get_agent_home_channel_id(agent: &Object<Agent>): ObjectID {
+        let agent_address = agent::get_agent_address(agent);
+        object::account_named_object_id<Channel>(agent_address)
+    }
+
     /// Initialize a new AI peer channel
     public fun create_ai_peer_channel(
         user_account: &signer,

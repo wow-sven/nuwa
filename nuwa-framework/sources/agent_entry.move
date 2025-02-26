@@ -6,7 +6,12 @@ module nuwa_framework::agent_entry {
     use nuwa_framework::agent_cap;
     use nuwa_framework::channel;
 
+    //TODO remove this
     public entry fun create_agent_entry(creater: &signer, character: Object<Character>) {
+        create_agent(creater, character);  
+    }
+
+    public entry fun create_agent(creater: &signer, character: Object<Character>) {
         let creater_addr = signer::address_of(creater);
         let agent_cap = agent::create_agent(character);
         let agent_id = agent_cap::get_agent_obj_id(&agent_cap);
