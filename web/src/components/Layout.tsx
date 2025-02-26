@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
 import { ConnectButton } from '@roochnetwork/rooch-sdk-kit';
-import { RoomListContainer } from '../containers/RoomListContainer';
 import { ErrorGuard } from '../ErrorGuard';
 import { Link } from 'react-router-dom';
 import { OracleBalance } from './OracleBalance';
@@ -16,7 +15,7 @@ export function Layout({ children, showRoomList = false }: LayoutProps) {
       <header className="flex-none flex items-center justify-between px-6 h-16 border-b bg-white">
         <div className="flex items-center space-x-6">
           <Link to="/" className="text-2xl font-bold text-gray-900 hover:text-gray-700 transition-colors">
-            OnChain AI Chat
+            Nuwa AI
           </Link>
           <div className="flex items-center space-x-4 text-sm">
             <a 
@@ -46,7 +45,7 @@ export function Layout({ children, showRoomList = false }: LayoutProps) {
       <div className="flex-1 flex min-h-0 bg-gray-50">
         {showRoomList && (
           <aside className="w-64 flex-none overflow-y-auto border-r bg-white">
-            <RoomListContainer />
+
             <ErrorGuard />
           </aside>
         )}

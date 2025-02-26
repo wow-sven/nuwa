@@ -5,7 +5,7 @@ interface TitleProps {
   suffix?: string;
 }
 
-export function Title({ title, suffix = '| OnChain AI Chat' }: TitleProps) {
+export function Title({ title, suffix = '| Nuwa AI Agent' }: TitleProps) {
   useEffect(() => {
     document.title = suffix ? `${title} ${suffix}` : title;
   }, [title, suffix]);

@@ -1,4 +1,4 @@
-import { Message } from '../types/room';
+import { Message } from '../types/channel';
 import { UserCircleIcon } from '@heroicons/react/24/solid';
 import { formatTimestamp } from '../utils/time';
 import ReactMarkdown from 'react-markdown'
@@ -8,20 +8,16 @@ import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useState } from 'react';
 import { ClipboardDocumentIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { CheckIcon } from '@heroicons/react/24/solid';
+import { shortenAddress } from '../utils/address';
 
 interface ChatMessageProps {
   message: Message;
   isCurrentUser: boolean;
+  isAI: boolean;
 }
 
-const shortenAddress = (address: string) => {
-  if (!address) return '';
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-};
-
-export function ChatMessage({ message, isCurrentUser }: ChatMessageProps) {
+export function ChatMessage({ message, isCurrentUser, isAI }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
-  const isAI = message.message_type === 1; // Updated from messageType
   const timestamp = message.timestamp;
   const displayName = isAI ? 'AI Assistant' : shortenAddress(message.sender);
 

@@ -1,27 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 interface ErrorToastProps {
   message: string;
   onClose: () => void;
-  autoHideDuration?: number;
+  duration?: number; // Auto-hide duration in milliseconds
 }
 
-export function ErrorToast({ message, onClose, autoHideDuration = 5000 }: ErrorToastProps) {
+export function ErrorToast({ message, onClose, duration = 5000 }: ErrorToastProps) {
+  // Auto-dismiss after duration
   useEffect(() => {
-    const timer = setTimeout(onClose, autoHideDuration);
-    return () => clearTimeout(timer);
-  }, [onClose, autoHideDuration]);
+    if (duration > 0) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, duration);
+      
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [duration, onClose]);
 
   return (
-    <div className="fixed bottom-20 right-4 flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg shadow-lg">
-      <span className="text-sm">{message}</span>
-      <button
-        onClick={onClose}
-        className="text-red-500 hover:text-red-700"
-      >
-        <XMarkIcon className="h-5 w-5" />
-      </button>
+    <div className="fixed top-4 right-4 z-50 bg-red-50 border-l-4 border-red-400 text-red-700 p-4 rounded shadow-md pr-10 max-w-md animate-fade-in">
+      <div className="flex">
+        <p>{message}</p>
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-red-500 hover:text-red-700"
+          aria-label="Close"
+        >
+          <XMarkIcon className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 }
