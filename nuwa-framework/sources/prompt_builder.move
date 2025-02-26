@@ -71,38 +71,41 @@ module nuwa_framework::prompt_builder {
         )));
         string::append(&mut prompt, string::utf8(b"\n---\n\n"));
         
-        // Capabilities section - simplified
+        // Capabilities section
         string::append(&mut prompt, string::utf8(b"### 4. Your Capabilities\n\n"));
         string::append(&mut prompt, build_action_list(&available_actions));
         string::append(&mut prompt, string::utf8(b"\n---\n\n"));
         
-        // Response format - critical instructions
+        // Response format - improved and clearer instructions
         string::append(&mut prompt, string::utf8(b"### 5. Response Format - CRITICAL INSTRUCTIONS\n\n"));
-        string::append(&mut prompt, string::utf8(b"Return your actions using the following format (one action per pair of lines):\n\n"));
-
-        string::append(&mut prompt, string::utf8(b"Examples of the correct format:\n\n"));
-      
+        string::append(&mut prompt, string::utf8(b"You MUST use the exact format below for your responses:\n\n"));
+        
+        // Use concrete examples for clarity
         string::append(&mut prompt, format_action_examples(&available_actions));
         
-        
+        // Format rules
         string::append(&mut prompt, string::utf8(b"FORMAT RULES:\n"));
-        string::append(&mut prompt, string::utf8(b"1. Start with ACTION: followed by the action name\n"));
-        string::append(&mut prompt, string::utf8(b"2. Next line must have PARAMS: followed by valid JSON\n"));
-        string::append(&mut prompt, string::utf8(b"3. Add a blank line between different actions\n"));
-        string::append(&mut prompt, string::utf8(b"4. Do not use markdown, code blocks, or other formatting\n"));
+        string::append(&mut prompt, string::utf8(b"1. Each line must contain exactly one action\n"));
+        string::append(&mut prompt, string::utf8(b"2. Format: action_name {\"param1\":\"value1\",\"param2\":\"value2\",...}\n"));
+        string::append(&mut prompt, string::utf8(b"3. The action name must be followed by a space and then valid JSON\n"));
+        string::append(&mut prompt, string::utf8(b"4. Do not add any explanations, comments, or other text\n"));
         string::append(&mut prompt, string::utf8(b"5. Your final action MUST be response::say\n\n"));
+        
+        // Warning to emphasize importance
+        string::append(&mut prompt, string::utf8(b"IMPORTANT: EXACT FORMAT REQUIRED\n"));
+        string::append(&mut prompt, string::utf8(b"If you do not follow this format precisely, your actions will fail to execute.\n\n"));
 
         // Action guidance
         string::append(&mut prompt, string::utf8(b"### 6. Action Selection Guide\n\n"));
         string::append(&mut prompt, string::utf8(b"- Use memory::add when you learn new information about the user or yourself\n"));
-        string::append(&mut prompt, string::utf8(b"- Use memory::update when existing memory\n"));
+        string::append(&mut prompt, string::utf8(b"- Use memory::update when existing memory needs to be modified\n"));
         string::append(&mut prompt, string::utf8(b"- ALWAYS include response::say as your final action\n\n"));
-        string::append(&mut prompt, string::utf8(b"If an action fails, AI should retry using a valid format.\n"));
+        string::append(&mut prompt, string::utf8(b"If an action fails, retry using the correct format.\n"));
         
         // Error handling reminder
         string::append(&mut prompt, string::utf8(b"### 7. Important Reminder\n\n"));
-        string::append(&mut prompt, string::utf8(b"If you do not follow the response format exactly, your actions will fail to execute.\n"));
         string::append(&mut prompt, string::utf8(b"When in doubt, prioritize providing a response::say action over memory actions.\n"));
+        string::append(&mut prompt, string::utf8(b"Do not include any explanations or additional text in your response.\n"));
 
         prompt
     }
@@ -189,18 +192,13 @@ module nuwa_framework::prompt_builder {
             
             if (string::length(args_example) > 0) {
                 if (example_count > 0) {
-                    string::append(&mut result, string::utf8(b"\n")); // Add extra blank line between actions
+                    string::append(&mut result, string::utf8(b"\n")); // Add line break between examples
                 };
                 
-                // First line with ACTION: prefix
-                string::append(&mut result, string::utf8(b"ACTION: "));
+                // Single line format: action_name arguments_json
                 string::append(&mut result, *name);
-                string::append(&mut result, string::utf8(b"\n"));
-                
-                // Second line with PARAMS: prefix
-                string::append(&mut result, string::utf8(b"PARAMS: "));
+                string::append(&mut result, string::utf8(b" "));
                 string::append(&mut result, *args_example);
-                string::append(&mut result, string::utf8(b"\n"));
                 
                 example_count = example_count + 1;
             };
@@ -209,5 +207,4 @@ module nuwa_framework::prompt_builder {
         
         result
     }
-
 }
