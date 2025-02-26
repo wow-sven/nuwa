@@ -160,13 +160,13 @@ module nuwa_framework::action {
         &action.args_example
     }
 
-    public fun get_usage_hint(action: &ActionDescription): String { action.usage_hint }
-    public fun get_constraints(action: &ActionDescription): String { action.constraints }
+    public fun get_usage_hint(action: &ActionDescription): &String { &action.usage_hint }
+    public fun get_constraints(action: &ActionDescription): &String { &action.constraints }
 
     // Add getters for ActionArgument
-    public fun get_arg_name(arg: &ActionArgument): String { arg.name }
-    public fun get_arg_type_desc(arg: &ActionArgument): String { arg.type_desc }
-    public fun get_arg_description(arg: &ActionArgument): String { arg.description }
+    public fun get_arg_name(arg: &ActionArgument): &String { &arg.name }
+    public fun get_arg_type_desc(arg: &ActionArgument): &String { &arg.type_desc }
+    public fun get_arg_description(arg: &ActionArgument): &String { &arg.description }
     public fun get_arg_required(arg: &ActionArgument): bool { arg.required }
 
 

@@ -110,8 +110,8 @@ module nuwa_framework::memory_action {
     }
 
     // Action examples
-    const ADD_MEMORY_EXAMPLE: vector<u8> = b"{\"target\":\"0x42\",\"content\":\"User prefers detailed explanations\",\"context\":\"preference\",\"is_long_term\":true}";
-    const UPDATE_MEMORY_EXAMPLE: vector<u8> = b"{\"target\":\"0x123\",\"index\":5,\"new_content\":\"User now prefers concise explanations\",\"new_context\":\"preference\",\"is_long_term\":true}";
+    const ADD_MEMORY_EXAMPLE: vector<u8> = b"{\"target\":\"0x5e379ab70f1cc09b5d8e86a32833ccf5eddef0cb376402b5d0d4e9074eb16a4f\",\"content\":\"User prefers detailed explanations\",\"context\":\"preference\",\"is_long_term\":true}";
+    const UPDATE_MEMORY_EXAMPLE: vector<u8> = b"{\"target\":\"0x5e379ab70f1cc09b5d8e86a32833ccf5eddef0cb376402b5d0d4e9074eb16a4f\",\"index\":5,\"new_content\":\"User now prefers concise explanations\",\"new_context\":\"preference\",\"is_long_term\":true}";
 
     public fun register_actions() {
         let contexts = string::utf8(b"Available contexts:\n");
@@ -128,7 +128,7 @@ module nuwa_framework::memory_action {
         let add_memory_args = vector[
             action::new_action_argument(
                 string::utf8(b"target"),
-                string::utf8(b"address"),
+                string::utf8(b"string"),
                 string::utf8(b"The address to store memory for (user address or self address)"),
                 true,
             ),
@@ -154,10 +154,10 @@ module nuwa_framework::memory_action {
 
         action::register_action(
             string::utf8(ACTION_NAME_ADD),
-            string::utf8(b"Add a new memory about a user"),
+            string::utf8(b"Add a new memory about a user or yourself"),
             add_memory_args,
             string::utf8(ADD_MEMORY_EXAMPLE),
-            string::utf8(b"Use this to store important information about users"),
+            string::utf8(b"Use this to store important information about users or yourself"),
             string::utf8(b"Context must be one of the valid context types"),
         );
 
@@ -201,7 +201,7 @@ module nuwa_framework::memory_action {
             update_memory_args,
             string::utf8(UPDATE_MEMORY_EXAMPLE),
             string::utf8(b"Use this action to modify existing memories or mark them as deleted by setting content to '[deleted]'"),
-            string::utf8(b"Index must be valid. Content can be '[deleted]' to mark a memory as removed."),
+            string::utf8(b"Context must be one of the valid context types"),
         );
     }
 

@@ -99,7 +99,59 @@ module nuwa_framework::string_utils {
         let channel_id = bcs::from_bytes<ObjectID>(bytes);
         return channel_id
     }
+
+    public(friend) fun trim(s: &String): String {
+        let bytes = string::bytes(s);
+        let len = vector::length(bytes);
+        let start = find_first_non_space(bytes, 0, len);
+        let end = find_last_non_space(bytes, 0, len);
+        if (start >= end) {
+            return string::utf8(b"")
+        };
+        let result = get_substr(bytes, start, end + 1);
+        string::utf8(result)
+    }
+
+    const SPACE_CHAR :u8 = 32u8;
+
+    fun find_first_non_space(bytes: &vector<u8>, start: u64, end: u64): u64 {
+        let i = start;
+        while (i < end) {
+            if (*vector::borrow(bytes, i) != SPACE_CHAR) {
+                return i
+            };
+            i = i + 1;
+        };
+        end
+    }
     
+
+    fun find_last_non_space(bytes: &vector<u8>, start: u64, end: u64): u64 {
+        let i = end;
+        while (i > start) {
+            if (*vector::borrow(bytes, i - 1) != SPACE_CHAR) {
+                return i - 1
+            };
+            i = i - 1;
+        };
+        start
+    }
+
+    #[test]
+    fun test_trim() {
+        let s = string::utf8(b"  hello, world  ");
+        let trimmed = trim(&s);
+        assert!(trimmed == string::utf8(b"hello, world"), 1);
+
+        let s2 = string::utf8(b"  ");
+        let trimmed2 = trim(&s2);
+        assert!(trimmed2 == string::utf8(b""), 2);
+
+        let s3 = string::utf8(b"");
+        let trimmed3 = trim(&s3);
+        assert!(trimmed3 == string::utf8(b""), 3);
+    }
+
     #[test]
     fun test_split() {
         let s = string::utf8(b"hello,world,test");

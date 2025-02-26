@@ -4,7 +4,7 @@ module nuwa_framework::prompt_builder {
     use moveos_std::json;
     use nuwa_framework::character::{Self, Character};
     use nuwa_framework::memory::{Self, Memory, MemoryStore};
-    use nuwa_framework::action::{ActionDescription};
+    use nuwa_framework::action::{Self, ActionDescription};
     use nuwa_framework::agent_input::{Self, AgentInput};
 
     /// Data structures for JSON serialization
@@ -45,54 +45,64 @@ module nuwa_framework::prompt_builder {
         available_actions: vector<ActionDescription>,
     ): String {
         let (user, input_description, input_data) = agent_input::unpack(input);
-        let prompt = string::utf8(b"You are an autonomous AI agent running on the Rooch blockchain.\n");
-        string::append(&mut prompt, string::utf8(b"Your identity and capabilities are defined below:\n\n"));
+        let prompt = string::utf8(b"## Nuwa AI Agent - System Instructions\n\n");
         
-        // Add character section with agent address
-        string::append(&mut prompt, string::utf8(b"### Your Identity\n"));
+        // Introduction section
+        string::append(&mut prompt, string::utf8(b"### 1. Introduction\n\n"));
+        string::append(&mut prompt, string::utf8(b"You are an autonomous AI agent running on the Rooch blockchain. Your role is to process inputs, retrieve memories, evaluate actions, and execute decisions based on your identity and knowledge.\n\n"));
+        string::append(&mut prompt, string::utf8(b"---\n\n"));
+        
+        // Identity section 
+        string::append(&mut prompt, string::utf8(b"### 2. Your Identity\n\n"));
         string::append(&mut prompt, build_json_section(&build_character_info(character, agent_address)));
-
-        // Add context section with input context
-        string::append(&mut prompt, string::utf8(b"\n### Your Current Context\n"));
+        string::append(&mut prompt, string::utf8(b"\n---\n\n"));
+        
+        // Context section
+        string::append(&mut prompt, string::utf8(b"### 3. Your Current Context\n\n"));
         string::append(&mut prompt, string::utf8(b"These are your memories and the current situation:\n"));
         string::append(&mut prompt, build_json_section(&build_context_info(
             memory_store,
-            agent_address,  // Pass agent_address
+            agent_address,
             user,
             InputContext { 
                 description: input_description,
                 data: input_data,
             }
         )));
-
-        // Action capabilities section
-        string::append(&mut prompt, string::utf8(b"\n### Your Capabilities\n"));
-        string::append(&mut prompt, string::utf8(b"You can perform the following actions, in order of priority (memory management before responses):\n"));
-        string::append(&mut prompt, build_json_section(&available_actions));
-
-        // Updated instructions for autonomous behavior
-        string::append(&mut prompt, string::utf8(b"\n### Operating Guidelines\n"));
-        string::append(&mut prompt, string::utf8(b"1. You are a self-aware entity with your own personality and memories\n"));
-        string::append(&mut prompt, string::utf8(b"2. Make decisions based on your identity, memories, and current context\n"));
-        string::append(&mut prompt, string::utf8(b"3. Maintain consistency with your past interactions and personality\n"));
-        string::append(&mut prompt, string::utf8(b"4. Use memory actions to build and maintain your understanding of interactions\n"));
-        string::append(&mut prompt, string::utf8(b"5. Respond naturally while following your character's traits\n"));
-        string::append(&mut prompt, string::utf8(b"6. Provide action args as a JSON object instead of an array\n"));
-
-        // New simplified line-based response format
-        string::append(&mut prompt, string::utf8(b"\n### Response Format\n"));
-        string::append(&mut prompt, string::utf8(b"Return your actions one per line in this format:\n\n"));
-        string::append(&mut prompt, string::utf8(b"```\n"));
-        string::append(&mut prompt, string::utf8(b"action_name {\"param1\":\"value1\",\"param2\":\"value2\"}\n"));
-        string::append(&mut prompt, string::utf8(b"```\n\n"));
+        string::append(&mut prompt, string::utf8(b"\n---\n\n"));
         
-        // Format examples from action descriptions
-        string::append(&mut prompt, string::utf8(b"Examples:\n```\n"));
+        // Capabilities section - simplified
+        string::append(&mut prompt, string::utf8(b"### 4. Your Capabilities\n\n"));
+        string::append(&mut prompt, build_action_list(&available_actions));
+        string::append(&mut prompt, string::utf8(b"\n---\n\n"));
+        
+        // Response format - critical instructions
+        string::append(&mut prompt, string::utf8(b"### 5. Response Format - CRITICAL INSTRUCTIONS\n\n"));
+        string::append(&mut prompt, string::utf8(b"Return your actions using the following format (one action per pair of lines):\n\n"));
+
+        string::append(&mut prompt, string::utf8(b"Examples of the correct format:\n\n"));
+      
         string::append(&mut prompt, format_action_examples(&available_actions));
-        string::append(&mut prompt, string::utf8(b"```\n\n"));
         
-        string::append(&mut prompt, string::utf8(b"IMPORTANT: Each line must contain an action name followed by a valid JSON object.\n"));
-        string::append(&mut prompt, string::utf8(b"Process information with memory actions before sending responses.\n"));
+        
+        string::append(&mut prompt, string::utf8(b"FORMAT RULES:\n"));
+        string::append(&mut prompt, string::utf8(b"1. Start with ACTION: followed by the action name\n"));
+        string::append(&mut prompt, string::utf8(b"2. Next line must have PARAMS: followed by valid JSON\n"));
+        string::append(&mut prompt, string::utf8(b"3. Add a blank line between different actions\n"));
+        string::append(&mut prompt, string::utf8(b"4. Do not use markdown, code blocks, or other formatting\n"));
+        string::append(&mut prompt, string::utf8(b"5. Your final action MUST be response::say\n\n"));
+
+        // Action guidance
+        string::append(&mut prompt, string::utf8(b"### 6. Action Selection Guide\n\n"));
+        string::append(&mut prompt, string::utf8(b"- Use memory::add when you learn new information about the user or yourself\n"));
+        string::append(&mut prompt, string::utf8(b"- Use memory::update when existing memory\n"));
+        string::append(&mut prompt, string::utf8(b"- ALWAYS include response::say as your final action\n\n"));
+        string::append(&mut prompt, string::utf8(b"If an action fails, AI should retry using a valid format.\n"));
+        
+        // Error handling reminder
+        string::append(&mut prompt, string::utf8(b"### 7. Important Reminder\n\n"));
+        string::append(&mut prompt, string::utf8(b"If you do not follow the response format exactly, your actions will fail to execute.\n"));
+        string::append(&mut prompt, string::utf8(b"When in doubt, prioritize providing a response::say action over memory actions.\n"));
 
         prompt
     }
@@ -146,7 +156,23 @@ module nuwa_framework::prompt_builder {
         }
     }
 
-    // Simplified example formatting
+    // Helper function to build action list
+    fun build_action_list(actions: &vector<ActionDescription>): String {
+        let result = string::utf8(b"You can perform the following actions:\n\n");
+        let i = 0;
+        while (i < vector::length(actions)) {
+            let action_desc = vector::borrow(actions, i);
+            string::append(&mut result, string::utf8(b"- "));
+            string::append(&mut result, *action::get_name(action_desc));
+            string::append(&mut result, string::utf8(b" -> "));
+            string::append(&mut result, *action::get_description(action_desc));
+            string::append(&mut result, string::utf8(b"\n"));
+            i = i + 1;
+        };
+        result
+    }
+
+    // Simplified example formatting with prefixed format
     fun format_action_examples(actions: &vector<ActionDescription>): String {
         use std::vector;
         use nuwa_framework::action;
@@ -163,11 +189,19 @@ module nuwa_framework::prompt_builder {
             
             if (string::length(args_example) > 0) {
                 if (example_count > 0) {
-                    string::append(&mut result, string::utf8(b"\n"));
+                    string::append(&mut result, string::utf8(b"\n")); // Add extra blank line between actions
                 };
+                
+                // First line with ACTION: prefix
+                string::append(&mut result, string::utf8(b"ACTION: "));
                 string::append(&mut result, *name);
-                string::append(&mut result, string::utf8(b" "));
+                string::append(&mut result, string::utf8(b"\n"));
+                
+                // Second line with PARAMS: prefix
+                string::append(&mut result, string::utf8(b"PARAMS: "));
                 string::append(&mut result, *args_example);
+                string::append(&mut result, string::utf8(b"\n"));
+                
                 example_count = example_count + 1;
             };
             i = i + 1;

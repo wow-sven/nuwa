@@ -1,6 +1,7 @@
 module nuwa_framework::action_dispatcher {
     use std::string::{Self, String};
     use std::vector;
+    use std::option::{Self, Option};
     use moveos_std::json;
     use nuwa_framework::memory_action;
     use nuwa_framework::response_action;
@@ -13,6 +14,12 @@ module nuwa_framework::action_dispatcher {
     const ERROR_MISSING_ACTION_NAME: u64 = 2;
     const ERROR_MISSING_ARGS: u64 = 3;
 
+    // Constants for prefix format
+    const ACTION_PREFIX: vector<u8> = b"ACTION: ";
+    const PARAMS_PREFIX: vector<u8> = b"PARAMS: ";
+    const ACTION_PREFIX_LEN: u64 = 8; // Length of "ACTION: "
+    const PARAMS_PREFIX_LEN: u64 = 8; // Length of "PARAMS: "
+
     #[data_struct]
     struct ActionCall has copy, drop {
         action: String,
@@ -24,14 +31,14 @@ module nuwa_framework::action_dispatcher {
     /// Response structure from AI - contains a vector of action calls
     /// Each action call has:
     /// - "action": specifies the action name, e.g., "memory::add"
-    /// - "args": contains a nested JSON string with action-specific parameters
+    /// - "args": contains a JSON object string with action-specific parameters
     struct ActionResponse has copy, drop {
         actions: vector<ActionCall>
     }
 
-    /// Dispatch all actions from a line-based format
+    /// Dispatch all actions from the prefix-based format
     public fun dispatch_actions(agent: &mut Object<Agent>, response: String) {
-        let action_response = parse_line_based_response(&response);
+        let action_response = parse_prefix_response(&response);
         let actions = action_response.actions;
         let i = 0;
         let len = vector::length(&actions);
@@ -107,45 +114,51 @@ module nuwa_framework::action_dispatcher {
         ActionResponse { actions }
     }
 
-    
-    const SPACE_CHAR: u8 = 32u8;
-
-    /// Parse a line-based response string into an ActionResponse
-    /// Each line should be in format: "action_name {\"param1\":\"value1\",...}"
-    public fun parse_line_based_response(response: &String): ActionResponse {
+    /// Parse a prefix-based response string into an ActionResponse
+    public fun parse_prefix_response(response: &String): ActionResponse {
         let actions = vector::empty<ActionCall>();
         let lines = string_utils::split(response, &string::utf8(b"\n"));
         let i = 0;
         let len = vector::length(&lines);
         
+        let current_action: Option<String> = option::none();
+        
         while (i < len) {
-            let line = vector::borrow(&lines, i);
-            if (!string::is_empty(line)) {
-                // Find the first space
-                let line_bytes = string::bytes(line);
-                let line_len = vector::length(line_bytes);
-                let j = 0;
-                while (j < line_len) {
-                    if (*vector::borrow(line_bytes, j) == SPACE_CHAR) {
-                        break
-                    };
-                    j = j + 1;
-                };
-                
-                if (j < line_len) {
-                    let action = string::utf8(string_utils::get_substr(line_bytes, 0, j));
-                    let args = string::utf8(string_utils::get_substr(line_bytes, j + 1, line_len));
+            let line = string_utils::trim(vector::borrow(&lines, i));
+            
+            if (!string::is_empty(&line)) {
+                if (string_utils::starts_with(&line, &ACTION_PREFIX)) {
+                    // Extract action name after "ACTION: "
+                    let action_name = string::utf8(string_utils::get_substr(
+                        string::bytes(&line), 
+                        ACTION_PREFIX_LEN,
+                        string::length(&line)
+                    ));
+                    current_action = option::some(string_utils::trim(&action_name));
+                } else if (string_utils::starts_with(&line, &PARAMS_PREFIX)) {
+                    // Extract params after "PARAMS: "
+                    let params = string::utf8(string_utils::get_substr(
+                        string::bytes(&line), 
+                        PARAMS_PREFIX_LEN,
+                        string::length(&line)
+                    ));
                     
-                    let action_call = create_action_call(action, args);
-                    vector::push_back(&mut actions, action_call);
+                    // If we have an action name, create the action
+                    if (option::is_some(&current_action)) {
+                        let action = option::extract(&mut current_action);
+                        let trimmed_params = string_utils::trim(&params);
+                        let action_call = create_action_call(action, trimmed_params);
+                        vector::push_back(&mut actions, action_call);
+                    };
                 };
             };
             i = i + 1;
         };
+        
         ActionResponse { actions }
     }
 
-    /// Convert ActionResponse to line-based string format
+    /// Convert ActionResponse to prefix-based string format
     public fun response_to_str(response: &ActionResponse): String {
         let result = string::utf8(b"");
         let actions = &response.actions;
@@ -154,16 +167,21 @@ module nuwa_framework::action_dispatcher {
         
         while (i < len) {
             let action_call = vector::borrow(actions, i);
-            // Add action name
+            
+            // Add action line
+            string::append(&mut result, string::utf8(b"ACTION: "));
             string::append(&mut result, action_call.action);
-            // Add space
-            string::append(&mut result, string::utf8(b" "));
-            // Add args
+            string::append(&mut result, string::utf8(b"\n"));
+            
+            // Add params line
+            string::append(&mut result, string::utf8(b"PARAMS: "));
             string::append(&mut result, action_call.args);
-            // Add newline if not the last action
+            
+            // Add a blank line between actions if not the last one
             if (i + 1 < len) {
-                string::append(&mut result, string::utf8(b"\n"));
+                string::append(&mut result, string::utf8(b"\n\n"));
             };
+            
             i = i + 1;
         };
         
@@ -171,9 +189,9 @@ module nuwa_framework::action_dispatcher {
     }
 
     #[test]
-    fun test_parse_line_based_response() {
-        let response = string::utf8(b"memory::add {\"target\":\"0x42\",\"content\":\"test content\"}\nresponse::say {\"channel_id\":\"0x123\",\"content\":\"Hello\"}");
-        let action_response = parse_line_based_response(&response);
+    fun test_parse_prefix_response() {
+        let response = string::utf8(b"ACTION: memory::add\nPARAMS: {\"target\":\"0x42\",\"content\":\"test content\"}\n\nACTION: response::say\nPARAMS: {\"channel_id\":\"0x123\",\"content\":\"Hello\"}");
+        let action_response = parse_prefix_response(&response);
         let actions = get_actions(&action_response);
         
         assert!(vector::length(actions) == 2, 1);
@@ -276,7 +294,6 @@ module nuwa_framework::action_dispatcher {
         let actions = get_actions(&parsed);
         assert!(vector::length(actions) == 2, 1);
         
-
         assert!(vector::borrow(actions, 0).action == string::utf8(b"response::say"), 2);
         assert!(vector::borrow(actions, 1).action == string::utf8(b"test::action"), 3);
     }
@@ -298,7 +315,7 @@ module nuwa_framework::action_dispatcher {
         let str = response_to_str(&mut_response);
         
         // Parse back and verify
-        let parsed = parse_line_based_response(&str);
+        let parsed = parse_prefix_response(&str);
         let actions = get_actions(&parsed);
         assert!(vector::length(actions) == 2, 1);
         
@@ -309,5 +326,37 @@ module nuwa_framework::action_dispatcher {
         let second_action = vector::borrow(actions, 1);
         assert!(get_action_name(second_action) == &string::utf8(b"response::say"), 4);
         assert!(get_action_args(second_action) == &string::utf8(b"{\"channel_id\":\"0x123\",\"content\":\"Hello\"}"), 5);
+    }
+
+    #[test]
+    fun test_response_format_compatibility() {
+        // Test the prefix format with different variations
+        
+        // Standard format
+        let standard = string::utf8(b"ACTION: memory::add\nPARAMS: {\"target\":\"0x42\",\"content\":\"test content\"}\n\nACTION: response::say\nPARAMS: {\"channel_id\":\"0x123\",\"content\":\"Hello\"}");
+        
+        // Extra spaces and blank lines
+        let with_extra_space = string::utf8(b"ACTION:  memory::add \nPARAMS:   {\"target\":\"0x42\",\"content\":\"test content\"}  \n\n\nACTION: response::say\nPARAMS: {\"channel_id\":\"0x123\",\"content\":\"Hello\"}");
+        
+        // Extra text between actions (should be ignored)
+        let with_extra_text = string::utf8(b"ACTION: memory::add\nPARAMS: {\"target\":\"0x42\",\"content\":\"test content\"}\n\nSome explanation here\n\nACTION: response::say\nPARAMS: {\"channel_id\":\"0x123\",\"content\":\"Hello\"}");
+        
+        let response1 = parse_prefix_response(&standard);
+        let response2 = parse_prefix_response(&with_extra_space);
+        let response3 = parse_prefix_response(&with_extra_text);
+        
+        // All should parse to the same action structure
+        assert!(vector::length(&response1.actions) == 2, 1);
+        assert!(vector::length(&response2.actions) == 2, 2);
+        assert!(vector::length(&response3.actions) == 2, 3);
+        
+        // Verify actions are the same
+        let action1 = vector::borrow(&response1.actions, 0);
+        let action2 = vector::borrow(&response2.actions, 0);
+        let action3 = vector::borrow(&response3.actions, 0);
+        
+        assert!(action1.action == string::utf8(b"memory::add"), 4);
+        assert!(action2.action == string::utf8(b"memory::add"), 5); 
+        assert!(action3.action == string::utf8(b"memory::add"), 6);
     }
 }
