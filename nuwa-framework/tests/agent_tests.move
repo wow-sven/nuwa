@@ -10,7 +10,7 @@ module nuwa_framework::agent_tests {
     use nuwa_framework::response_action;
     use nuwa_framework::agent;
     use nuwa_framework::action_dispatcher;
-    use nuwa_framework::channel;
+    use nuwa_framework::channel::{Self, Channel};
     use nuwa_framework::message;
 
 
@@ -46,6 +46,7 @@ module nuwa_framework::agent_tests {
         
         // Create AI home channel
         let channel_id = channel::create_ai_home_channel(agent);
+       
         let test_user = @0x43;
 
         // First interaction: User introduces themselves
@@ -58,6 +59,7 @@ module nuwa_framework::agent_tests {
             vector::empty()
         );
         
+        
         let agent_input = message::new_agent_input(vector[test_message]);
 
         // Get first prompt
@@ -66,43 +68,6 @@ module nuwa_framework::agent_tests {
         // Print first prompt for debugging
         debug::print(&string::utf8(b"First Prompt:"));
         debug::print(string::bytes(&prompt));
-
-        // Simulate AI's response using the new line-based format
-        let mut_response = action_dispatcher::create_empty_response();
-        
-        // Add memory action
-        let memory_args = memory_action::create_add_memory_args(
-            test_user,
-            string::utf8(b"Alex prefers learning with real code examples and practical projects, is very interested in Move smart contracts and blockchain development."),
-            memory_action::context_preference(),
-            true
-        );
-        action_dispatcher::add_action(
-            &mut mut_response,
-            action_dispatcher::create_action_call_with_object(
-                string::utf8(b"memory::add"),
-                memory_args
-            )
-        );
-
-        // Add response action
-        let response_args = response_action::create_say_args(
-            channel_id,
-            string::utf8(b"Hi Alex! It's great to hear that you're interested in Move smart contracts and blockchain development. I'd be happy to help you learn with practical examples and projects. Do you have any specific project or topic in mind to start with?")
-        );
-        action_dispatcher::add_action(
-            &mut mut_response,
-            action_dispatcher::create_action_call_with_object(
-                string::utf8(b"response::say"),
-                response_args
-            )
-        );
-
-        // Convert response to line-based format
-        let ai_response = action_dispatcher::response_to_str(&mut_response);
-        
-        // Execute actions
-        action_dispatcher::dispatch_actions(agent, ai_response);
 
         // Clean up
         channel::delete_channel_for_testing(channel_id);

@@ -23,8 +23,7 @@ response=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
     }
   ],
   \"temperature\": 1,
-  \"max_tokens\": 2000,
-  \"response_format\": { \"type\": \"json_object\" }
+  \"max_tokens\": 2000
 }")
 
 echo "Response:";

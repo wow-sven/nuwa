@@ -4,7 +4,7 @@ module nuwa_framework::prompt_builder {
     use moveos_std::json;
     use nuwa_framework::character::{Self, Character};
     use nuwa_framework::memory::{Self, Memory, MemoryStore};
-    use nuwa_framework::action::{Self, ActionDescription};
+    use nuwa_framework::action::{ActionDescription};
     use nuwa_framework::agent_input::{Self, AgentInput};
 
     /// Data structures for JSON serialization
@@ -94,17 +94,10 @@ module nuwa_framework::prompt_builder {
         // Warning to emphasize importance
         string::append(&mut prompt, string::utf8(b"IMPORTANT: EXACT FORMAT REQUIRED\n"));
         string::append(&mut prompt, string::utf8(b"If you do not follow this format precisely, your actions will fail to execute.\n\n"));
-
-        // Action guidance
-        string::append(&mut prompt, string::utf8(b"### 6. Action Selection Guide\n\n"));
-        string::append(&mut prompt, string::utf8(b"- Use memory::add when you learn new information about the user or yourself\n"));
-        string::append(&mut prompt, string::utf8(b"- Use memory::update when existing memory needs to be modified\n"));
-        string::append(&mut prompt, string::utf8(b"- ALWAYS include response::say as your final action\n\n"));
-        string::append(&mut prompt, string::utf8(b"If an action fails, retry using the correct format.\n"));
         
         // Error handling reminder
-        string::append(&mut prompt, string::utf8(b"### 7. Important Reminder\n\n"));
-        string::append(&mut prompt, string::utf8(b"When in doubt, prioritize providing a response::say action over memory actions.\n"));
+        string::append(&mut prompt, string::utf8(b"### 6. Important Reminder\n\n"));
+        string::append(&mut prompt, string::utf8(b"When in doubt, prioritize providing a response::say action over other actions.\n"));
         string::append(&mut prompt, string::utf8(b"Do not include any explanations or additional text in your response.\n"));
 
         prompt
@@ -162,16 +155,7 @@ module nuwa_framework::prompt_builder {
     // Helper function to build action list
     fun build_action_list(actions: &vector<ActionDescription>): String {
         let result = string::utf8(b"You can perform the following actions:\n\n");
-        let i = 0;
-        while (i < vector::length(actions)) {
-            let action_desc = vector::borrow(actions, i);
-            string::append(&mut result, string::utf8(b"- "));
-            string::append(&mut result, *action::get_name(action_desc));
-            string::append(&mut result, string::utf8(b" -> "));
-            string::append(&mut result, *action::get_description(action_desc));
-            string::append(&mut result, string::utf8(b"\n"));
-            i = i + 1;
-        };
+        string::append(&mut result, build_json_section(actions));
         result
     }
 

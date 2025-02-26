@@ -129,7 +129,7 @@ module nuwa_framework::memory_action {
             action::new_action_argument(
                 string::utf8(b"target"),
                 string::utf8(b"string"),
-                string::utf8(b"The address to store memory for (user address or self address)"),
+                string::utf8(b"The address to store memory for (user address or yourself address)"),
                 true,
             ),
             action::new_action_argument(
@@ -158,7 +158,7 @@ module nuwa_framework::memory_action {
             add_memory_args,
             string::utf8(ADD_MEMORY_EXAMPLE),
             string::utf8(b"Use this to store important information about users or yourself"),
-            string::utf8(b"Context must be one of the valid context types"),
+            string::utf8(b"Context should be one of the valid context types"),
         );
 
         // Register update_memory action
@@ -201,7 +201,7 @@ module nuwa_framework::memory_action {
             update_memory_args,
             string::utf8(UPDATE_MEMORY_EXAMPLE),
             string::utf8(b"Use this action to modify existing memories or mark them as deleted by setting content to '[deleted]'"),
-            string::utf8(b"Context must be one of the valid context types"),
+            string::utf8(b"Context should be one of the valid context types"),
         );
     }
 
