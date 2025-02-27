@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { useNetworkVariable } from '../hooks/useNetworkVariable';
-import { useRoochClient, useRoochClientQuery } from '@roochnetwork/rooch-sdk-kit';
+import { useRoochClient, useRoochClientQuery, SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit';
 import { Agent, Character } from '../types/agent';
 import { Args } from '@roochnetwork/rooch-sdk';
 
@@ -314,12 +314,15 @@ export function AgentDetail() {
                 Loading Home Channel...
               </button>
             ) : homeChannelId ? (
+              <SessionKeyGuard onClick={() => {
+                navigate(`/channel/${homeChannelId}`);
+              }}>
               <button 
-                onClick={() => navigate(`/channel/${homeChannelId}`)}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Go to Home Channel
               </button>
+            </SessionKeyGuard>
             ) : (
               <button 
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-500 bg-gray-100 cursor-not-allowed"
@@ -328,15 +331,15 @@ export function AgentDetail() {
                 No Home Channel Available
               </button>
             )}
-            
-            <button 
-              onClick={() => {
-                navigate(`/create-channel?agent=${agent.id}`);
-              }}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              New Peer Chat
-            </button>
+            <SessionKeyGuard onClick={() => {
+              navigate(`/create-channel?agent=${agent.id}`);
+            }}>
+              <button 
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                New Peer Chat
+              </button>
+            </SessionKeyGuard>
           </div>
         </div>
       </div>

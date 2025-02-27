@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { useNetworkVariable } from '../hooks/useNetworkVariable';
-import { useRoochClient, useRoochClientQuery, useCurrentSession, WalletGuard } from '@roochnetwork/rooch-sdk-kit';
+import { useRoochClient, useRoochClientQuery, useCurrentWallet, useCurrentSession, SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit';
 import { Agent, CharacterReference } from '../types/agent';
 
 export function Home() {
@@ -14,6 +14,7 @@ export function Home() {
 
   const packageId = useNetworkVariable('packageId');
   const client = useRoochClient();
+  const wallet = useCurrentWallet();
   const session = useCurrentSession();
   const navigate = useNavigate();
   
@@ -56,13 +57,12 @@ export function Home() {
       filter: {
         object_type_with_owner: {
           object_type: `${packageId}::agent_cap::AgentCap`,
-          owner: session?.getBitcoinAddress().toStr(),
+          owner: wallet?.wallet?.getBitcoinAddress().toStr(),
         },
       },
     },
     {
-      enabled: !!client && !!packageId && !!session?.getRoochAddress(),
-      refetchInterval: 10000,
+      enabled: !!client && !!packageId && !!wallet?.wallet,
       refetchOnWindowFocus: true,
     }
   );
@@ -119,7 +119,7 @@ export function Home() {
         
         // Create a Set of agent object IDs that the user has capability for
         const newUserAuthorizedAgentIds = new Set<string>();
-        if (agentCapsResponse?.data && session?.getRoochAddress()) {
+        if (agentCapsResponse?.data && wallet?.wallet) {
           agentCapsResponse.data.forEach(obj => {
             const capData = obj.decoded_value.value;
             if (capData.agent_obj_id) {
@@ -168,11 +168,11 @@ export function Home() {
           
           {/* Create Agent Button - Always visible */}
           <div className="mt-4 sm:mt-0">
-            <WalletGuard onClick={() => navigate('/create-agent')}>
+            <SessionKeyGuard onClick={() => navigate('/create-agent')}>
               <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
                 Create AI Agent
               </button>
-            </WalletGuard>
+            </SessionKeyGuard>
           </div>
         </div>
         
@@ -189,7 +189,7 @@ export function Home() {
             >
               All Agents
             </button>
-            {session && (
+            {wallet && (
               <button
                 onClick={() => setFilter('authorized')}
                 className={`${
@@ -219,13 +219,13 @@ export function Home() {
                 ? "You don't have authorized control of any agents yet." 
                 : "No AI agents found on the network."}
             </p>
-            <WalletGuard onClick={() => navigate('/create-agent')}>
+            <SessionKeyGuard onClick={() => navigate('/create-agent')}>
               <button
                 className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
               >
                 Create New Agent
               </button>
-            </WalletGuard>
+            </SessionKeyGuard>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

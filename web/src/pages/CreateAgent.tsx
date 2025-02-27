@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { useNetworkVariable } from '../hooks/useNetworkVariable';
-import { useRoochClient, useCurrentSession, WalletGuard } from '@roochnetwork/rooch-sdk-kit';
+import { useRoochClient, useCurrentSession, SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit';
 import { Transaction, Args } from '@roochnetwork/rooch-sdk';
 
 export function CreateAgent() {
@@ -174,7 +174,7 @@ export function CreateAgent() {
             >
               Cancel
             </button>
-            <WalletGuard onClick={handleSubmit}>
+            <SessionKeyGuard onClick={handleSubmit}>
               <button
                 type="button"
                 disabled={isCreating}
@@ -184,7 +184,7 @@ export function CreateAgent() {
               >
                 {isCreating ? 'Creating...' : 'Create Agent'}
               </button>
-            </WalletGuard>
+            </SessionKeyGuard>
           </div>
         </div>
       </div>

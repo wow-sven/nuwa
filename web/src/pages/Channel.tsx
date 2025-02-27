@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useRoochClient, useRoochClientQuery, useCurrentSession } from '@roochnetwork/rooch-sdk-kit';
+import { useRoochClient, useRoochClientQuery, useCurrentWallet, useCurrentSession, SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit';
 import { useNetworkVariable } from '../hooks/useNetworkVariable';
 import { Args, Transaction, bcs } from '@roochnetwork/rooch-sdk';
 import { Layout } from '../components/Layout';
@@ -18,6 +18,7 @@ export function ChannelPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const packageId = useNetworkVariable('packageId');
   const client = useRoochClient();
+  const wallet = useCurrentWallet();
   const session = useCurrentSession();
   
   // Add AI address state
@@ -206,14 +207,14 @@ export function ChannelPage() {
     'executeViewFunction',
     {
       target: `${packageId}::channel::is_channel_member`,
-      args: channelId && session ? [
+      args: channelId && wallet?.wallet? [
         Args.objectId(channelId), 
-        Args.address(session.getRoochAddress())
+        Args.address(wallet?.wallet?.getBitcoinAddress())
       ] : [],
     },
     {
       // Only run this query when session is available
-      enabled: !!packageId && !!channelId && !!session,
+      enabled: !!packageId && !!channelId && !!wallet?.wallet,
     }
   );
   
@@ -501,13 +502,14 @@ export function ChannelPage() {
               <p className="text-blue-700">
                 Join this channel to participate in the conversation.
               </p>
+              <SessionKeyGuard onClick={() => {handleJoinChannel}}>
               <button
                 className="ml-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300"
-                onClick={handleJoinChannel}
                 disabled={isJoining}
               >
                 {isJoining ? 'Joining...' : 'Join Channel'}
               </button>
+              </SessionKeyGuard>
             </div>
           </div>
         )}
