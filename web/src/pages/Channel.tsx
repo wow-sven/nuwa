@@ -39,6 +39,11 @@ export function ChannelPage() {
     agent_address: null
   });
 
+  // Add these new state variables
+  const [isAiThinking, setIsAiThinking] = useState(false);
+  const [lastAiMentionTime, setLastAiMentionTime] = useState<number | null>(null);
+  const [lastMessageSentByAi, setLastMessageSentByAi] = useState<boolean>(false);
+
   // Fetch channel details
   const { data: channelData, isLoading: isChannelLoading } = useRoochClientQuery(
     'queryObjectStates',
@@ -192,8 +197,12 @@ export function ChannelPage() {
   const messages: Message[] = deserializeMessages;
   console.log('Processed messages:', messages);
   
-  // Check if user is a member of the channel
-  const { data: isMemberData } = useRoochClientQuery(
+  // First, extract the isMember query and refetch functionality
+  const { 
+    data: isMemberData, 
+    isLoading: isMemberLoading, 
+    refetch: refetchMembership 
+  } = useRoochClientQuery(
     'executeViewFunction',
     {
       target: `${packageId}::channel::is_channel_member`,
@@ -211,10 +220,20 @@ export function ChannelPage() {
   // Default to false if not a member or if session doesn't exist
   const isMember: boolean = isMemberData?.return_values?.[0]?.decoded_value || false;
   
-  // Auto-scroll to bottom when messages change
+  // Update the auto-scroll effect to be more reliable
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    // Use a short timeout to ensure the DOM has updated with new messages
+    const scrollTimeout = setTimeout(() => {
+      if (messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'end' 
+        });
+      }
+    }, 100);
+    
+    return () => clearTimeout(scrollTimeout);
+  }, [messages, isAiThinking]);  // Also trigger scroll when AI thinking state changes
   
   // Handle joining the channel
   const handleJoinChannel = async () => {
@@ -239,9 +258,15 @@ export function ChannelPage() {
         throw new Error('Failed to join channel');
       }
       
-      // Refetch data after joining
+      // Refetch both messages and membership status
       setTimeout(() => {
         refetchMessages();
+        refetchMembership(); // Add this to update the isMember state
+        
+        // Local state update for immediate UI response
+        // This will make the UI update immediately without waiting for the refetch
+        // It will eventually be overridden by the actual result from refetchMembership
+        // setIsMember(true);  // We can't do this directly since isMember comes from the query
       }, 1000);
       
     } catch (error) {
@@ -252,12 +277,12 @@ export function ChannelPage() {
     }
   };
   
-  // Update handleSendMessage function to handle AI mentions more intelligently
+  // Update handleSendMessage function to define the mentions array
   const handleSendMessage = async (content: string) => {
     if (!client || !session || !channelId || !packageId || content.trim() === '') return;
     
     try {
-      setIsSending(true);
+      setIsSending(true); // This is for UI button disable, not for typing indicator
       setErrorMessage('');
       
       // Check if this is an AI PEER channel (always include AI in mentions)
@@ -269,8 +294,19 @@ export function ChannelPage() {
       // In AI HOME channels, only mention if explicitly asked
       const mentionAI = isAiPeerChannel || hasExplicitAiMention;
       
-      // Prepare mentions array
-      const mentions = (mentionAI && aiAddress) ? [aiAddress] : [];
+      // Prepare mentions array - DEFINE THIS VARIABLE HERE
+      const mentions = [];
+      if (mentionAI && aiAddress) {
+        mentions.push(aiAddress);
+      }
+      
+      // Only set AI thinking state if we're actually mentioning the AI
+      if (mentionAI && aiAddress) {
+        setLastAiMentionTime(Date.now());
+        setIsAiThinking(true);
+        setLastMessageSentByAi(false);
+        console.log('AI thinking state activated for:', agentName || 'AI Agent');
+      }
       
       // Clean up the content if it starts with /ai
       let finalContent = content;
@@ -285,7 +321,7 @@ export function ChannelPage() {
         args: [
           Args.objectId(channelId), 
           Args.string(finalContent),
-          Args.vec('address', mentions) // Pass mentions array
+          Args.vec('address', mentions) // Pass mentions array - NOW PROPERLY DEFINED
         ],
       });
       tx.setMaxGas(5_00000000);
@@ -298,11 +334,14 @@ export function ChannelPage() {
       if (result.execution_info.status.type !== 'executed') {
         throw new Error('Failed to send message'+JSON.stringify(result.execution_info));
       }
-      
-      // Refetch messages after sending
-      setTimeout(() => {
-        refetchMessages();
-      }, 1000);
+
+      // Refetch messages after sending - use multiple refreshes to ensure we get the latest data
+      // First immediate refetch
+      refetchMessages();
+
+      // Then follow-up refetches to catch any delayed updates
+      setTimeout(() => refetchMessages(), 1000);
+      setTimeout(() => refetchMessages(), 3000);
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -311,6 +350,89 @@ export function ChannelPage() {
       setIsSending(false);
     }
   };
+
+  // Add a new effect to track AI responses
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+    
+    // Get the last message
+    const lastMessage = messages[messages.length - 1];
+    
+    // If the last message is from AI, the AI has responded
+    if (lastMessage.message_type === 1) {
+      setIsAiThinking(false);
+      setLastMessageSentByAi(true);
+      return;
+    }
+    
+    // If the last message is from a user and there's a pending AI mention
+    if (lastMessage.message_type === 0 && lastAiMentionTime) {
+      const isAiPeerChannel = channel?.channel_type === 1;
+      const isAiMentioned = isAiPeerChannel || 
+        (messages.length > 0 && 
+         messages.some(msg => 
+           msg.id === lastMessage.id && 
+           (lastMessage.content.includes('@AI') || lastMessage.content.toLowerCase().startsWith('/ai'))
+         ));
+      
+      // If this is the latest user message and AI was mentioned, show the typing indicator
+      if (isAiMentioned && !lastMessageSentByAi) {
+        setIsAiThinking(true);
+      }
+    }
+  }, [messages, lastAiMentionTime, channel?.channel_type]);
+
+  // Add another effect to reset AI thinking state after a timeout
+  // This prevents the typing indicator from showing forever if AI doesn't respond
+  useEffect(() => {
+    if (!isAiThinking || !lastAiMentionTime) return;
+    
+    // If AI has been "thinking" for more than 1 minute, assume something went wrong
+    const timeoutId = setTimeout(() => {
+      const timeElapsed = Date.now() - lastAiMentionTime;
+      if (timeElapsed > 60000) { // 1 minute
+        setIsAiThinking(false);
+      }
+    }, 60000);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isAiThinking, lastAiMentionTime]);
+
+  // Update the AI response tracking effect
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+    
+    // Get the last message
+    const lastMessage = messages[messages.length - 1];
+    
+    // If the last message is from AI, the AI has responded
+    if (lastMessage.message_type === 1) {
+      console.log('AI response received, turning off thinking state');
+      setIsAiThinking(false);
+      setLastMessageSentByAi(true);
+      return;
+    }
+    
+    // If the last message is from a user and there's a pending AI mention
+    if (lastMessage.message_type === 0 && lastAiMentionTime) {
+      const isAiPeerChannel = channel?.channel_type === 1;
+      
+      // Check if the AI was mentioned by examining the message's mentions array
+      // rather than scanning the content text
+      const isAiMentioned = isAiPeerChannel || 
+        (messages.length > 0 && 
+         messages.some(msg => 
+           msg.id === lastMessage.id && 
+           // Check if aiAddress is in the message's mentions array
+           msg.mentions && Array.isArray(msg.mentions) && msg.mentions.includes(aiAddress)
+         ));
+      
+      // If this is the latest user message and AI was mentioned, show the typing indicator
+      if (isAiMentioned && !lastMessageSentByAi) {
+        setIsAiThinking(true);
+      }
+    }
+  }, [messages, lastAiMentionTime, channel?.channel_type, aiAddress]);
   
   // Loading state
   if (isChannelLoading) {
@@ -428,7 +550,10 @@ export function ChannelPage() {
             </div>
           ) : (
             <>
-              {isSending && <TypingIndicator />}
+              {/* Only show typing indicator when waiting for AI response */}
+              {isAiThinking && (
+                <TypingIndicator name={agentName || 'AI Agent'} />
+              )}
               
               {/* AI Hint Card */}
               {isMember && isChannelActive && (

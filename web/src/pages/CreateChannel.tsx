@@ -86,7 +86,7 @@ export function CreateChannel() {
       // Check if we have a valid option with a value
       // When Option is Some(value), it will have a value in the vec
       // When Option is None, vec will be empty
-      const hasChannel = existingChannelResponse?.return_values?.[0]?.decoded_value?.value?.vec?.value.length > 0;
+      const hasChannel = existingChannelResponse?.return_values?.[0]?.decoded_value?.value?.vec?.value?.length > 0;
       
       if (hasChannel) {
         // Channel exists, get the object ID from the option value

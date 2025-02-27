@@ -1,6 +1,6 @@
-# Onchain AI Chat Web Interface
+# Nuwa Web Interface
 
-A web interface for the Onchain AI Chat application built with React, TypeScript, and Rooch Network SDK.
+A web interface for the Nuwa application built with React, TypeScript, and Rooch Network SDK.
 
 ## Features
 
@@ -55,35 +55,6 @@ web/
 - Heroicons
 
 ## Development
-
-### ESLint Configuration
-
-The project uses ESLint with TypeScript support. To enable type-aware lint rules:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-import tseslint from 'typescript-eslint'
-
-export default tseslint.config({
-  languageOptions: {
-    parserOptions: {
-      project: ['./tsconfig.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-  settings: { 
-    react: { version: '18.3' } 
-  },
-  plugins: {
-    react,
-  },
-  rules: {
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
-```
 
 ### Available Scripts
 
