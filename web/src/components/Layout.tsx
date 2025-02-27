@@ -45,7 +45,6 @@ export function Layout({ children, showRoomList = false }: LayoutProps) {
       <div className="flex-1 flex min-h-0 bg-gray-50">
         {showRoomList && (
           <aside className="w-64 flex-none overflow-y-auto border-r bg-white">
-
             <ErrorGuard />
           </aside>
         )}

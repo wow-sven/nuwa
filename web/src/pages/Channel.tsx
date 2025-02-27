@@ -203,7 +203,7 @@ export function ChannelPage() {
   if (isChannelLoading) {
     return (
       <Layout>
-        <div className="flex justify-center items-center min-h-[calc(100vh-80px)]">
+        <div className="flex justify-center items-center flex-1">
           <div className="animate-spin h-10 w-10 border-t-2 border-blue-500 border-r-2 rounded-full"></div>
         </div>
       </Layout>
@@ -214,9 +214,11 @@ export function ChannelPage() {
   if (!channel) {
     return (
       <Layout>
-        <div className="max-w-4xl mx-auto p-4 text-center">
-          <h2 className="text-xl font-semibold text-red-600">Channel not found</h2>
-          <p className="mt-2 text-gray-600">The channel you're looking for doesn't exist or has been removed.</p>
+        <div className="max-w-4xl mx-auto p-4 text-center flex-1 flex items-center justify-center">
+          <div>
+            <h2 className="text-xl font-semibold text-red-600">Channel not found</h2>
+            <p className="mt-2 text-gray-600">The channel you're looking for doesn't exist or has been removed.</p>
+          </div>
         </div>
       </Layout>
     );
@@ -224,9 +226,10 @@ export function ChannelPage() {
   
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto p-4">
+     
+      <div className="max-w-4xl mx-auto p-4 flex flex-col flex-1">
         {/* Channel Header */}
-        <div className="border-b pb-4 mb-4">
+        <div className="border-b pb-4 mb-4 flex-shrink-0">
           <h1 className="text-2xl font-bold">{channel.title}</h1>
           <div className="flex justify-between items-center text-sm text-gray-500 mt-2">
             <div>
@@ -242,14 +245,14 @@ export function ChannelPage() {
         
         {/* Error message */}
         {errorMessage && (
-          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 text-red-700">
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4 flex-shrink-0">
             {errorMessage}
           </div>
         )}
         
         {/* Join button for non-members */}
         {!isMember && isChannelActive && (
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4">
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-4 flex-shrink-0">
             <div className="flex justify-between items-center">
               <p className="text-blue-700">
                 Join this channel to participate in the conversation.
@@ -265,8 +268,8 @@ export function ChannelPage() {
           </div>
         )}
         
-        {/* Messages */}
-        <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 h-[calc(100vh-280px)] overflow-y-auto">
+        {/* Messages - Use flex-1 instead of flex-grow to take up all available space */}
+        <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 flex-1 flex flex-col overflow-auto">
           {isMessagesLoading ? (
             <div className="flex justify-center items-center h-full">
               <div className="animate-spin h-8 w-8 border-t-2 border-blue-500 border-r-2 rounded-full"></div>
@@ -276,7 +279,7 @@ export function ChannelPage() {
               No messages yet. Be the first to send a message!
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 flex-1">
               {Array.isArray(messages) && messages.map((message, index) => (
                 <ChatMessage 
                   key={`${message.id}-${index}`}
@@ -290,8 +293,8 @@ export function ChannelPage() {
           )}
         </div>
         
-        {/* Message Input */}
-        <div className="mt-4">
+        {/* Message Input - Fixed at bottom */}
+        <div className="mt-4 flex-shrink-0">
           {!isChannelActive ? (
             <div className="bg-gray-100 rounded-lg p-4 text-center text-gray-600">
               This channel is no longer active.
