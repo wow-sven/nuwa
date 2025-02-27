@@ -1,6 +1,7 @@
 module nuwa_framework::channel {
     use std::string::{Self, String};
     use std::vector;
+    use std::bcs;
     use moveos_std::table::{Self, Table};
     use moveos_std::object::{Self, Object, ObjectID};
     use moveos_std::timestamp;
@@ -25,17 +26,14 @@ module nuwa_framework::channel {
     const CHANNEL_STATUS_CLOSED: u8 = 1;
     const CHANNEL_STATUS_BANNED: u8 = 2;
 
-    // Add channel type constants
-    const CHANNEL_TYPE_NORMAL: u8 = 0;
-    const CHANNEL_TYPE_AI: u8 = 1;
 
     // Channel type constants with built-in visibility
     const CHANNEL_TYPE_AI_HOME: u8 = 0;   // AI's home channel, always public
     const CHANNEL_TYPE_AI_PEER: u8 = 1;   // 1:1 AI-User channel, always private
 
-    // Public functions to expose constants
-    public fun channel_type_normal(): u8 { CHANNEL_TYPE_NORMAL }
-    public fun channel_type_ai(): u8 { CHANNEL_TYPE_AI }
+    // Public functions to expose channel types
+    public fun channel_type_ai_home(): u8 { CHANNEL_TYPE_AI_HOME }
+    public fun channel_type_ai_peer(): u8 { CHANNEL_TYPE_AI_PEER }
 
     /// Member structure to store member information
     struct Member has store, drop {
@@ -104,10 +102,13 @@ module nuwa_framework::channel {
     /// Initialize a new AI peer channel
     public fun create_ai_peer_channel(
         user_account: &signer,
-        agent_address: address,
-        title: String,
+        agent: &mut Object<Agent>,
     ): ObjectID {
-        let creator = signer::address_of(user_account);
+        let agent_address = agent::get_agent_address(agent);
+        let creator = agent_address;
+        let user_address = signer::address_of(user_account);
+        let title = string::utf8(b"Peer chat with ");
+        string::append(&mut title, *agent::get_agent_username(agent));
         let now = timestamp::now_milliseconds();
         
         let channel = Channel {
@@ -124,12 +125,24 @@ module nuwa_framework::channel {
 
         // Add both user and AI as members
         add_member_internal(&mut channel, creator, now);
-        add_member_internal(&mut channel, agent_address, now);
-        
-        let channel_obj = object::new(channel);
+        add_member_internal(&mut channel, user_address, now);
+        let id = generate_peer_channel_id(agent_address, user_address);
+        let channel_obj = object::new_with_id(id, channel);
         let channel_id = object::id(&channel_obj);
         object::to_shared(channel_obj);
         channel_id
+    }
+
+    public fun get_peer_channel_id(agent_address: address, user_address: address): ObjectID {
+        let id = generate_peer_channel_id(agent_address, user_address);
+        object::custom_object_id<String, Channel>(id)
+    }
+
+    fun generate_peer_channel_id(agent_address: address, user_address: address): String {
+        let id = vector::empty<u8>();
+        vector::append(&mut id, bcs::to_bytes(&agent_address));
+        vector::append(&mut id, bcs::to_bytes(&user_address));
+        string::utf8(id)
     }
 
     /// Add message to channel - use message_counter as id

@@ -29,6 +29,15 @@ module nuwa_framework::action_dispatcher {
         actions: vector<ActionCall>
     }
 
+    fun init() {
+        register_actions();
+    }
+
+    entry fun register_actions() {
+        memory_action::register_actions();
+        response_action::register_actions();
+    }
+
     /// Dispatch all actions from line-based format
     public fun dispatch_actions(agent: &mut Object<Agent>, response: String) {
         let action_response = parse_line_based_response(&response);

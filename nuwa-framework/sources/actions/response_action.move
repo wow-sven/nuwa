@@ -1,5 +1,6 @@
 module nuwa_framework::response_action {
     use std::string::{Self, String};
+    use std::option;
     use moveos_std::object::{Self, Object, ObjectID};
     use moveos_std::json;
     use nuwa_framework::agent::{Self, Agent};
@@ -59,7 +60,12 @@ module nuwa_framework::response_action {
 
     public fun execute(agent: &mut Object<Agent>, action_name: String, args_json: String) {
         if (action_name == string::utf8(ACTION_NAME_SAY)) {
-            let args = json::from_json<SayActionArgs>(string::into_bytes(args_json));
+            let args_opt = json::from_json_option<SayActionArgs>(string::into_bytes(args_json));
+            if (option::is_none(&args_opt)) {
+                std::debug::print(&string::utf8(b"Invalid arguments for action"));
+                return
+            };
+            let args = option::destroy_some(args_opt);
             send_response(agent, string_to_channel_id(args.channel_id), args.content);
         };
     }

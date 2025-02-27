@@ -208,11 +208,21 @@ module nuwa_framework::memory_action {
     /// Execute memory actions
     public fun execute(agent: &mut Object<Agent>, action_name: String, args_json: String) {
         if (action_name == string::utf8(ACTION_NAME_ADD)) {
-            let args = json::from_json<AddMemoryArgs>(string::into_bytes(args_json));
+            let args_opt = json::from_json_option<AddMemoryArgs>(string::into_bytes(args_json));
+            if (!option::is_some(&args_opt)) {
+                std::debug::print(&string::utf8(b"Invalid arguments for action"));
+                return
+            };
+            let args = option::destroy_some(args_opt);
             let store = agent::borrow_mut_memory_store(agent);
             memory::add_memory(store, args.target, args.content, args.context, args.is_long_term);
         } else if (action_name == string::utf8(ACTION_NAME_UPDATE)) {
-            let args = json::from_json<UpdateMemoryArgs>(string::into_bytes(args_json));
+            let args_opt = json::from_json_option<UpdateMemoryArgs>(string::into_bytes(args_json));
+            if (!option::is_some(&args_opt)) {
+                std::debug::print(&string::utf8(b"Invalid arguments for action"));
+                return
+            };
+            let args = option::destroy_some(args_opt);
             let store = agent::borrow_mut_memory_store(agent);
             memory::update_memory(
                 store,
