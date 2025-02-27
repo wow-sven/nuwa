@@ -40,10 +40,13 @@ export function ChannelPage() {
     agent_address: null
   });
 
-  // Add these new state variables
+  // Keep just these two state variables for tracking AI state
   const [isAiThinking, setIsAiThinking] = useState(false);
-  const [lastAiMentionTime, setLastAiMentionTime] = useState<number | null>(null);
   const [lastMessageSentByAi, setLastMessageSentByAi] = useState<boolean>(false);
+
+  const logDebug = (message: string, data?: any) => {
+    console.log(`[AI-DEBUG] ${message}`, data || '');
+  };
 
   // Fetch channel details
   const { data: channelData, isLoading: isChannelLoading } = useRoochClientQuery(
@@ -303,7 +306,6 @@ export function ChannelPage() {
       
       // Only set AI thinking state if we're actually mentioning the AI
       if (mentionAI && aiAddress) {
-        setLastAiMentionTime(Date.now());
         setIsAiThinking(true);
         setLastMessageSentByAi(false);
         console.log('AI thinking state activated for:', agentName || 'AI Agent');
@@ -352,59 +354,31 @@ export function ChannelPage() {
     }
   };
 
-  // Add a new effect to track AI responses
   useEffect(() => {
-    if (!messages || messages.length === 0) return;
+    if (!isAiThinking) return;
     
-    // Get the last message
-    const lastMessage = messages[messages.length - 1];
-    
-    // If the last message is from AI, the AI has responded
-    if (lastMessage.message_type === 1) {
-      setIsAiThinking(false);
-      setLastMessageSentByAi(true);
-      return;
-    }
-    
-    // If the last message is from a user and there's a pending AI mention
-    if (lastMessage.message_type === 0 && lastAiMentionTime) {
-      const isAiPeerChannel = channel?.channel_type === 1;
-      const isAiMentioned = isAiPeerChannel || 
-        (messages.length > 0 && 
-         messages.some(msg => 
-           msg.id === lastMessage.id && 
-           (lastMessage.content.includes('@AI') || lastMessage.content.toLowerCase().startsWith('/ai'))
-         ));
-      
-      // If this is the latest user message and AI was mentioned, show the typing indicator
-      if (isAiMentioned && !lastMessageSentByAi) {
-        setIsAiThinking(true);
-      }
-    }
-  }, [messages, lastAiMentionTime, channel?.channel_type]);
-
-  // Add another effect to reset AI thinking state after a timeout
-  // This prevents the typing indicator from showing forever if AI doesn't respond
-  useEffect(() => {
-    if (!isAiThinking || !lastAiMentionTime) return;
-    
-    // If AI has been "thinking" for more than 1 minute, assume something went wrong
+    // If AI has been "thinking" for more than 1 minute, reset the state
     const timeoutId = setTimeout(() => {
-      const timeElapsed = Date.now() - lastAiMentionTime;
-      if (timeElapsed > 60000) { // 1 minute
-        setIsAiThinking(false);
-      }
-    }, 60000);
+      setIsAiThinking(false);
+    }, 60000); // 1 minute timeout
     
     return () => clearTimeout(timeoutId);
-  }, [isAiThinking, lastAiMentionTime]);
+  }, [isAiThinking]);
 
-  // Update the AI response tracking effect
+  // Update the message tracking effect to work
   useEffect(() => {
     if (!messages || messages.length === 0) return;
     
     // Get the last message
     const lastMessage = messages[messages.length - 1];
+
+    logDebug(`Checking last message:`, {
+      id: lastMessage.id,
+      sender: lastMessage.sender,
+      message_type: lastMessage.message_type,
+      content: lastMessage.content.substring(0, 50) + '...',
+      currentAiThinking: isAiThinking,
+    });
     
     // If the last message is from AI, the AI has responded
     if (lastMessage.message_type === 1) {
@@ -415,25 +389,32 @@ export function ChannelPage() {
     }
     
     // If the last message is from a user and there's a pending AI mention
-    if (lastMessage.message_type === 0 && lastAiMentionTime) {
+    if (lastMessage.message_type === 0 && lastMessage.sender === session?.getRoochAddress().toHexAddress()) {
       const isAiPeerChannel = channel?.channel_type === 1;
       
-      // Check if the AI was mentioned by examining the message's mentions array
-      // rather than scanning the content text
+      // For AI_PEER channels, always consider AI mentioned
+      // For other channels, check message content or mentions field if available
       const isAiMentioned = isAiPeerChannel || 
         (messages.length > 0 && 
-         messages.some(msg => 
-           msg.id === lastMessage.id && 
-           // Check if aiAddress is in the message's mentions array
-           msg.mentions && Array.isArray(msg.mentions) && msg.mentions.includes(aiAddress)
-         ));
+         messages.some(msg => {
+           if (msg.id !== lastMessage.id) return false;
+           
+           // First check for mentions field if available
+           if (msg.mentions && Array.isArray(msg.mentions) && aiAddress && msg.mentions.includes(aiAddress)) {
+             return true;
+           }
+           
+           // Fallback to content check if mentions not available
+           return msg.content.includes('@AI') || msg.content.toLowerCase().startsWith('/ai');
+         }));
       
       // If this is the latest user message and AI was mentioned, show the typing indicator
       if (isAiMentioned && !lastMessageSentByAi) {
+        console.log('AI thinking state activated based on user message');
         setIsAiThinking(true);
       }
     }
-  }, [messages, lastAiMentionTime, channel?.channel_type, aiAddress]);
+  }, [messages, channel?.channel_type, aiAddress, session]);
   
   // Loading state
   if (isChannelLoading) {
