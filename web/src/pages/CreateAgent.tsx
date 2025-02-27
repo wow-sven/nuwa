@@ -39,7 +39,7 @@ export function CreateAgent() {
         args: [
           Args.string(name), 
           Args.string(username), 
-          Args.string(description || `You are ${name}, a helpful AI assistant.`)
+          Args.string(description || `${name} is an autonomous AI entity with unique perspectives and capabilities.`)
         ],
       });
       

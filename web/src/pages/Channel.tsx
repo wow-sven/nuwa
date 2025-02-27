@@ -23,6 +23,22 @@ export function ChannelPage() {
   // Add AI address state
   const [aiAddress, setAiAddress] = useState<string | null>(null);
 
+  // Add a state variable to store agent name
+  const [agentName, setAgentName] = useState<string | null>(null);
+
+  // If you want to store more agent info for display
+  const [agentInfo, setAgentInfo] = useState<{
+    name: string | null;
+    username: string | null;
+    description: string | null;
+    agent_address: string | null;
+  }>({
+    name: null,
+    username: null,
+    description: null,
+    agent_address: null
+  });
+
   // Fetch channel details
   const { data: channelData, isLoading: isChannelLoading } = useRoochClientQuery(
     'queryObjectStates',
@@ -66,6 +82,55 @@ export function ChannelPage() {
       }
     }
   }, [channel]);
+
+  // Replace the current agent character info fetching useEffect with this simpler one
+  useEffect(() => {
+    if (channel && client && packageId) {
+      // For both AI_HOME and AI_PEER channels, we want to get the agent's name
+      
+      // Determine which agent to look up
+      let agentToLookup = null;
+      
+      if (channel.channel_type === 0) { // AI HOME
+        // In AI HOME, the creator is the agent
+        agentToLookup = channel.creator;
+      } else if (channel.channel_type === 1) { // AI PEER
+        // In AI PEER, the creator also is the agent
+        agentToLookup = channel.creator;
+      }
+      
+      if (agentToLookup) {
+        // Use the get_agent_info_by_address function to get all agent info in one call
+        client.executeViewFunction({
+          target: `${packageId}::agent::get_agent_info_by_address`,
+          args: [Args.address(agentToLookup)],
+        })
+        .then(response => {
+          console.log('Agent info response:', response);
+          
+          // Extract the correct agent name from the response
+          if (response?.return_values?.[0]?.decoded_value?.value) {
+            const agentInfoValue = response.return_values[0].decoded_value.value;
+            
+            setAgentInfo({
+              name: agentInfoValue.name || null,
+              username: agentInfoValue.username || null,
+              description: agentInfoValue.description || null,
+              agent_address: agentInfoValue.agent_address || null
+            });
+            
+            // For backward compatibility with existing code
+            setAgentName(agentInfoValue.name || null);
+            
+            console.log('Agent info set:', agentInfoValue);
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch agent info:', err);
+        });
+      }
+    }
+  }, [channel, client, packageId, session]);
   
   // Fetch channel messages
   const { data: messagesData, isLoading: isMessagesLoading, refetch: refetchMessages } = useRoochClientQuery(
@@ -341,8 +406,9 @@ export function ChannelPage() {
                 <ChatMessage 
                   key={`${message.id}-${index}`}
                   message={message} 
-                  isCurrentUser={message.sender === session?.getRoochAddress()}
+                  isCurrentUser={message.sender === session?.getRoochAddress().toHexAddress()}
                   isAI={message.message_type === 1}
+                  agentName={agentName} // Pass the agent name
                 />
               ))}
               <div ref={messagesEndRef} />

@@ -111,14 +111,6 @@ export function ChatInput({
         </div>
       )}
       
-      {/* Add AI usage hint */}
-      <div className="w-full max-w-3xl mb-2 text-xs text-gray-500 px-4">
-        Use <code className="bg-gray-100 px-1 py-0.5 rounded">@AI</code> or <code className="bg-gray-100 px-1 py-0.5 rounded">/ai</code> to interact with AI 
-        <span className="ml-2 text-gray-400">
-          (Shortcut: Alt+A)
-        </span>
-      </div>
-      
       <div className="relative w-full flex justify-center">
         <div className="relative w-full max-w-3xl">
             <textarea

@@ -102,7 +102,7 @@ export function CharacterForm({ onSubmit, initialValue }: CharacterFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-      <h2 className="text-xl font-semibold mb-4">Create Character</h2>
+      <h2 className="text-xl font-semibold mb-4">Create Autonomous AI Entity</h2>
       
       <div className="mb-4">
         <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -116,7 +116,7 @@ export function CharacterForm({ onSubmit, initialValue }: CharacterFormProps) {
           className={`w-full px-3 py-2 border ${
             errors.name ? 'border-red-500' : 'border-gray-300'
           } rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500`}
-          placeholder="e.g., Assistant Bot"
+          placeholder="e.g., Aria"
         />
         {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
       </div>
@@ -155,7 +155,7 @@ export function CharacterForm({ onSubmit, initialValue }: CharacterFormProps) {
           className={`w-full px-3 py-2 border ${
             errors.description ? 'border-red-500' : 'border-gray-300'
           } rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500`}
-          placeholder="A helpful assistant that..."
+          placeholder="An autonomous AI entity with unique capabilities and perspectives..."
         ></textarea>
         {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
       </div>

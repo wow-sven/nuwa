@@ -14,12 +14,17 @@ interface ChatMessageProps {
   message: Message;
   isCurrentUser: boolean;
   isAI: boolean;
+  agentName?: string; // Add agent name as an optional prop
 }
 
-export function ChatMessage({ message, isCurrentUser, isAI }: ChatMessageProps) {
+export function ChatMessage({ message, isCurrentUser, isAI, agentName }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const timestamp = message.timestamp;
-  const displayName = isAI ? 'AI Assistant' : shortenAddress(message.sender);
+  
+  // Use the agent's actual name if provided, otherwise fallback to address
+  const displayName = isAI 
+    ? (agentName || 'AI Agent')  // Changed from 'AI Assistant' to 'AI Agent'
+    : shortenAddress(message.sender);
 
   const handleCopy = async () => {
     const shareText = `${message.content}\n\n${window.location.href}`;
@@ -41,7 +46,7 @@ export function ChatMessage({ message, isCurrentUser, isAI }: ChatMessageProps) 
           <div className="flex-shrink-0 w-8 h-8">
             {isAI ? (
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
-                AI
+                {agentName ? agentName.substring(0, 2).toUpperCase() : 'AI'}
               </div>
             ) : (
               <UserCircleIcon className="w-8 h-8 text-gray-400" />

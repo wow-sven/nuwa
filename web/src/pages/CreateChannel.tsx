@@ -86,11 +86,11 @@ export function CreateChannel() {
       // Check if we have a valid option with a value
       // When Option is Some(value), it will have a value in the vec
       // When Option is None, vec will be empty
-      const hasChannel = existingChannelResponse?.return_values?.[0]?.decoded_value?.value?.vec?.length > 0;
+      const hasChannel = existingChannelResponse?.return_values?.[0]?.decoded_value?.value?.vec?.value.length > 0;
       
       if (hasChannel) {
         // Channel exists, get the object ID from the option value
-        const channelId = existingChannelResponse.return_values[0].decoded_value.value.vec[0];
+        const channelId = existingChannelResponse.return_values[0].decoded_value.value.vec.value[0];
         console.log('Channel exists, redirecting to:', channelId);
         navigate(`/channel/${channelId}`);
         return;
@@ -204,7 +204,7 @@ export function CreateChannel() {
       <div className="flex-1 flex flex-col items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6">
           <h1 className="text-xl font-semibold text-center mb-4">
-            {isLoading ? 'Setting up chat with ' + agentName : 'Creating a new private chat'}
+            {isLoading ? 'Setting up chat with ' + agentName : 'Creating a new peer chat'}
           </h1>
           
           {isLoading && (

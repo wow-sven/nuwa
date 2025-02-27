@@ -28,6 +28,16 @@ module nuwa_framework::agent {
         model_provider: String,
     }
 
+    struct AgentInfo has copy, drop, store {
+        id: ObjectID,
+        name: String,            
+        username: String,        
+        agent_address: address,  // AI's agent address
+        description: String,
+        bio: vector<String>,
+        knowledge: vector<String>,
+    }
+
     const AI_GPT4O_MODEL: vector<u8> = b"gpt-4o";
 
     public fun create_agent(character: Object<Character>) : Object<AgentCap> {
@@ -59,6 +69,7 @@ module nuwa_framework::agent {
     ): String {
         let character = object::borrow(&agent.character);
         let available_actions = get_available_actions(&input);
+        //TODO put AgentInfo to prompt_builder
         prompt_builder::build_complete_prompt(
             agent.agent_address,
             character,
@@ -124,6 +135,26 @@ module nuwa_framework::agent {
     public(friend) fun borrow_memory_store(agent: &Object<Agent>): &memory::MemoryStore {
         let agent_ref = object::borrow(agent);
         &agent_ref.memory_store
+    }
+
+    public fun get_agent_info(agent: &Object<Agent>): AgentInfo {
+        let agent_ref = object::borrow(agent);
+        let character = object::borrow(&agent_ref.character);
+        AgentInfo {
+            id: object::id(agent),
+            name: *character::get_name(character),
+            username: *character::get_username(character),
+            agent_address: agent_ref.agent_address,
+            description: *character::get_description(character),
+            bio: *character::get_bio(character),
+            knowledge: *character::get_knowledge(character),
+        }
+    }
+
+    public fun get_agent_info_by_address(agent_addr: address): AgentInfo {
+        let agent_obj_id = object::account_named_object_id<Agent>(agent_addr);
+        let agent_obj = object::borrow_object<Agent>(agent_obj_id);
+        get_agent_info(agent_obj)
     }
 
     /// Get agent's address
