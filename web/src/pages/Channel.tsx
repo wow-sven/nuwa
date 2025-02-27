@@ -20,6 +20,9 @@ export function ChannelPage() {
   const client = useRoochClient();
   const session = useCurrentSession();
   
+  // Add AI address state
+  const [aiAddress, setAiAddress] = useState<string | null>(null);
+
   // Fetch channel details
   const { data: channelData, isLoading: isChannelLoading } = useRoochClientQuery(
     'queryObjectStates',
@@ -38,6 +41,31 @@ export function ChannelPage() {
   
   // Check if the channel is active
   const isChannelActive = channel?.status === CHANNEL_STATUS.ACTIVE;
+  
+  // Add useEffect to fetch AI address
+  useEffect(() => {
+    // For AI HOME channels, the creator is the AI
+    // For AI PEER channels, we need to find the AI member
+    if (channel) {
+      const channelType = channel.channel_type;
+      
+      if (channelType === 0) { // AI HOME
+        // In AI HOME channels, the creator is the AI
+        setAiAddress(channel.creator);
+        console.log('AI HOME channel detected, AI address:', channel.creator);
+      } else if (channelType === 1) { // AI PEER
+        // In AI PEER channels, find the member that is not the current user
+        // This assumes there are only 2 members: the user and the AI
+        // We'll need to implement logic to find the AI address in the members
+        
+        // For now, use the channel.creator as a fallback
+        // In a real implementation, you'd determine the AI address from the member list
+        const potentialAiAddress = channel.creator;
+        setAiAddress(potentialAiAddress);
+        console.log('AI PEER channel detected, potential AI address:', potentialAiAddress);
+      }
+    }
+  }, [channel]);
   
   // Fetch channel messages
   const { data: messagesData, isLoading: isMessagesLoading, refetch: refetchMessages } = useRoochClientQuery(
@@ -159,7 +187,7 @@ export function ChannelPage() {
     }
   };
   
-  // Handle sending a message
+  // Update handleSendMessage function to handle AI mentions more intelligently
   const handleSendMessage = async (content: string) => {
     if (!client || !session || !channelId || !packageId || content.trim() === '') return;
     
@@ -167,15 +195,35 @@ export function ChannelPage() {
       setIsSending(true);
       setErrorMessage('');
       
+      // Check if this is an AI PEER channel (always include AI in mentions)
+      // or if message contains an explicit AI mention
+      const isAiPeerChannel = channel?.channel_type === 1; // CHANNEL_TYPE_AI_PEER
+      const hasExplicitAiMention = content.includes('@AI') || content.toLowerCase().startsWith('/ai');
+      
+      // In AI PEER channels, always mention the AI
+      // In AI HOME channels, only mention if explicitly asked
+      const mentionAI = isAiPeerChannel || hasExplicitAiMention;
+      
+      // Prepare mentions array
+      const mentions = (mentionAI && aiAddress) ? [aiAddress] : [];
+      
+      // Clean up the content if it starts with /ai
+      let finalContent = content;
+      if (hasExplicitAiMention && content.toLowerCase().startsWith('/ai')) {
+        // Remove the /ai prefix for cleaner message display
+        finalContent = content.substring(3).trim();
+      }
+      
       const tx = new Transaction();
       tx.callFunction({
         target: `${packageId}::channel::send_message_entry`,
         args: [
           Args.objectId(channelId), 
-          Args.string(content),
-          Args.vec('address',[]) // Empty mentions for now
+          Args.string(finalContent),
+          Args.vec('address', mentions) // Pass mentions array
         ],
       });
+      tx.setMaxGas(5_00000000);
       
       const result = await client.signAndExecuteTransaction({
         transaction: tx,
@@ -183,7 +231,7 @@ export function ChannelPage() {
       });
       
       if (result.execution_info.status.type !== 'executed') {
-        throw new Error('Failed to send message');
+        throw new Error('Failed to send message'+JSON.stringify(result.execution_info));
       }
       
       // Refetch messages after sending
@@ -230,7 +278,16 @@ export function ChannelPage() {
       <div className="max-w-4xl mx-auto p-4 flex flex-col flex-1">
         {/* Channel Header */}
         <div className="border-b pb-4 mb-4 flex-shrink-0">
-          <h1 className="text-2xl font-bold">{channel.title}</h1>
+          <div className="flex justify-between items-center">
+            <h1 className="text-2xl font-bold">{channel.title}</h1>
+            <div className={`px-3 py-1 rounded-full text-xs ${
+              channel.channel_type === 0 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-purple-100 text-purple-800'
+            }`}>
+              {channel.channel_type === 0 ? 'AI Home' : 'AI 1:1 Chat'}
+            </div>
+          </div>
           <div className="flex justify-between items-center text-sm text-gray-500 mt-2">
             <div>
               {channel.message_counter} messages • Created: {formatTimestamp(channel.created_at)}
@@ -306,10 +363,52 @@ export function ChannelPage() {
           ) : (
             <>
               {isSending && <TypingIndicator />}
+              
+              {/* AI Hint Card */}
+              {isMember && isChannelActive && (
+                <div className="mb-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-3 border border-blue-100">
+                  <div className="flex items-start space-x-3">
+                    <div className="bg-blue-100 rounded-full p-2 flex-shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a 1 1 0 011.12-.38z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900">Interact with AI</h4>
+                      {channel.channel_type === 0 ? (
+                        // AI HOME instruction
+                        <>
+                          <p className="text-sm text-gray-600 mt-1">
+                            Use <code className="bg-white px-1 py-0.5 rounded border border-gray-200">@AI</code> or start with <code className="bg-white px-1 py-0.5 rounded border border-gray-200">/ai</code> to trigger AI responses.
+                          </p>
+                          <div className="mt-2 text-xs text-gray-500">
+                            Example: "/ai Tell me more about blockchain technology?" or "Hey @AI, how's the weather today?"
+                          </div>
+                        </>
+                      ) : (
+                        // AI PEER instruction
+                        <>
+                          <p className="text-sm text-gray-600 mt-1">
+                            This is a 1:1 chat with the AI. Every message you send will automatically trigger a response.
+                          </p>
+                          <div className="mt-2 text-xs text-gray-500">
+                            You can simply type your message and send it - no need to use @AI or /ai in this channel.
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               <ChatInput 
                 onSend={handleSendMessage} 
                 disabled={!isMember || isSending || !isChannelActive}
-                placeholder="Type your message..."
+                placeholder={
+                  channel.channel_type === 0 
+                    ? "Type your message... (Use @AI or /ai to interact with AI)" 
+                    : "Type your message to the AI..."
+                }
               />
             </>
           )}
