@@ -9,7 +9,9 @@ export function Home() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [filter, setFilter] = useState<'all' | 'authorized'>('all'); // Change the filter state type
+  const [userAuthorizedAgentIds, setUserAuthorizedAgentIds] = useState<Set<string>>(new Set());
+
   const packageId = useNetworkVariable('packageId');
   const client = useRoochClient();
   const session = useCurrentSession();
@@ -47,8 +49,26 @@ export function Home() {
     }
   );
 
+  // Query to fetch AgentCap objects for the current user
+  const { data: agentCapsResponse, isLoading: isAgentCapsLoading } = useRoochClientQuery(
+    'queryObjectStates',
+    {
+      filter: {
+        object_type_with_owner: {
+          object_type: `${packageId}::agent_cap::AgentCap`,
+          owner: session?.getBitcoinAddress().toStr(),
+        },
+      },
+    },
+    {
+      enabled: !!client && !!packageId && !!session?.getRoochAddress(),
+      refetchInterval: 10000,
+      refetchOnWindowFocus: true,
+    }
+  );
+
   useEffect(() => {
-    if (isQueryLoading || isCharactersLoading) {
+    if (isQueryLoading || isCharactersLoading || isAgentCapsLoading) {
       setIsLoading(true);
       return;
     }
@@ -91,19 +111,34 @@ export function Home() {
             name: characterData?.name || 'Unnamed Agent',
             description: characterData?.description || '',
             characterId: characterId,
-            owner: agentData.agent_address, // Using agent_address as owner
+            agent_address: agentData.agent_address, 
             modelProvider: agentData.model_provider || 'Unknown',
             createdAt: parseInt(agentData.last_active_timestamp) || Date.now(),
           };
         });
         
-        // If session exists, filter to show only the user's agents
-        const userAgents = session?.address 
-          ? parsedAgents.filter(agent => agent.owner === session.address)
+        // Create a Set of agent object IDs that the user has capability for
+        const newUserAuthorizedAgentIds = new Set<string>();
+        if (agentCapsResponse?.data && session?.getRoochAddress()) {
+          agentCapsResponse.data.forEach(obj => {
+            const capData = obj.decoded_value.value;
+            if (capData.agent_obj_id) {
+              newUserAuthorizedAgentIds.add(capData.agent_obj_id);
+            }
+          });
+          console.log('User has capabilities for agents:', newUserAuthorizedAgentIds);
+        }
+        
+        // Update the state with the authorized agent IDs
+        setUserAuthorizedAgentIds(newUserAuthorizedAgentIds);
+        
+        // Apply filter based on agent caps
+        const filteredAgents = filter === 'authorized' && session?.getRoochAddress()
+          ? parsedAgents.filter(agent => newUserAuthorizedAgentIds.has(agent.id))
           : parsedAgents;
           
         // Sort agents by creation time (newest first)
-        const sortedAgents = userAgents.sort((a, b) => b.createdAt - a.createdAt);
+        const sortedAgents = filteredAgents.sort((a, b) => b.createdAt - a.createdAt);
         
         setAgents(sortedAgents);
       } catch (err) {
@@ -115,7 +150,7 @@ export function Home() {
     }
     
     setIsLoading(false);
-  }, [agentsResponse, charactersResponse, isQueryLoading, isCharactersLoading, queryError, session]);
+  }, [agentsResponse, charactersResponse, agentCapsResponse, isQueryLoading, isCharactersLoading, isAgentCapsLoading, queryError, session, filter]);
 
   const handleAgentClick = (agent: Agent) => {
     navigate(`/agent/${agent.id}`);
@@ -123,11 +158,50 @@ export function Home() {
 
   return (
     <Layout>
-
       <div className="container mx-auto px-4 py-8 flex-1">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Your AI Agents</h1>
-          <p className="text-gray-600">Create and manage your onchain AI agents</p>
+        {/* Header with filter tabs */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">AI Agents</h1>
+            <p className="text-gray-600">Discover and interact with autonomous onchain AI agents</p>
+          </div>
+          
+          {/* Create Agent Button - Always visible */}
+          <div className="mt-4 sm:mt-0">
+            <WalletGuard onClick={() => navigate('/create-agent')}>
+              <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
+                Create AI Agent
+              </button>
+            </WalletGuard>
+          </div>
+        </div>
+        
+        {/* Filter tabs */}
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => setFilter('all')}
+              className={`${
+                filter === 'all'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm`}
+            >
+              All Agents
+            </button>
+            {session && (
+              <button
+                onClick={() => setFilter('authorized')}
+                className={`${
+                  filter === 'authorized'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm`}
+              >
+                Agents You Authorized
+              </button>
+            )}
+          </nav>
         </div>
         
         {isLoading ? (
@@ -140,12 +214,16 @@ export function Home() {
           </div>
         ) : agents.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-lg text-gray-600 mb-6">You don't have any AI agents yet.</p>
+            <p className="text-lg text-gray-600 mb-6">
+              {filter === 'authorized' 
+                ? "You don't have authorized control of any agents yet." 
+                : "No AI agents found on the network."}
+            </p>
             <WalletGuard onClick={() => navigate('/create-agent')}>
               <button
                 className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
               >
-                Create Your First Agent
+                Create New Agent
               </button>
             </WalletGuard>
           </div>
@@ -159,17 +237,17 @@ export function Home() {
               >
                 <h2 className="text-xl font-semibold mb-2">{agent.name}</h2>
                 {agent.description && (
-                  <p className="text-gray-600 mb-4">{agent.description}</p>
+                  <p className="text-gray-600 mb-4 line-clamp-2">{agent.description}</p>
                 )}
                 <div className="flex items-center justify-between text-gray-500 text-sm">
                   <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
-                    {agent.owner && (
-                      <>
-                        {agent.owner.substring(0, 8)}...{agent.owner.substring(agent.owner.length - 6)}
-                      </>
+                    {agent.agent_address && (
+                      <span title={agent.agent_address} className="text-xs">
+                        {agent.agent_address.substring(0, 8)}...{agent.agent_address.substring(agent.agent_address.length - 6)}
+                      </span>
                     )}
                   </div>
                   <div className="px-2 py-1 bg-blue-50 rounded text-blue-600 text-xs">
@@ -177,8 +255,16 @@ export function Home() {
                   </div>
                 </div>
                 <div className="text-gray-500 text-xs mt-3">
-                  Last active: {new Date(agent.createdAt).toLocaleDateString()}
+                  Active since: {new Date(agent.createdAt).toLocaleDateString()}
                 </div>
+                {userAuthorizedAgentIds && userAuthorizedAgentIds.has(agent.id) && (
+                  <div className="mt-3 flex items-center text-xs text-green-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span>You have authorization</span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
