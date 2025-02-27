@@ -13,6 +13,7 @@ export function AgentDetail() {
   const [homeChannelId, setHomeChannelId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isHomeChannelLoading, setIsHomeChannelLoading] = useState(true);
   
   const navigate = useNavigate();
   const packageId = useNetworkVariable('packageId');
@@ -32,7 +33,7 @@ export function AgentDetail() {
   );
 
   // Query home channel ID using executeViewFunction
-  const { data: homeChannelResponse } = useRoochClientQuery(
+  const { data: homeChannelResponse, isLoading: isHomeChannelQueryLoading } = useRoochClientQuery(
     'executeViewFunction',
     {
       target: `${packageId}::channel::get_agent_home_channel_id`,
@@ -40,9 +41,6 @@ export function AgentDetail() {
     },
     {
       enabled: !!client && !!packageId && !!agentId,
-      onError: (err) => {
-        console.error('Failed to fetch home channel ID:', err);
-      }
     }
   );
 
@@ -64,9 +62,6 @@ export function AgentDetail() {
       try {
         console.log('Agent response:', agentResponse);
         console.log('Home channel response:', homeChannelResponse);
-        if (homeChannelResponse?.return_values?.[0]?.decoded_value) {
-          setHomeChannelId(homeChannelResponse.return_values[0].decoded_value);
-        }
 
         if (agentResponse?.data && agentResponse.data.length > 0) {
           
@@ -139,6 +134,36 @@ export function AgentDetail() {
 
     processAgentData();
   }, [agentResponse, isAgentLoading, agentError, client, agentId]);
+
+  // Add a separate useEffect to handle the home channel response
+  useEffect(() => {
+    // Check if home channel query has completed (either with data or null)
+    if (!isHomeChannelQueryLoading) {
+      console.log('Home channel response:', homeChannelResponse);
+      
+      if (homeChannelResponse?.return_values?.[0]?.decoded_value) {
+        setHomeChannelId(homeChannelResponse.return_values[0].decoded_value);
+      } else {
+        console.log('No home channel found for this agent');
+      }
+      
+      // Always set loading to false when query completes
+      setIsHomeChannelLoading(false);
+    }
+  }, [homeChannelResponse, isHomeChannelQueryLoading]);
+
+  // Add a timeout as a fallback to prevent infinite loading
+  useEffect(() => {
+    // Set a timeout to reset loading state after 10 seconds as a fallback
+    const timeout = setTimeout(() => {
+      if (isHomeChannelLoading) {
+        console.log('Home channel loading timeout - resetting loading state');
+        setIsHomeChannelLoading(false);
+      }
+    }, 10000); // 10 seconds timeout
+    
+    return () => clearTimeout(timeout);
+  }, [isHomeChannelLoading]);
 
   if (isLoading) {
     return (
@@ -246,20 +271,30 @@ export function AgentDetail() {
                 </div>
               )}
               
-              {homeChannelId && (
-                <div className={`${(agent.characterId || agent.createdAt) && (!character?.description) ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
-                  <dt className="text-sm font-medium text-gray-500">Home Channel</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
-                    <span className="break-all">{homeChannelId}</span>
-                    <button 
-                      onClick={() => navigate(`/channel/${homeChannelId}`)}
-                      className="ml-2 text-blue-600 hover:text-blue-800 text-sm underline"
-                    >
-                      View
-                    </button>
-                  </dd>
-                </div>
-              )}
+              {/* Home Channel section with loading state */}
+              <div className={`${(agent.characterId || agent.createdAt) && (!character?.description) ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
+                <dt className="text-sm font-medium text-gray-500">Home Channel</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
+                  {isHomeChannelLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-blue-500 border-r-2 rounded-full"></div>
+                      <span className="text-gray-500">Loading home channel...</span>
+                    </div>
+                  ) : homeChannelId ? (
+                    <>
+                      <span className="break-all">{homeChannelId}</span>
+                      <button 
+                        onClick={() => navigate(`/channel/${homeChannelId}`)}
+                        className="ml-2 text-blue-600 hover:text-blue-800 text-sm underline"
+                      >
+                        View
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-gray-500">No home channel found</span>
+                  )}
+                </dd>
+              </div>
             </dl>
           </div>
         </div>
@@ -270,18 +305,32 @@ export function AgentDetail() {
           <p className="text-gray-600 mb-4">Interact with AI agent by sending messages.</p>
           
           <div className="mt-4 flex flex-wrap gap-3">
-            {homeChannelId && (
+            {isHomeChannelLoading ? (
+              <button
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-400 cursor-not-allowed"
+                disabled
+              >
+                <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-white border-r-2 rounded-full"></div>
+                Loading Home Channel...
+              </button>
+            ) : homeChannelId ? (
               <button 
                 onClick={() => navigate(`/channel/${homeChannelId}`)}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Go to Home Channel
               </button>
+            ) : (
+              <button 
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-500 bg-gray-100 cursor-not-allowed"
+                disabled
+              >
+                No Home Channel Available
+              </button>
             )}
             
             <button 
               onClick={() => {
-                // Navigate to create channel page with agent ID as parameter
                 navigate(`/create-channel?agent=${agent.id}`);
               }}
               className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
