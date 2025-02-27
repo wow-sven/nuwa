@@ -224,19 +224,32 @@ export function ChannelPage() {
   // Default to false if not a member or if session doesn't exist
   const isMember: boolean = isMemberData?.return_values?.[0]?.decoded_value || false;
   
+  // 1. First, add a ref for the messages container
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
   // Update the auto-scroll effect to be more reliable
   useEffect(() => {
-    // Use a short timeout to ensure the DOM has updated with new messages
-    const scrollTimeout = setTimeout(() => {
-      if (messagesEndRef.current) {
-        messagesEndRef.current.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'end' 
-        });
-      }
-    }, 100);
+    // Check if we should scroll based on proximity to bottom
+    const shouldScroll = () => {
+      const container = messagesContainerRef.current;
+      if (!container) return true; // Default to scrolling if ref not available
+      
+      // Check if user is already near bottom (within 150px)
+      return container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    };
     
-    return () => clearTimeout(scrollTimeout);
+    // Only scroll if we're near the bottom already, or if there's AI thinking happening
+    if (shouldScroll() || isAiThinking) {
+      // Use requestAnimationFrame to ensure DOM is updated first
+      requestAnimationFrame(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'end' 
+          });
+        }
+      });
+    }
   }, [messages, isAiThinking]);  // Also trigger scroll when AI thinking state changes
   
   // Handle joining the channel
@@ -483,7 +496,7 @@ export function ChannelPage() {
               <p className="text-blue-700">
                 Join this channel to participate in the conversation.
               </p>
-              <SessionKeyGuard onClick={() => {handleJoinChannel}}>
+              <SessionKeyGuard onClick={handleJoinChannel}>
               <button
                 className="ml-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-blue-300"
                 disabled={isJoining}
@@ -496,7 +509,10 @@ export function ChannelPage() {
         )}
         
         {/* Messages - Use flex-1 instead of flex-grow to take up all available space */}
-        <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 flex-1 flex flex-col overflow-auto">
+        <div 
+          ref={messagesContainerRef}
+          className="bg-gray-50 rounded-lg border border-gray-200 p-4 flex-1 flex flex-col overflow-auto"
+        >
           {isMessagesLoading ? (
             <div className="flex justify-center items-center h-full">
               <div className="animate-spin h-8 w-8 border-t-2 border-blue-500 border-r-2 rounded-full"></div>
