@@ -2,6 +2,9 @@ module nuwa_framework::channel {
     use std::string::{Self, String};
     use std::vector;
     use std::bcs;
+    use std::hash;
+    use std::option::{Self, Option};
+    use moveos_std::address;
     use moveos_std::table::{Self, Table};
     use moveos_std::object::{Self, Object, ObjectID};
     use moveos_std::timestamp;
@@ -133,16 +136,35 @@ module nuwa_framework::channel {
         channel_id
     }
 
-    public fun get_peer_channel_id(agent_address: address, user_address: address): ObjectID {
-        let id = generate_peer_channel_id(agent_address, user_address);
-        object::custom_object_id<String, Channel>(id)
+    public entry fun create_ai_peer_channel_entry(
+        user_account: &signer,
+        agent: &mut Object<Agent>,
+    ) {
+        let _id = create_ai_peer_channel(user_account, agent);
     }
 
-    fun generate_peer_channel_id(agent_address: address, user_address: address): String {
-        let id = vector::empty<u8>();
-        vector::append(&mut id, bcs::to_bytes(&agent_address));
-        vector::append(&mut id, bcs::to_bytes(&user_address));
-        string::utf8(id)
+    public fun get_ai_peer_channel_id(agent: &Object<Agent>, user_address: address): Option<ObjectID> {
+        let id = generate_peer_channel_id(agent::get_agent_address(agent), user_address);
+        let channel_obj_id = object::custom_object_id<address, Channel>(id);
+        if (object::exists_object(channel_obj_id)) {
+            option::some(channel_obj_id)
+        } else {
+            option::none()
+        }
+    }
+
+    //TODO remove this function
+    public fun get_peer_channel_id(agent_address: address, user_address: address): ObjectID {
+        let id = generate_peer_channel_id(agent_address, user_address);
+        object::custom_object_id<address, Channel>(id)
+    }
+
+    fun generate_peer_channel_id(agent_address: address, user_address: address): address {
+        let bytes = vector::empty<u8>();
+        vector::append(&mut bytes, bcs::to_bytes(&agent_address));
+        vector::append(&mut bytes, bcs::to_bytes(&user_address));
+        let hash = hash::sha3_256(bytes);
+        address::from_bytes(hash)
     }
 
     /// Add message to channel - use message_counter as id

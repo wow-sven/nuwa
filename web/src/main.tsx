@@ -11,6 +11,7 @@ import { Home } from './pages/Home';
 import { ChannelPage } from './pages/Channel';
 import { CreateAgent } from './pages/CreateAgent';
 import { AgentDetail } from './pages/AgentDetail';
+import { CreateChannel } from './pages/CreateChannel';
 import { PACKAGE_ID } from './constants';
 import { networkConfig } from './networks';
 import { ErrorGuard } from "./ErrorGuard.tsx";
@@ -35,6 +36,10 @@ const router = createBrowserRouter([
       {
         path: '/create-agent',
         element: <CreateAgent />,
+      },
+      {
+        path: '/create-channel',
+        element: <CreateChannel />,
       },
       {
         path: '/agent/:agentId',
