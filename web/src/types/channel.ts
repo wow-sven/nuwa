@@ -28,7 +28,7 @@ export interface Message {
 // Define BCS MessageSchema for deserialization that matches the Move type
 export const MessageSchema = bcs.struct('Message', {
   id: bcs.u64(),             // ID is a u64 in Move
-  channel_id: bcs.string(),  // Object ID as string
+  channel_id: bcs.ObjectId,  // Object ID as string
   sender: bcs.Address,      // Address as string
   content: bcs.string(),     // Message content
   timestamp: bcs.u64(),   // Timestamp as string
