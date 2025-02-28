@@ -16,6 +16,20 @@ module nuwa_framework::memory_action {
     /// Special content to mark "deleted" memories
     const MEMORY_DELETED_MARK: vector<u8> = b"[deleted]";
 
+    ///TODO remove functions below
+    public fun context_personal(): String { memory::context_personal() }
+    public fun context_interaction(): String { memory::context_interaction() }
+    public fun context_knowledge(): String { memory::context_knowledge() }
+    public fun context_emotional(): String { memory::context_emotional() }
+    public fun context_goal(): String { memory::context_goal() }
+    public fun context_preference(): String { memory::context_preference() }
+    public fun context_feedback(): String { memory::context_feedback() }
+    public fun context_rule(): String { memory::context_rule() }
+    
+    //TODO remove this function
+    public fun is_valid_context(context: &String): bool {
+        memory::is_standard_context(context)
+    }
 
     #[data_struct]
     /// Arguments for the add memory action
