@@ -9,7 +9,9 @@ interface MemoryBrowserProps {
 export function MemoryBrowser({ memories }: MemoryBrowserProps) {
   const [selectedContext, setSelectedContext] = useState<MemoryContext | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
+  // Filter memories by context and search term
   const filteredMemories = memories.filter(memory => {
     return (
       (selectedContext === 'all' || memory.context === selectedContext) &&
@@ -17,16 +19,14 @@ export function MemoryBrowser({ memories }: MemoryBrowserProps) {
     );
   });
   
-  // Group memories by context
-  const groupedMemories = filteredMemories.reduce((acc, memory) => {
-    if (!acc[memory.context]) {
-      acc[memory.context] = [];
-    }
-    acc[memory.context].push(memory);
-    return acc;
-  }, {} as Record<string, Memory[]>);
+  // Sort memories by timestamp
+  const sortedMemories = [...filteredMemories].sort((a, b) => {
+    return sortOrder === 'newest' 
+      ? b.timestamp - a.timestamp 
+      : a.timestamp - b.timestamp;
+  });
 
-  // Count memories by context
+  // Count memories by context for the filter dropdown
   const memoryCounts = MemoryContexts.reduce((acc, context) => {
     acc[context] = memories.filter(m => m.context === context).length;
     return acc;
@@ -57,7 +57,7 @@ export function MemoryBrowser({ memories }: MemoryBrowserProps) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div>
+        <div className="flex gap-2">
           <select
             value={selectedContext}
             onChange={(e) => setSelectedContext(e.target.value as MemoryContext | 'all')}
@@ -70,40 +70,42 @@ export function MemoryBrowser({ memories }: MemoryBrowserProps) {
               </option>
             ))}
           </select>
+          
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as 'newest' | 'oldest')}
+            className="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+          </select>
         </div>
       </div>
 
-      {filteredMemories.length === 0 ? (
+      {sortedMemories.length === 0 ? (
         <div className="text-center py-6 text-gray-500">
           No memories found matching your criteria.
         </div>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(groupedMemories).map(([context, contextMemories]) => (
-            <div key={context}>
-              <h3 className="text-lg font-medium text-gray-900 mb-3 capitalize">{context} Memories</h3>
-              <div className="space-y-3">
-                {contextMemories.map((memory) => (
-                  <div 
-                    key={memory.index} 
-                    className="p-4 bg-white border border-gray-200 rounded-md shadow-sm"
-                  >
-                    <div className="flex justify-between items-start">
-                      <span 
-                        className={`inline-block px-2 py-1 text-xs font-medium rounded-md ${getContextColor(memory.context)}`}
-                      >
-                        {memory.context}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {formatTimestamp(memory.timestamp)}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-gray-700">{memory.content}</p>
-                    <div className="mt-2 text-xs text-gray-500">
-                      Memory #{memory.index}
-                    </div>
-                  </div>
-                ))}
+        <div className="space-y-3">
+          {sortedMemories.map((memory) => (
+            <div 
+              key={memory.index} 
+              className="p-4 bg-white border border-gray-200 rounded-md shadow-sm"
+            >
+              <div className="flex justify-between items-start">
+                <span 
+                  className={`inline-block px-2 py-1 text-xs font-medium rounded-md ${getContextColor(memory.context)}`}
+                >
+                  {memory.context}
+                </span>
+                <span className="text-xs text-gray-500">
+                  {formatTimestamp(memory.timestamp)}
+                </span>
+              </div>
+              <p className="mt-2 text-gray-700">{memory.content}</p>
+              <div className="mt-2 text-xs text-gray-500">
+                Memory #{memory.index}
               </div>
             </div>
           ))}

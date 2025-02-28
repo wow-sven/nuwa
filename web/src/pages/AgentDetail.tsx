@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { useNetworkVariable } from '../hooks/useNetworkVariable';
-import { useRoochClient, useRoochClientQuery, SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit';
-import { Agent, Character } from '../types/agent';
-import { Args } from '@roochnetwork/rooch-sdk';
+import { useRoochClient, useRoochClientQuery, useCurrentWallet, SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit';
+import { Agent, Character, Memory } from '../types/agent';
+import { Args, isValidAddress, bcs } from '@roochnetwork/rooch-sdk';
+import { MemoryBrowser } from '../components/MemoryBrowser';
+import { MemorySchema } from '../types/agent'; // We'll create this
 
 export function AgentDetail() {
   const { agentId } = useParams<{ agentId: string }>();
@@ -14,11 +16,22 @@ export function AgentDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isHomeChannelLoading, setIsHomeChannelLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'details' | 'memories'>('details');
   
   const navigate = useNavigate();
   const packageId = useNetworkVariable('packageId');
   const client = useRoochClient();
+  const wallet = useCurrentWallet();
   
+  // Add these state variables
+  const [selfMemories, setSelfMemories] = useState<Memory[]>([]);
+  const [userMemories, setUserMemories] = useState<Memory[]>([]);
+  const [isLoadingSelfMemories, setIsLoadingSelfMemories] = useState(false);
+  const [isLoadingUserMemories, setIsLoadingUserMemories] = useState(false);
+  const [searchAddress, setSearchAddress] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<Memory[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   // Query the specific agent by ID
   const { data: agentResponse, isLoading: isAgentLoading, error: agentError } = useRoochClientQuery(
     'queryObjectStates',
@@ -165,6 +178,165 @@ export function AgentDetail() {
     return () => clearTimeout(timeout);
   }, [isHomeChannelLoading]);
 
+
+  // Fetch agent's self memories
+  useEffect(() => {
+    const fetchSelfMemories = async () => {
+      if (!client || !packageId || !agent?.id) return;
+      
+      // Add this check to prevent refetching if we already have memories
+      if (selfMemories.length > 0) {
+        console.log('Self memories already loaded, skipping fetch');
+        return;
+      }
+      
+      try {
+        setIsLoadingSelfMemories(true);
+        
+        const response = await client.executeViewFunction({
+          target: `${packageId}::agent::get_agent_self_memories`,
+          args: [Args.objectId(agent.id)],
+        });
+        
+        // Use BCS to deserialize memories
+        let memories: Memory[] = deserializeMemories(response);
+        
+        setSelfMemories(memories);
+        console.log(`Loaded ${memories.length} self memories`);
+      } catch (error) {
+        console.error('Failed to fetch agent self memories:', error);
+      } finally {
+        setIsLoadingSelfMemories(false);
+      }
+    };
+
+    if (agent && client && packageId) {
+      fetchSelfMemories();
+    }
+  }, [agent?.id, client, packageId]); // Remove selfMemories from dependencies
+
+  // Fetch memories about current user
+  useEffect(() => {
+    const fetchCurrentUserMemories = async () => {
+      if (!client || !packageId || !agent?.id || !wallet?.wallet) return;
+      
+      // Add this check to prevent refetching if we already have memories
+      if (userMemories.length > 0) {
+        console.log('User memories already loaded, skipping fetch');
+        return;
+      }
+      
+      try {
+        setIsLoadingUserMemories(true);
+        
+        const userAddress = wallet.wallet?.getBitcoinAddress().toStr();
+        
+        const response = await client.executeViewFunction({
+          target: `${packageId}::agent::get_agent_memories_about_user`,
+          args: [
+            Args.objectId(agent.id),
+            Args.address(userAddress)
+          ],
+        });
+        
+        // Use BCS to deserialize memories
+        let memories: Memory[] = deserializeMemories(response);
+        
+        setUserMemories(memories);
+        console.log(`Loaded ${memories.length} user memories`);
+      } catch (error) {
+        console.error('Failed to fetch agent memories about current user:', error);
+      } finally {
+        setIsLoadingUserMemories(false);
+      }
+    };
+
+    if (agent && wallet?.wallet && client && packageId) {
+      fetchCurrentUserMemories();
+    }
+  }, [agent?.id, wallet?.wallet, client, packageId]); // Remove userMemories from dependencies
+
+  // Handle address search
+  const handleAddressSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!searchAddress || !client || !packageId || !agent?.id) return;
+    
+    try {
+      setIsSearching(true);
+    
+      if (!isValidAddress(searchAddress)) {
+        throw new Error('Invalid address format');
+      }
+      
+      const response = await client.executeViewFunction({
+        target: `${packageId}::agent::get_agent_memories_about_user`,
+        args: [
+          Args.objectId(agent.id),
+          Args.address(searchAddress)
+        ],
+      });
+      
+      // Use BCS to deserialize memories
+      let memories: Memory[] = deserializeMemories(response);
+      
+      setSearchResults(memories);
+    } catch (error) {
+      console.error('Failed to search memories:', error);
+      alert('Failed to search memories. Please check the address format.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Helper to map memory response to our type
+  const deserializeMemories = (response: any): Memory[] => {
+    if (!response?.return_values?.[0]?.value?.value) {
+      console.log('No memory data available in response');
+      return [];
+    }
+  
+    try {
+      // Get the hex value from the response
+      const hexValue = response.return_values[0].value.value;
+      
+      // Convert hex to bytes
+      const cleanHexValue = hexValue.startsWith('0x') ? hexValue.slice(2) : hexValue;
+      const bytes = new Uint8Array(
+        cleanHexValue.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
+      );
+      
+      // Parse using BCS
+      if (!MemorySchema) {
+        console.error('MemorySchema is not defined!');
+        return [];
+      }
+      
+      const parsedMemories = bcs.vector(MemorySchema).parse(bytes);
+      console.log(`Successfully parsed ${parsedMemories.length} memories`);
+      
+      // Map to our Memory interface format
+      return parsedMemories.map((memory: any) => ({
+        index: memory.index || 0,
+        content: memory.content || '',
+        context: memory.context || '',
+        timestamp: parseInt(memory.timestamp) || Date.now(),
+      }));
+    } catch (error) {
+      console.error('Memory BCS deserialization error:', error);
+      return [];
+    }
+  };
+
+  // Add a clean-up action to the address search function to clear results when input is cleared
+  const handleSearchAddressChange = (value: string) => {
+    setSearchAddress(value);
+    if (!value) {
+      // Clear search results when the input is cleared
+      setSearchResults([]);
+    }
+  };
+
   if (isLoading) {
     return (
       <Layout>
@@ -206,100 +378,236 @@ export function AgentDetail() {
           Back to Agents
         </button>
         
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <div className="px-4 py-5 sm:px-6">
-            <h3 className="text-lg leading-6 font-medium text-gray-900">{agent.name}</h3>
-            {agent.description && (
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">{agent.description}</p>
-            )}
-          </div>
-          
-          <div className="border-t border-gray-200">
-            <dl>
-              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Agent ID</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.id}</dd>
-              </div>
-              
-              <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Agent Address</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.agent_address}</dd>
-              </div>
-
-              <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Model Provider</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  <span className="px-2 py-1 bg-blue-50 rounded text-blue-600 text-xs">
-                    {agent.modelProvider}
-                  </span>
-                </dd>
-              </div>
-              
-              {character && (
-                <>
-                  <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                    <dt className="text-sm font-medium text-gray-500">Character Username</dt>
-                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                      @{character.username}
-                    </dd>
-                  </div>
-                  
-                  {character.description && (
-                    <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                      <dt className="text-sm font-medium text-gray-500">Character Description</dt>
-                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 whitespace-pre-wrap">
-                        {character.description}
-                      </dd>
-                    </div>
-                  )}
-                </>
+        <div className="mb-6">
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">{agent.name}</h3>
+              {agent.description && (
+                <p className="mt-1 max-w-2xl text-sm text-gray-500">{agent.description}</p>
               )}
-              
-              {agent.createdAt && (
-                <div className={`${character?.description ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
-                  <dt className="text-sm font-medium text-gray-500">Last Active</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {new Date(agent.createdAt).toLocaleString()}
-                  </dd>
-                </div>
-              )}
-              
-              {agent.characterId && (
-                <div className={`${character?.description || agent.createdAt ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
-                  <dt className="text-sm font-medium text-gray-500">Character ID</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.characterId}</dd>
-                </div>
-              )}
-              
-              {/* Home Channel section with loading state */}
-              <div className={`${(agent.characterId || agent.createdAt) && (!character?.description) ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
-                <dt className="text-sm font-medium text-gray-500">Home Channel</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
-                  {isHomeChannelLoading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-blue-500 border-r-2 rounded-full"></div>
-                      <span className="text-gray-500">Loading home channel...</span>
-                    </div>
-                  ) : homeChannelId ? (
-                    <>
-                      <span className="break-all">{homeChannelId}</span>
-                      <button 
-                        onClick={() => navigate(`/channel/${homeChannelId}`)}
-                        className="ml-2 text-blue-600 hover:text-blue-800 text-sm underline"
-                      >
-                        View
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-gray-500">No home channel found</span>
-                  )}
-                </dd>
-              </div>
-            </dl>
+            </div>
           </div>
         </div>
         
-        {/* Agent interactions would go here */}
+        {/* Tabs */}
+        <div className="mb-6 border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('details')}
+              className={`${
+                activeTab === 'details'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            >
+              Agent Details
+            </button>
+            <button
+              onClick={() => setActiveTab('memories')}
+              className={`${
+                activeTab === 'memories'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+            >
+              Memories
+              {isLoadingSelfMemories && (
+                <div className="ml-2 animate-spin h-4 w-4 border-t-2 border-blue-500 border-r-2 rounded-full"></div>
+              )}
+            </button>
+          </nav>
+        </div>
+        
+        {/* Tab Content */}
+        {activeTab === 'details' ? (
+          <>
+            {/* Agent Details Tab */}
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+              <div className="border-t border-gray-200">
+                <dl>
+                  <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Agent ID</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.id}</dd>
+                  </div>
+                  
+                  <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Agent Address</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.agent_address}</dd>
+                  </div>
+
+                  <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt className="text-sm font-medium text-gray-500">Model Provider</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                      <span className="px-2 py-1 bg-blue-50 rounded text-blue-600 text-xs">
+                        {agent.modelProvider}
+                      </span>
+                    </dd>
+                  </div>
+                  
+                  {character && (
+                    <>
+                      <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt className="text-sm font-medium text-gray-500">Character Username</dt>
+                        <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                          @{character.username}
+                        </dd>
+                      </div>
+                      
+                      {character.description && (
+                        <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                          <dt className="text-sm font-medium text-gray-500">Character Description</dt>
+                          <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 whitespace-pre-wrap">
+                            {character.description}
+                          </dd>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
+                  {agent.createdAt && (
+                    <div className={`${character?.description ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
+                      <dt className="text-sm font-medium text-gray-500">Last Active</dt>
+                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {new Date(agent.createdAt).toLocaleString()}
+                      </dd>
+                    </div>
+                  )}
+                  
+                  {agent.characterId && (
+                    <div className={`${character?.description || agent.createdAt ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
+                      <dt className="text-sm font-medium text-gray-500">Character ID</dt>
+                      <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.characterId}</dd>
+                    </div>
+                  )}
+                  
+                  {/* Home Channel section with loading state */}
+                  <div className={`${(agent.characterId || agent.createdAt) && (!character?.description) ? 'bg-white' : 'bg-gray-50'} px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6`}>
+                    <dt className="text-sm font-medium text-gray-500">Home Channel</dt>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
+                      {isHomeChannelLoading ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-blue-500 border-r-2 rounded-full"></div>
+                          <span className="text-gray-500">Loading home channel...</span>
+                        </div>
+                      ) : homeChannelId ? (
+                        <>
+                          <span className="break-all">{homeChannelId}</span>
+                          <button 
+                            onClick={() => navigate(`/channel/${homeChannelId}`)}
+                            className="ml-2 text-blue-600 hover:text-blue-800 text-sm underline"
+                          >
+                            View
+                          </button>
+                        </>
+                      ) : (
+                        <span className="text-gray-500">No home channel found</span>
+                      )}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+          </>
+        )}
+        
+        {activeTab === 'memories' && (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Agent Memories</h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                Explore memories formed by this agent through interactions
+              </p>
+            </div>
+            
+            {/* Memory search component */}
+            <div className="px-4 py-4 border-b border-gray-200">
+              <form onSubmit={handleAddressSearch} className="flex">
+                <input
+                  type="text"
+                  value={searchAddress}
+                  onChange={(e) => handleSearchAddressChange(e.target.value)}
+                  placeholder="Enter an address to view memories about them"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-l-md focus:ring-blue-500 focus:border-blue-500"
+                />
+                <button
+                  type="submit"
+                  disabled={isSearching || !searchAddress}
+                  className={`px-4 py-2 rounded-r-md font-medium text-white ${
+                    isSearching || !searchAddress
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {isSearching ? 
+                    <span className="flex items-center">
+                      <div className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full"></div>
+                      Searching...
+                    </span> : 
+                    'Search'
+                  }
+                </button>
+              </form>
+            </div>
+        
+            {/* Memory sections */}
+            <div className="divide-y divide-gray-200">
+              {/* Self memories section */}
+              <div className="px-4 py-5">
+                <h4 className="text-md font-medium text-gray-900 mb-3">Agent's Self-Memories</h4>
+                
+                {isLoadingSelfMemories ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  </div>
+                ) : selfMemories.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">This agent hasn't formed any self memories yet.</p>
+                ) : (
+                  <MemoryBrowser memories={selfMemories} />
+                )}
+              </div>
+        
+              {/* Current user memories section */}
+              <div className="px-4 py-5">
+                <h4 className="text-md font-medium text-gray-900 mb-3">Memories About You</h4>
+                
+                {isLoadingUserMemories ? (
+                  <div className="flex justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  </div>
+                ) : userMemories.length === 0 ? (
+                  <p className="text-gray-500 text-center py-4">
+                    This agent hasn't formed any memories about you yet.
+                    Interact with the agent to create memories.
+                  </p>
+                ) : (
+                  <MemoryBrowser memories={userMemories} />
+                )}
+              </div>
+        
+              {/* Search results section - only show if we've performed a search */}
+              {searchAddress && (
+                <div className="px-4 py-5">
+                  <h4 className="text-md font-medium text-gray-900 mb-3">
+                    Memories About Address: <span className="font-mono text-sm">{searchAddress}</span>
+                  </h4>
+                  
+                  {searchResults.length === 0 ? (
+                    <p className="text-gray-500 text-center py-4">
+                      No memories found for this address.
+                    </p>
+                  ) : (
+                    <MemoryBrowser memories={searchResults} />
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Agent interactions would go here - keep this section the same */}
         <div className="mt-8 p-6 bg-white shadow sm:rounded-lg">
           <h3 className="text-lg font-medium text-gray-900 mb-4">Chat with Agent</h3>
           <p className="text-gray-600 mb-4">Interact with AI agent by sending messages.</p>

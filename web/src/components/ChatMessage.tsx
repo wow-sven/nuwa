@@ -9,15 +9,17 @@ import { useState } from 'react';
 import { ClipboardDocumentIcon, ShareIcon } from '@heroicons/react/24/outline';
 import { CheckIcon } from '@heroicons/react/24/solid';
 import { shortenAddress } from '../utils/address';
+import { Link } from 'react-router-dom';
 
 interface ChatMessageProps {
   message: Message;
   isCurrentUser: boolean;
   isAI: boolean;
-  agentName?: string; // Add agent name as an optional prop
+  agentName?: string;
+  agentId?: string; // Add this to receive the agent's object ID
 }
 
-export function ChatMessage({ message, isCurrentUser, isAI, agentName }: ChatMessageProps) {
+export function ChatMessage({ message, isCurrentUser, isAI, agentName, agentId }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const timestamp = message.timestamp;
   
@@ -45,9 +47,23 @@ export function ChatMessage({ message, isCurrentUser, isAI, agentName }: ChatMes
         {!isCurrentUser && (
           <div className="flex-shrink-0 w-8 h-8">
             {isAI ? (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
-                {agentName ? agentName.substring(0, 2).toUpperCase() : 'AI'}
-              </div>
+              // Wrap the avatar in a Link component if agentId is provided
+              agentId ? (
+                <Link 
+                  to={`/agent/${agentId}`} 
+                  className="block w-8 h-8 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all"
+                  title={`View ${agentName || 'AI Agent'}'s profile`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                    {agentName ? agentName.substring(0, 2).toUpperCase() : 'AI'}
+                  </div>
+                </Link>
+              ) : (
+                // Original div if no agentId provided
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                  {agentName ? agentName.substring(0, 2).toUpperCase() : 'AI'}
+                </div>
+              )
             ) : (
               <UserCircleIcon className="w-8 h-8 text-gray-400" />
             )}

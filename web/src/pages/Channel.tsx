@@ -24,16 +24,15 @@ export function ChannelPage() {
   // Add AI address state
   const [aiAddress, setAiAddress] = useState<string | null>(null);
 
-  // Add a state variable to store agent name
-  const [agentName, setAgentName] = useState<string | null>(null);
-
   // If you want to store more agent info for display
   const [agentInfo, setAgentInfo] = useState<{
+    id: string | null;
     name: string | null;
     username: string | null;
     description: string | null;
     agent_address: string | null;
   }>({
+    id: null,
     name: null,
     username: null,
     description: null,
@@ -122,16 +121,16 @@ export function ChannelPage() {
             const agentInfoValue = response.return_values[0].decoded_value.value;
             
             setAgentInfo({
+              id: agentInfoValue.id || null,
               name: agentInfoValue.name || null,
               username: agentInfoValue.username || null,
               description: agentInfoValue.description || null,
               agent_address: agentInfoValue.agent_address || null
             });
             
-            // For backward compatibility with existing code
-            setAgentName(agentInfoValue.name || null);
-            
             console.log('Agent info set:', agentInfoValue);
+          } else {
+            console.warn('No agent info returned');
           }
         })
         .catch(err => {
@@ -321,7 +320,7 @@ export function ChannelPage() {
       if (mentionAI && aiAddress) {
         setIsAiThinking(true);
         setLastMessageSentByAi(false);
-        console.log('AI thinking state activated for:', agentName || 'AI Agent');
+        console.log('AI thinking state activated for:', agentInfo.name || 'AI Agent');
       }
       
       // Clean up the content if it starts with /ai
@@ -529,7 +528,8 @@ export function ChannelPage() {
                   message={message} 
                   isCurrentUser={message.sender === session?.getRoochAddress().toHexAddress()}
                   isAI={message.message_type === 1}
-                  agentName={agentName} // Pass the agent name
+                  agentName={agentInfo.name} // Pass the agent name
+                  agentId={agentInfo.id || null} // Pass the agent's object ID from the channel
                 />
               ))}
               <div ref={messagesEndRef} />
@@ -551,7 +551,7 @@ export function ChannelPage() {
             <>
               {/* Only show typing indicator when waiting for AI response */}
               {isAiThinking && (
-                <TypingIndicator name={agentName || 'AI Agent'} />
+                <TypingIndicator name={agentInfo.name || 'AI Agent'} />
               )}
               
               {/* AI Hint Card */}
