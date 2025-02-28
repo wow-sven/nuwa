@@ -249,6 +249,7 @@ module nuwa_framework::memory {
         option::none()
     }
 
+    //TODO remove this function
     /// Get relevant memories for AI context
     public fun get_context_memories(
         store: &MemoryStore,

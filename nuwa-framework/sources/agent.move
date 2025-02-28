@@ -28,6 +28,7 @@ module nuwa_framework::agent {
         model_provider: String,
     }
 
+    //TODO add model_provider to AgentInfo
     struct AgentInfo has copy, drop, store {
         id: ObjectID,
         name: String,            
@@ -177,6 +178,27 @@ module nuwa_framework::agent {
     public fun is_agent_account(addr: address): bool {
         let agent_obj_id = object::account_named_object_id<Agent>(addr);
         object::exists_object(agent_obj_id)
+    }
+
+    /// Get the agent's own personal memories
+    public fun get_agent_self_memories(agent_obj_id: ObjectID): vector<memory::Memory> {
+        let agent_obj = object::borrow_object<Agent>(agent_obj_id);
+        let agent_ref = object::borrow(agent_obj);
+        let memory_store = &agent_ref.memory_store;
+        let agent_address = agent_ref.agent_address;
+        
+        // Get the agent's own memories (self-reflections, personal thoughts)
+        memory::get_all_memories(memory_store, agent_address, true)
+    }
+
+    /// Get memories that an agent has about a specific user
+    public fun get_agent_memories_about_user(agent_obj_id: ObjectID, user_address: address): vector<memory::Memory> {
+        let agent_obj = object::borrow_object<Agent>(agent_obj_id);
+        let agent_ref = object::borrow(agent_obj);
+        let memory_store = &agent_ref.memory_store;
+        
+        // Get all memories about this specific user
+        memory::get_all_memories(memory_store, user_address, true)
     }
 
     #[test_only]
