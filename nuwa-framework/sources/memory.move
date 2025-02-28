@@ -1,5 +1,5 @@
 module nuwa_framework::memory {
-    use std::string::{String};
+    use std::string::{Self, String};
     use std::option::{Self, Option};
     use std::vector;
     use moveos_std::table::{Self, Table};
@@ -36,6 +36,53 @@ module nuwa_framework::memory {
     struct MemoryStore has store {
         // Meta memories by user address (including agent's own memory)
         memories: Table<address, MetaMemory>,
+    }
+
+       /// Memory contexts
+    const CONTEXT_PERSONAL: vector<u8> = b"personal";        // Personal information and preferences
+    const CONTEXT_INTERACTION: vector<u8> = b"interaction";  // Direct interactions
+    const CONTEXT_KNOWLEDGE: vector<u8> = b"knowledge";      // Knowledge or skills learned about user
+    const CONTEXT_EMOTIONAL: vector<u8> = b"emotional";      // Emotional states or reactions
+    const CONTEXT_GOAL: vector<u8> = b"goal";               // User goals or objectives
+    const CONTEXT_PREFERENCE: vector<u8> = b"preference";    // User preferences
+    const CONTEXT_FEEDBACK: vector<u8> = b"feedback";        // User feedback or ratings
+    const CONTEXT_RULE: vector<u8> = b"rule";                // Rule-based memories
+
+    /// Public getters for contexts
+    public fun context_personal(): String { string::utf8(CONTEXT_PERSONAL) }
+    public fun context_interaction(): String { string::utf8(CONTEXT_INTERACTION) }
+    public fun context_knowledge(): String { string::utf8(CONTEXT_KNOWLEDGE) }
+    public fun context_emotional(): String { string::utf8(CONTEXT_EMOTIONAL) }
+    public fun context_goal(): String { string::utf8(CONTEXT_GOAL) }
+    public fun context_preference(): String { string::utf8(CONTEXT_PREFERENCE) }
+    public fun context_feedback(): String { string::utf8(CONTEXT_FEEDBACK) }
+    public fun context_rule(): String { string::utf8(CONTEXT_RULE) }
+
+    /// Validate if a context is valid
+    public fun is_standard_context(context: &String): bool {
+        let context_bytes = string::bytes(context);
+        *context_bytes == CONTEXT_PERSONAL ||
+        *context_bytes == CONTEXT_INTERACTION ||
+        *context_bytes == CONTEXT_KNOWLEDGE ||
+        *context_bytes == CONTEXT_EMOTIONAL ||
+        *context_bytes == CONTEXT_GOAL ||
+        *context_bytes == CONTEXT_PREFERENCE ||
+        *context_bytes == CONTEXT_FEEDBACK ||
+        *context_bytes == CONTEXT_RULE
+    }
+
+    /// Get context description for AI prompt
+    public fun get_context_descriptions(): vector<String> {
+        vector[
+            string::utf8(b"- `personal`: Identity information, demographics, traits"),
+            string::utf8(b"- `interaction`: Conversation history, communication patterns"),
+            string::utf8(b"- `knowledge`: Facts, information, skills, learnings"),
+            string::utf8(b"- `emotional`: Feelings, moods, emotional reactions"),
+            string::utf8(b"- `goal`: Objectives, intentions, aspirations"),
+            string::utf8(b"- `preference`: Likes, dislikes, choices, preferences"),
+            string::utf8(b"- `feedback`: Evaluations, opinions, suggestions"),
+            string::utf8(b"- `rule`: Rule you've created for yourself or the user, you should follow"),
+        ]
     }
 
     public(friend) fun new_memory_store(): MemoryStore {
@@ -249,7 +296,6 @@ module nuwa_framework::memory {
         option::none()
     }
 
-    //TODO remove this function
     /// Get relevant memories for AI context
     public fun get_context_memories(
         store: &MemoryStore,

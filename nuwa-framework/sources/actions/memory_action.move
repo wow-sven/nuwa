@@ -1,12 +1,13 @@
 module nuwa_framework::memory_action {
     use std::string::{Self, String};
-    use std::vector;
     use std::option;
+    
     use moveos_std::object::Object;
+    use moveos_std::json;
+
     use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::memory;
     use nuwa_framework::action;
-    use moveos_std::json;
 
     /// Memory action names using namespaced format
     const ACTION_NAME_ADD: vector<u8> = b"memory::add";
@@ -15,48 +16,6 @@ module nuwa_framework::memory_action {
     /// Special content to mark "deleted" memories
     const MEMORY_DELETED_MARK: vector<u8> = b"[deleted]";
 
-    /// Memory contexts
-    const CONTEXT_PERSONAL: vector<u8> = b"personal";        // Personal information and preferences
-    const CONTEXT_INTERACTION: vector<u8> = b"interaction";  // Direct interactions
-    const CONTEXT_KNOWLEDGE: vector<u8> = b"knowledge";      // Knowledge or skills learned about user
-    const CONTEXT_EMOTIONAL: vector<u8> = b"emotional";      // Emotional states or reactions
-    const CONTEXT_GOAL: vector<u8> = b"goal";               // User goals or objectives
-    const CONTEXT_PREFERENCE: vector<u8> = b"preference";    // User preferences
-    const CONTEXT_FEEDBACK: vector<u8> = b"feedback";        // User feedback or ratings
-
-    /// Public getters for contexts
-    public fun context_personal(): String { string::utf8(CONTEXT_PERSONAL) }
-    public fun context_interaction(): String { string::utf8(CONTEXT_INTERACTION) }
-    public fun context_knowledge(): String { string::utf8(CONTEXT_KNOWLEDGE) }
-    public fun context_emotional(): String { string::utf8(CONTEXT_EMOTIONAL) }
-    public fun context_goal(): String { string::utf8(CONTEXT_GOAL) }
-    public fun context_preference(): String { string::utf8(CONTEXT_PREFERENCE) }
-    public fun context_feedback(): String { string::utf8(CONTEXT_FEEDBACK) }
-
-    /// Validate if a context is valid
-    public fun is_valid_context(context: &String): bool {
-        let context_bytes = string::bytes(context);
-        *context_bytes == CONTEXT_PERSONAL ||
-        *context_bytes == CONTEXT_INTERACTION ||
-        *context_bytes == CONTEXT_KNOWLEDGE ||
-        *context_bytes == CONTEXT_EMOTIONAL ||
-        *context_bytes == CONTEXT_GOAL ||
-        *context_bytes == CONTEXT_PREFERENCE ||
-        *context_bytes == CONTEXT_FEEDBACK
-    }
-
-    /// Get context description for AI prompt
-    fun get_context_descriptions(): vector<String> {
-        vector[
-            string::utf8(b"personal - Personal information and identity"),
-            string::utf8(b"interaction - Direct interaction history"),
-            string::utf8(b"knowledge - User's knowledge and understanding"),
-            string::utf8(b"emotional - Emotional states and responses"),
-            string::utf8(b"goal - User's goals and objectives"),
-            string::utf8(b"preference - User's preferences and choices"),
-            string::utf8(b"feedback - User's feedback and ratings")
-        ]
-    }
 
     #[data_struct]
     /// Arguments for the add memory action
@@ -114,15 +73,6 @@ module nuwa_framework::memory_action {
     const UPDATE_MEMORY_EXAMPLE: vector<u8> = b"{\"target\":\"0x5e379ab70f1cc09b5d8e86a32833ccf5eddef0cb376402b5d0d4e9074eb16a4f\",\"index\":5,\"new_content\":\"User now prefers concise explanations\",\"new_context\":\"preference\",\"is_long_term\":true}";
 
     public fun register_actions() {
-        let contexts = string::utf8(b"Available contexts:\n");
-        let context_list = get_context_descriptions();
-        let i = 0;
-        while (i < vector::length(&context_list)) {
-            string::append(&mut contexts, string::utf8(b"- "));
-            string::append(&mut contexts, *vector::borrow(&context_list, i));
-            string::append(&mut contexts, string::utf8(b"\n"));
-            i = i + 1;
-        };
 
         // Register add_memory action
         let add_memory_args = vector[
@@ -141,14 +91,14 @@ module nuwa_framework::memory_action {
             action::new_action_argument(
                 string::utf8(b"context"),
                 string::utf8(b"string"),
-                contexts,
+                string::utf8(b"The context tag for the memory"),
                 true,
             ),
             action::new_action_argument(
                 string::utf8(b"is_long_term"),
                 string::utf8(b"bool"),
                 string::utf8(b"Whether to store as long-term memory"),
-                false,
+                true,
             ),
         ];
 
@@ -158,7 +108,7 @@ module nuwa_framework::memory_action {
             add_memory_args,
             string::utf8(ADD_MEMORY_EXAMPLE),
             string::utf8(b"Use this to store important information about users or yourself"),
-            string::utf8(b"Context should be one of the valid context types"),
+            string::utf8(b""),
         );
 
         // Register update_memory action
@@ -184,13 +134,13 @@ module nuwa_framework::memory_action {
             action::new_action_argument(
                 string::utf8(b"new_context"),
                 string::utf8(b"string"),
-                contexts,
-                false,
+                string::utf8(b"The new context for the memory"),
+                true,
             ),
             action::new_action_argument(
                 string::utf8(b"is_long_term"),
                 string::utf8(b"bool"),
-                string::utf8(b"Whether it's a long-term memory"),
+                string::utf8(b"Whether to store as long-term memory"),
                 true,
             ),
         ];
@@ -201,7 +151,7 @@ module nuwa_framework::memory_action {
             update_memory_args,
             string::utf8(UPDATE_MEMORY_EXAMPLE),
             string::utf8(b"Use this action to modify existing memories or mark them as deleted by setting content to '[deleted]'"),
-            string::utf8(b"Context should be one of the valid context types"),
+            string::utf8(b""),
         );
     }
 
@@ -267,6 +217,7 @@ module nuwa_framework::memory_action {
 
     #[test]
     fun test_memory_actions() {
+        use std::vector;
         use nuwa_framework::agent;
         action::init_for_test();
         register_actions();
@@ -300,7 +251,7 @@ module nuwa_framework::memory_action {
         assert!(add_args.content == string::utf8(b"User prefers detailed explanations"), 2);
         assert!(add_args.context == string::utf8(b"preference"), 3);
         assert!(add_args.is_long_term == true, 4);
-        assert!(is_valid_context(&add_args.context), 5);
+        assert!(memory::is_standard_context(&add_args.context), 5);
 
         // Test update memory example
         let update_args = json::from_json<UpdateMemoryArgs>(UPDATE_MEMORY_EXAMPLE);
@@ -309,6 +260,6 @@ module nuwa_framework::memory_action {
         assert!(update_args.new_content == string::utf8(b"User now prefers concise explanations"), 8);
         assert!(update_args.new_context == string::utf8(b"preference"), 9);
         assert!(update_args.is_long_term == true, 10);
-        assert!(is_valid_context(&update_args.new_context), 11);
+        assert!(memory::is_standard_context(&update_args.new_context), 11);
     }
 }

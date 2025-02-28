@@ -215,7 +215,7 @@ module nuwa_framework::action_dispatcher {
         let memory_args = memory_action::create_add_memory_args(
             test_addr,
             string::utf8(b"User prefers detailed explanations"),
-            memory_action::context_preference(),
+            memory::context_preference(),
             true
         );
         

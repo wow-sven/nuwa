@@ -2,8 +2,11 @@ module nuwa_framework::address_utils{
     use std::vector;
     use std::string::{Self, String};
     use moveos_std::address;
+    use moveos_std::bcs;
+    use moveos_std::hex;
 
     friend nuwa_framework::memory_action;
+    friend nuwa_framework::prompt_builder;
 
     //TODO Migrate this function to address.move module
     /// Convert string address to Move address, handling both short and full-length addresses
@@ -36,7 +39,15 @@ module nuwa_framework::address_utils{
         address::from_ascii_bytes(&padded)
     }
 
-        #[test]
+     // Add helper function to convert address to string
+    public(friend) fun address_to_string(addr: address): String {
+        let addr_prefix = b"0x";
+        let addr_bytes = hex::encode(bcs::to_bytes(&addr));
+        vector::append(&mut addr_prefix, addr_bytes);
+        string::utf8(addr_prefix)
+    }
+
+    #[test]
     fun test_parse_address() {
         use std::string;
         // Test short address

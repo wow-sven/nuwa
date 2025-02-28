@@ -44,11 +44,12 @@ module nuwa_framework::channel_tests {
     #[test]
     fun test_create_ai_peer_channel() {
         let user = create_account_with_address(@0x42);
-        let ai_address = @0x43;
+        // Create a test agent instead of just using an address
+        let (agent, cap) = agent::create_test_agent();
+        let ai_address = agent::get_agent_address(agent);
         timestamp::update_global_time_for_test(1000);
 
-        let title = string::utf8(b"AI Peer Channel");
-        let channel_id = channel::create_ai_peer_channel(&user, ai_address, title);
+        let channel_id = channel::create_ai_peer_channel(&user, agent);
         let channel = object::borrow_object(channel_id);
         
         // Verify both user and AI are members
@@ -56,18 +57,19 @@ module nuwa_framework::channel_tests {
         assert!(channel::is_member(channel, ai_address), 1);
 
         channel::delete_channel_for_testing(channel_id);
+        agent::destroy_agent_cap(cap);
     }
 
     #[test]
     fun test_message_sending() {
         let user = create_account_with_address(@0x42);
-        let ai_address = @0x43;
-        
+        // Create a test agent
+        let (agent, cap) = agent::create_test_agent();
+         
         // Create peer channel
         let channel_id = channel::create_ai_peer_channel(
             &user,
-            ai_address,
-            string::utf8(b"Test Chat")
+            agent
         );
         
         // Send message
@@ -87,6 +89,7 @@ module nuwa_framework::channel_tests {
         assert!(message::get_type(msg) == message::type_user(), 3);
 
         channel::delete_channel_for_testing(channel_id);
+        agent::destroy_agent_cap(cap);
     }
 
     #[test]
@@ -94,12 +97,12 @@ module nuwa_framework::channel_tests {
     fun test_unauthorized_message() {
         let user1 = create_account_with_address(@0x42);
         let user2 = create_account_with_address(@0x44);
-        let ai_address = @0x43;
+        // Create a test agent
+        let (agent, cap) = agent::create_test_agent();
         
         let channel_id = channel::create_ai_peer_channel(
             &user1,
-            ai_address,
-            string::utf8(b"Private Chat")
+            agent
         );
         
         // Try sending message from unauthorized user
@@ -109,17 +112,18 @@ module nuwa_framework::channel_tests {
         channel::send_message(&user2, channel, string::utf8(b"Unauthorized message"), mentions);
 
         channel::delete_channel_for_testing(channel_id);
+        agent::destroy_agent_cap(cap);
     }
 
     #[test]
     fun test_message_pagination() {
         let user = create_account_with_address(@0x42);
-        let ai_address = @0x43;
-        
+        // Create a test agent
+        let (agent, cap) = agent::create_test_agent();
+         
         let channel_id = channel::create_ai_peer_channel(
             &user,
-            ai_address,
-            string::utf8(b"Test Chat")
+            agent
         );
         
         // Send multiple messages
@@ -141,18 +145,19 @@ module nuwa_framework::channel_tests {
         assert!(vector::length(&messages) == 3, 1);
 
         channel::delete_channel_for_testing(channel_id);
+        agent::destroy_agent_cap(cap);
     }
 
     #[test]
     fun test_member_info() {
         let user = create_account_with_address(@0x42);
-        let ai_address = @0x43;
+        // Create a test agent
+        let (agent, cap) = agent::create_test_agent();
         timestamp::update_global_time_for_test(1000);
         
         let channel_id = channel::create_ai_peer_channel(
             &user,
-            ai_address,
-            string::utf8(b"Test Chat")
+            agent
         );
         
         let channel = object::borrow_object(channel_id);
@@ -161,5 +166,6 @@ module nuwa_framework::channel_tests {
         assert!(last_active == 1000, 1);
 
         channel::delete_channel_for_testing(channel_id);
+        agent::destroy_agent_cap(cap);
     }
 }
