@@ -26,7 +26,7 @@ export interface Agent {
   id: string;
   name: string;
   description?: string;
-  owner: string;
+  agent_address: string;
   characterId?: string;
   modelProvider: string;
   createdAt: number;

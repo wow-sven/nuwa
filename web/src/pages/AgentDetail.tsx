@@ -78,7 +78,7 @@ export function AgentDetail() {
           const processedAgent: Agent = {
             id: agentObj.id,
             name: 'Loading...', // Will be updated when character is loaded
-            owner: agentAddress,
+            agent_address: agentAddress,
             characterId: characterId,
             modelProvider: agentData.model_provider || 'Unknown',
             createdAt: parseInt(agentData.last_active_timestamp) || Date.now(),
@@ -222,8 +222,8 @@ export function AgentDetail() {
               </div>
               
               <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                <dt className="text-sm font-medium text-gray-500">Owner</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.owner}</dd>
+                <dt className="text-sm font-medium text-gray-500">Agent Address</dt>
+                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.agent_address}</dd>
               </div>
 
               <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
