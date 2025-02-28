@@ -19,7 +19,7 @@ export function Layout({ children, showRoomList = false }: LayoutProps) {
           </Link>
           <div className="flex items-center space-x-4 text-sm">
             <a 
-              href="https://github.com/rooch-network/rooch/tree/main/examples/onchain_ai_chat" 
+              href="https://github.com/rooch-network/nuwa" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-gray-600 hover:text-gray-900 flex items-center space-x-1"
