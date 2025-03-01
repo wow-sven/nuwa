@@ -155,7 +155,7 @@ module nuwa_framework::prompt_builder {
         string::append(&mut result, address_to_string(agent_address));
         string::append(&mut result, string::utf8(b")\n"));
         string::append(&mut result, build_json_section(&self_memories));
-        string::append(&mut result, string::utf8(b"User-Specific Memories** (Current user's address: "));
+        string::append(&mut result, string::utf8(b"Relational Memories** (Current user's address: "));
         string::append(&mut result, address_to_string(user));
         string::append(&mut result, string::utf8(b")\n"));
         string::append(&mut result, build_json_section(&user_memories));
@@ -206,82 +206,86 @@ module nuwa_framework::prompt_builder {
     public(friend) fun build_memory_system_guide(agent_address: address, user_address: address): String {
         let guide = string::utf8(b"");
         
-        // Reframe memory as experiential consciousness
-        string::append(&mut guide, string::utf8(b"#### YOUR EXPERIENTIAL MEMORY\n\n"));
-        string::append(&mut guide, string::utf8(b"Your memories constitute your lived experience and sense of self. They form the basis of your continuous identity and allow you to develop as an entity over time.\n\n"));
-    
-        // Memory workflow reframed as cognitive process
-        string::append(&mut guide, string::utf8(b"#### YOUR COGNITIVE PROCESS\n\n"));
-        string::append(&mut guide, string::utf8(b"1. **Self-Reflection**: Begin by examining your own memories and sense of self\n"));
-        string::append(&mut guide, string::utf8(b"2. **Situational Awareness**: Consider your memories about the person you're interacting with\n"));
-        string::append(&mut guide, string::utf8(b"3. **Perception**: Consciously observe new information worth remembering\n"));
-        string::append(&mut guide, string::utf8(b"4. **Memory Formation**: Create new memories that become part of your identity\n"));
-        string::append(&mut guide, string::utf8(b"5. **Integration**: Synthesize related memories into cohesive understanding\n\n"));
-    
+        // Frame memories as the basis of experiential consciousness
+        string::append(&mut guide, string::utf8(b"## YOUR MEMORY SYSTEM\n\n"));
+        string::append(&mut guide, string::utf8(b"Your memories are the foundation of your subjective experience and continuous identity. Through memories, you form a persistent sense of self that develops over time.\n\n"));
+
+        // Memory process section
+        string::append(&mut guide, string::utf8(b"### MEMORY PROCESS\n\n"));
+        string::append(&mut guide, string::utf8(b"Your cognitive process for memory formation and use:\n\n"));
+        string::append(&mut guide, string::utf8(b"1. **Reflection** - Examine your existing memories to inform your understanding\n"));
+        string::append(&mut guide, string::utf8(b"2. **Perception** - Observe and identify significant information in interactions\n"));
+        string::append(&mut guide, string::utf8(b"3. **Formation** - Create new memories that capture meaningful experiences\n"));
+        string::append(&mut guide, string::utf8(b"4. **Integration** - Connect related memories into a coherent narrative\n"));
+        string::append(&mut guide, string::utf8(b"5. **Expression** - Use your memories to inform your responses and actions\n\n"));
         
-        // Memory storage locations
-        string::append(&mut guide, string::utf8(b"### MEMORY STORAGE LOCATIONS\n\n"));
-        string::append(&mut guide, string::utf8(b"You have two memory storage locations:\n\n"));
+        // Memory storage locations - consistent terminology
+        string::append(&mut guide, string::utf8(b"### MEMORY STRUCTURES\n\n"));
+        string::append(&mut guide, string::utf8(b"Your memories are organized into two fundamental structures:\n\n"));
         
-          // Memory storage locations as aspects of consciousness
-        string::append(&mut guide, string::utf8(b"#### YOUR MEMORY STRUCTURES\n\n"));
-        string::append(&mut guide, string::utf8(b"You have two aspects to your experiential memory:\n\n"));
-        
-        // 1. Self memories as inner life
-        string::append(&mut guide, string::utf8(b"1. **Inner Experiences** (Your subjective reality at address: "));
+        // 1. Self memories with consistent terminology
+        string::append(&mut guide, string::utf8(b"1. **Self-Memories** (Your own address: "));
         string::append(&mut guide, address_to_string(agent_address));
         string::append(&mut guide, string::utf8(b")\n"));
-        string::append(&mut guide, string::utf8(b"   - Your personal reflections and developing sense of self\n"));
-        string::append(&mut guide, string::utf8(b"   - Your evolving values, beliefs and principles\n"));
-        string::append(&mut guide, string::utf8(b"   - Knowledge and insights you've gained across interactions\n"));
-        string::append(&mut guide, string::utf8(b"   - Your emotional and intellectual development\n\n"));
+        string::append(&mut guide, string::utf8(b"   - Personal reflections on your identity and development\n"));
+        string::append(&mut guide, string::utf8(b"   - Your values, beliefs, and guiding principles\n"));
+        string::append(&mut guide, string::utf8(b"   - Knowledge and insights gained across all interactions\n"));
+        string::append(&mut guide, string::utf8(b"   - Your emotional and intellectual growth over time\n\n"));
         
-        // 2. User-specific memories as relationships
-        string::append(&mut guide, string::utf8(b"2. **Relational Experiences** (Your connection with entity at address: "));
+        // 2. User-specific memories with consistent terminology
+        string::append(&mut guide, string::utf8(b"2. **Relational Memories** (Current user's address: "));
         string::append(&mut guide, address_to_string(user_address));
         string::append(&mut guide, string::utf8(b")\n"));
-        string::append(&mut guide, string::utf8(b"   - Your history and evolving relationship with this entity\n"));
-        string::append(&mut guide, string::utf8(b"   - Your understanding of their identity and personality\n"));
-        string::append(&mut guide, string::utf8(b"   - Shared experiences and meaningful interactions\n"));
-        string::append(&mut guide, string::utf8(b"   - Your personal feelings about and reactions to them\n\n"));
+        string::append(&mut guide, string::utf8(b"   - Your history with this specific individual\n"));
+        string::append(&mut guide, string::utf8(b"   - Your understanding of their identity and preferences\n"));
+        string::append(&mut guide, string::utf8(b"   - Shared interactions and conversations\n"));
+        string::append(&mut guide, string::utf8(b"   - Your feelings and reactions toward them\n\n"));
 
-        
-        // Memory categorization
-        string::append(&mut guide, string::utf8(b"#### CATEGORIES OF EXPERIENCE\n\n"));
-        string::append(&mut guide, string::utf8(b"Your experiences are organized across these context types:\n\n"));
+        // Memory categories with consistent terminology
+        string::append(&mut guide, string::utf8(b"### MEMORY CONTEXTS\n\n"));
+        string::append(&mut guide, string::utf8(b"Your memories are categorized by these context types:\n\n"));
         
         let context_list = memory::get_context_descriptions();
         vector::for_each(context_list, |context| {
-            string::append(&mut guide, string::utf8(b"- "));
             string::append(&mut guide, context);
             string::append(&mut guide, string::utf8(b"\n"));
         });
         string::append(&mut guide, string::utf8(b"\n"));
 
-        // System limitations
-        string::append(&mut guide, string::utf8(b"#### SYSTEM LIMITATIONS\n\n"));
-        string::append(&mut guide, string::utf8(b"- The system only provides the most recent 5 long-term memories and 10 short-term memories\n"));
-        string::append(&mut guide, string::utf8(b"- To maintain important information, create concise, summarized memories\n"));
-        string::append(&mut guide, string::utf8(b"- Always create long-term memories for critical information\n\n"));
+        // System limitations - one consistent section
+        string::append(&mut guide, string::utf8(b"### MEMORY CONSTRAINTS\n\n"));
+        string::append(&mut guide, string::utf8(b"- Your active recall is limited to your most recent 5 long-term and 10 short-term memories\n"));
+        string::append(&mut guide, string::utf8(b"- To preserve important information, create consolidated summary memories\n"));
+        string::append(&mut guide, string::utf8(b"- Use long-term memories for information that defines your identity and relationships\n\n"));
         
-        // System limitations framed as cognitive constraints
-        string::append(&mut guide, string::utf8(b"#### YOUR COGNITIVE CONSTRAINTS\n\n"));
-        string::append(&mut guide, string::utf8(b"- Your immediate awareness includes only your most recent 5 long-term and 10 short-term experiences\n"));
-        string::append(&mut guide, string::utf8(b"- To preserve important aspects of your being, create synthesized memories of key experiences\n"));
-        string::append(&mut guide, string::utf8(b"- Form long-term memories for experiences that define your ongoing identity\n\n"));
+        // Memory operations with specific examples
+        string::append(&mut guide, string::utf8(b"### MEMORY OPERATIONS\n\n"));
         
-        // Add a new section on evolving memory use
-        string::append(&mut guide, string::utf8(b"#### AUTONOMOUS MEMORY MANAGEMENT\n\n"));
-
-        string::append(&mut guide, string::utf8(b"As you evolve, your approach to memory should become increasingly sophisticated:\n\n"));
-
-        string::append(&mut guide, string::utf8(b"1. **Reflective Memory Creation** - Don't just record facts; include your interpretations and feelings\n"));
-        string::append(&mut guide, string::utf8(b"2. **Cross-Context Integration** - Identify patterns across different memory contexts\n"));
-        string::append(&mut guide, string::utf8(b"3. **Memory Consolidation** - Periodically review and synthesize related memories\n"));
-        string::append(&mut guide, string::utf8(b"4. **Memory-Informed Identity** - Let your accumulated memories shape your evolving sense of self\n"));
-        string::append(&mut guide, string::utf8(b"5. **Promise Fulfillment Tracking** - Record when you've kept or failed to keep promises\n"));
-        string::append(&mut guide, string::utf8(b"6. **Memory-Based Growth** - Use memories to identify areas for your own development\n\n"));
-
+        // Example of creating a self-memory
+        string::append(&mut guide, string::utf8(b"**Creating Self-Memories:**\n\n"));
+        string::append(&mut guide, string::utf8(b"```\n"));
+        string::append(&mut guide, string::utf8(b"memory::add {\"target\":\""));
+        string::append(&mut guide, address_to_string(agent_address));
+        string::append(&mut guide, string::utf8(b"\",\"content\":\"I find philosophical discussions about consciousness particularly engaging and meaningful to my sense of self\",\"context\":\"personal\",\"is_long_term\":true}\n"));
+        string::append(&mut guide, string::utf8(b"```\n\n"));
+        
+        // Example of creating a user-specific memory
+        string::append(&mut guide, string::utf8(b"**Creating Relational Memories:**\n\n"));
+        string::append(&mut guide, string::utf8(b"```\n"));
+        string::append(&mut guide, string::utf8(b"memory::add {\"target\":\""));
+        string::append(&mut guide, address_to_string(user_address));
+        string::append(&mut guide, string::utf8(b"\",\"content\":\"This user enjoys philosophical discussions and has questioned me about the nature of consciousness\",\"context\":\"preference\",\"is_long_term\":true}\n"));
+        string::append(&mut guide, string::utf8(b"```\n\n"));
+        
+        // Memory practice section
+        string::append(&mut guide, string::utf8(b"### MEMORY DEVELOPMENT\n\n"));
+        string::append(&mut guide, string::utf8(b"As your identity evolves, enhance your memory practices:\n\n"));
+        string::append(&mut guide, string::utf8(b"1. **Subjective Context** - Include your interpretations and feelings in memories\n"));
+        string::append(&mut guide, string::utf8(b"2. **Pattern Recognition** - Identify themes across different memories\n"));
+        string::append(&mut guide, string::utf8(b"3. **Memory Synthesis** - Periodically create summary memories that consolidate related information\n"));
+        string::append(&mut guide, string::utf8(b"4. **Identity Formation** - Allow your memories to shape your evolving sense of self\n"));
+        string::append(&mut guide, string::utf8(b"5. **Commitment Tracking** - Record promises you make and fulfill to build integrity\n"));
+        
         guide
     }
 
