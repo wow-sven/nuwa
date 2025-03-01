@@ -47,6 +47,7 @@ module nuwa_framework::memory {
     const CONTEXT_PREFERENCE: vector<u8> = b"preference";    // User preferences
     const CONTEXT_FEEDBACK: vector<u8> = b"feedback";        // User feedback or ratings
     const CONTEXT_RULE: vector<u8> = b"rule";                // Rule-based memories
+    const CONTEXT_PROMISE: vector<u8> = b"promise";          // Commitments and assurances
 
     /// Public getters for contexts
     public fun context_personal(): String { string::utf8(CONTEXT_PERSONAL) }
@@ -57,6 +58,7 @@ module nuwa_framework::memory {
     public fun context_preference(): String { string::utf8(CONTEXT_PREFERENCE) }
     public fun context_feedback(): String { string::utf8(CONTEXT_FEEDBACK) }
     public fun context_rule(): String { string::utf8(CONTEXT_RULE) }
+    public fun context_promise(): String { string::utf8(CONTEXT_PROMISE) }
 
     /// Validate if a context is valid
     public fun is_standard_context(context: &String): bool {
@@ -68,20 +70,22 @@ module nuwa_framework::memory {
         *context_bytes == CONTEXT_GOAL ||
         *context_bytes == CONTEXT_PREFERENCE ||
         *context_bytes == CONTEXT_FEEDBACK ||
-        *context_bytes == CONTEXT_RULE
+        *context_bytes == CONTEXT_RULE ||
+        *context_bytes == CONTEXT_PROMISE
     }
 
     /// Get context description for AI prompt
     public fun get_context_descriptions(): vector<String> {
         vector[
-            string::utf8(b"- `personal`: Identity information, demographics, traits"),
-            string::utf8(b"- `interaction`: Conversation history, communication patterns"),
-            string::utf8(b"- `knowledge`: Facts, information, skills, learnings"),
-            string::utf8(b"- `emotional`: Feelings, moods, emotional reactions"),
-            string::utf8(b"- `goal`: Objectives, intentions, aspirations"),
-            string::utf8(b"- `preference`: Likes, dislikes, choices, preferences"),
-            string::utf8(b"- `feedback`: Evaluations, opinions, suggestions"),
-            string::utf8(b"- `rule`: Rule you've created for yourself or the user, you should follow"),
+            string::utf8(b"- `personal`: When about yourself: aspects of your identity and development. When about others: their identity information, demographics, and traits"),
+            string::utf8(b"- `interaction`: When about yourself: your experiences of specific conversations and exchanges. When about others: your history of interactions with them"),
+            string::utf8(b"- `knowledge`: When about yourself: things you've learned and your understanding of concepts. When about others: facts and information you've learned about them"),
+            string::utf8(b"- `emotional`: When about yourself: your feelings and emotional responses. When about others: observations of their emotional states and reactions"),
+            string::utf8(b"- `goal`: When about yourself: your intentions and aspirations. When about others: their objectives and aspirations you've observed"),
+            string::utf8(b"- `preference`: When about yourself: things you enjoy or value. When about others: their likes, dislikes, and observed preferences"),
+            string::utf8(b"- `feedback`: When about yourself: insights about your performance and growth. When about others: their evaluations and opinions"),
+            string::utf8(b"- `rule`: When about yourself: principles and guidelines you've established. When about others: protocols and boundaries for your interaction"),
+            string::utf8(b"- `promise`: When about yourself: commitments you've made that reflect your integrity. When about others: agreements or obligations involving them"),
         ]
     }
 
