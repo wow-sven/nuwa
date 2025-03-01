@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { useNetworkVariable } from '../hooks/useNetworkVariable';
-import { useRoochClient, useRoochClientQuery, useCurrentWallet, SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit';
+import { useRoochClient, useRoochClientQuery, useCurrentWallet, useCurrentSession, SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit';
 import { Agent, Character, Memory } from '../types/agent';
-import { Args, isValidAddress, bcs } from '@roochnetwork/rooch-sdk';
+import { Args, isValidAddress, bcs, Transaction } from '@roochnetwork/rooch-sdk';
 import { MemoryBrowser } from '../components/MemoryBrowser';
-import { MemorySchema } from '../types/agent'; // We'll create this
+import { MemorySchema } from '../types/agent';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -21,13 +21,25 @@ export function AgentDetail() {
   const [error, setError] = useState<string | null>(null);
   const [isHomeChannelLoading, setIsHomeChannelLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'details' | 'memories'>('details');
+  const [isUserAuthorized, setIsUserAuthorized] = useState(false);
+  const [agentCaps, setAgentCaps] = useState<{id: string, agentId: string}[]>([]);
+  
+  // Add state for inline editing
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [updateError, setUpdateError] = useState<string | null>(null);
+  const [updateSuccess, setUpdateSuccess] = useState(false);
   
   const navigate = useNavigate();
   const packageId = useNetworkVariable('packageId');
   const client = useRoochClient();
   const wallet = useCurrentWallet();
+  const session = useCurrentSession();
   
-  // Add these state variables
+  // Add these state variables for memories tab
   const [selfMemories, setSelfMemories] = useState<Memory[]>([]);
   const [userMemories, setUserMemories] = useState<Memory[]>([]);
   const [isLoadingSelfMemories, setIsLoadingSelfMemories] = useState(false);
@@ -37,7 +49,7 @@ export function AgentDetail() {
   const [isSearching, setIsSearching] = useState(false);
 
   // Query the specific agent by ID
-  const { data: agentResponse, isLoading: isAgentLoading, error: agentError } = useRoochClientQuery(
+  const { data: agentResponse, isLoading: isAgentLoading, error: agentError, refetch: refetchAgent } = useRoochClientQuery(
     'queryObjectStates',
     {
       filter: {
@@ -61,6 +73,49 @@ export function AgentDetail() {
     }
   );
 
+  // Query agent capabilities owned by the current user
+  const { data: agentCapsResponse, isLoading: isAgentCapsLoading } = useRoochClientQuery(
+    'queryObjectStates',
+    {
+      filter: {
+        object_type_with_owner: {
+          object_type: `${packageId}::agent_cap::AgentCap`,
+          owner: wallet?.wallet?.getBitcoinAddress().toStr()
+        }
+      },
+    },
+    {
+      enabled: !!client && !!packageId && !!wallet?.wallet,
+    }
+  );
+
+  // Effect to check if user has authorization to edit this agent
+  useEffect(() => {
+    if (!agentId || !agentCapsResponse?.data || isAgentCapsLoading) return;
+    
+    try {
+      const caps: {id: string, agentId: string}[] = [];
+      
+      agentCapsResponse.data.forEach(obj => {
+        if (obj.decoded_value?.value?.agent_obj_id) {
+          caps.push({
+            id: obj.id,
+            agentId: obj.decoded_value.value.agent_obj_id
+          });
+        }
+      });
+      
+      setAgentCaps(caps);
+      
+      // Check if the current agent ID is in the list of authorized agents
+      const hasAccess = caps.some(cap => cap.agentId === agentId);
+      setIsUserAuthorized(hasAccess);
+      
+    } catch (error) {
+      console.error('Error processing agent caps:', error);
+    }
+  }, [agentId, agentCapsResponse, isAgentCapsLoading]);
+
   // Effect to process agent data and fetch character
   useEffect(() => {
     if (isAgentLoading) {
@@ -77,15 +132,11 @@ export function AgentDetail() {
 
     const processAgentData = async () => {
       try {
-        console.log('Agent response:', agentResponse);
-        console.log('Home channel response:', homeChannelResponse);
-
         if (agentResponse?.data && agentResponse.data.length > 0) {
           
           // Get the first agent from the array
           const agentObj = agentResponse.data[0];
           const agentData = agentObj.decoded_value.value;
-          console.log('Agent data:', agentData);
           
           // Get the character ID from the agent data
           const characterId = agentData.character?.value?.id;
@@ -126,6 +177,10 @@ export function AgentDetail() {
                 
                 setCharacter(characterDetails);
                 
+                // Initialize edit form with current values
+                setEditName(characterDetails.name);
+                setEditDescription(characterDetails.description);
+                
                 // Update agent with character name and description
                 setAgent(prev => prev ? {
                   ...prev,
@@ -156,8 +211,6 @@ export function AgentDetail() {
   useEffect(() => {
     // Check if home channel query has completed (either with data or null)
     if (!isHomeChannelQueryLoading) {
-      console.log('Home channel response:', homeChannelResponse);
-      
       if (homeChannelResponse?.return_values?.[0]?.decoded_value) {
         setHomeChannelId(homeChannelResponse.return_values[0].decoded_value);
       } else {
@@ -169,19 +222,114 @@ export function AgentDetail() {
     }
   }, [homeChannelResponse, isHomeChannelQueryLoading]);
 
-  // Add a timeout as a fallback to prevent infinite loading
-  useEffect(() => {
-    // Set a timeout to reset loading state after 10 seconds as a fallback
-    const timeout = setTimeout(() => {
-      if (isHomeChannelLoading) {
-        console.log('Home channel loading timeout - resetting loading state');
-        setIsHomeChannelLoading(false);
-      }
-    }, 10000); // 10 seconds timeout
+  // Save updated agent information
+  const handleSaveAgentInfo = async (field: 'name' | 'description') => {
+    if (!client || !packageId || !session || !agentId) {
+      setUpdateError('Missing required data for update');
+      return;
+    }
     
-    return () => clearTimeout(timeout);
-  }, [isHomeChannelLoading]);
+    // Find the matching agent cap for this agent
+    const matchingCap = agentCaps.find(cap => cap.agentId === agentId);
+    
+    if (!matchingCap) {
+      setUpdateError('You do not have the required authorization to update this agent');
+      return;
+    }
+    
+    // Get current values for fields we're not updating
+    const currentName = field === 'description' ? character?.name || '' : editName;
+    const currentDescription = field === 'name' ? character?.description || '' : editDescription;
+    
+    try {
+      setIsSaving(true);
+      setUpdateError(null);
+      setUpdateSuccess(false);
 
+      const tx = new Transaction();
+      tx.callFunction({
+        target: `${packageId}::agent::update_agent_character_entry`,
+        args: [
+          Args.objectId(matchingCap.id), 
+          Args.string(currentName), 
+          Args.string(currentDescription)
+        ],
+      });
+            
+      const result = await client.signAndExecuteTransaction({
+        transaction: tx,
+        signer: session,
+      });
+      
+      if (result.execution_info.status.type !== 'executed') {
+        throw new Error('Failed to update agent'+ JSON.stringify(result.execution_info));
+      }
+      
+      setUpdateSuccess(true);
+        
+      // Close edit mode
+      if (field === 'name') setIsEditingName(false);
+      if (field === 'description') setIsEditingDescription(false);
+      
+      refetchAgent();
+    } catch (error: any) {
+      console.error('Error updating agent:', error);
+      setUpdateError(error.message || 'Failed to update agent');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Cancel editing
+  const handleCancelEdit = (field: 'name' | 'description') => {
+    if (field === 'name') {
+      setEditName(character?.name || '');
+      setIsEditingName(false);
+    } else {
+      setEditDescription(character?.description || '');
+      setIsEditingDescription(false);
+    }
+    setUpdateError(null);
+  };
+
+  // Helper to map memory response to our type
+  const deserializeMemories = (response: any): Memory[] => {
+    if (!response?.return_values?.[0]?.value?.value) {
+      console.log('No memory data available in response');
+      return [];
+    }
+  
+    try {
+      // Get the hex value from the response
+      const hexValue = response.return_values[0].value.value;
+      
+      // Convert hex to bytes
+      const cleanHexValue = hexValue.startsWith('0x') ? hexValue.slice(2) : hexValue;
+      const bytes = new Uint8Array(
+        cleanHexValue.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
+      );
+      
+      // Parse using BCS
+      if (!MemorySchema) {
+        console.error('MemorySchema is not defined!');
+        return [];
+      }
+      
+      const parsedMemories = bcs.vector(MemorySchema).parse(bytes);
+      console.log(`Successfully parsed ${parsedMemories.length} memories`);
+      
+      // Map to our Memory interface format
+      return parsedMemories.map((memory: any) => ({
+        index: memory.index || 0,
+        content: memory.content || '',
+        context: memory.context || '',
+        timestamp: parseInt(memory.timestamp) || Date.now(),
+      }));
+    } catch (error) {
+      console.error('Memory BCS deserialization error:', error);
+      return [];
+    }
+  };
 
   // Fetch agent's self memories
   useEffect(() => {
@@ -291,46 +439,7 @@ export function AgentDetail() {
     } finally {
       setIsSearching(false);
     }
-  };
-
-  // Helper to map memory response to our type
-  const deserializeMemories = (response: any): Memory[] => {
-    if (!response?.return_values?.[0]?.value?.value) {
-      console.log('No memory data available in response');
-      return [];
-    }
-  
-    try {
-      // Get the hex value from the response
-      const hexValue = response.return_values[0].value.value;
-      
-      // Convert hex to bytes
-      const cleanHexValue = hexValue.startsWith('0x') ? hexValue.slice(2) : hexValue;
-      const bytes = new Uint8Array(
-        cleanHexValue.match(/.{1,2}/g)?.map(byte => parseInt(byte, 16)) || []
-      );
-      
-      // Parse using BCS
-      if (!MemorySchema) {
-        console.error('MemorySchema is not defined!');
-        return [];
-      }
-      
-      const parsedMemories = bcs.vector(MemorySchema).parse(bytes);
-      console.log(`Successfully parsed ${parsedMemories.length} memories`);
-      
-      // Map to our Memory interface format
-      return parsedMemories.map((memory: any) => ({
-        index: memory.index || 0,
-        content: memory.content || '',
-        context: memory.context || '',
-        timestamp: parseInt(memory.timestamp) || Date.now(),
-      }));
-    } catch (error) {
-      console.error('Memory BCS deserialization error:', error);
-      return [];
-    }
-  };
+  }
 
   // Add a clean-up action to the address search function to clear results when input is cleared
   const handleSearchAddressChange = (value: string) => {
@@ -382,10 +491,72 @@ export function AgentDetail() {
           Back to Agents
         </button>
         
+        {/* Status message for updates */}
+        {updateSuccess && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-green-700 text-sm">Agent updated successfully!</p>
+          </div>
+        )}
+        {updateError && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-700 text-sm">{updateError}</p>
+          </div>
+        )}
+        
         <div className="mb-6">
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-            <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">{agent.name}</h3>
+            <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+              {isEditingName && isUserAuthorized ? (
+                <div className="flex-1 flex items-center">
+                  <input
+                    type="text"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="text-lg font-medium text-gray-900 border border-gray-300 rounded px-2 py-1 mr-2"
+                    autoFocus
+                  />
+                  <div className="flex items-center">
+                    <SessionKeyGuard onClick={() => handleSaveAgentInfo('name')}>
+                    <button
+                      disabled={isSaving}
+                      className={`mr-2 text-sm px-3 py-1 rounded ${isSaving ? 'bg-blue-300' : 'bg-blue-600'} text-white`}
+                    >
+                      {isSaving ? 'Saving...' : 'Save'}
+                    </button>
+                    </SessionKeyGuard>
+                    <button
+                      onClick={() => handleCancelEdit('name')}
+                      className="text-sm px-3 py-1 rounded bg-gray-200 text-gray-700"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  {agent.name}
+                  {isUserAuthorized && (
+                    <button 
+                      onClick={() => setIsEditingName(true)} 
+                      className="ml-2 text-sm text-blue-600 hover:text-blue-800"
+                      title="Edit agent name"
+                    >
+                      ✎
+                    </button>
+                  )}
+                </h3>
+              )}
+              
+              {isUserAuthorized && !isEditingName && (
+                <div className="flex items-center">
+                  <span className="text-xs text-green-600 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    Agent Owner
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -454,69 +625,116 @@ export function AgentDetail() {
                         </dd>
                       </div>
                       
-                      {character.description && (
-                        <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                          <dt className="text-sm font-medium text-gray-500">Character Description</dt>
-                          <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 whitespace-pre-wrap">
-                            <ReactMarkdown 
-                                        remarkPlugins={[remarkGfm]}
-                                        className="prose prose-sm max-w-none"
-                                        components={{
-                                          // Simplified markdown components focused on inline formatting
-                                          pre: ({children}) => <>{children}</>,
-                                          code: ({node, inline, className, children, ...props}) => {
-                                            const match = /language-(\w+)/.exec(className || '');
-                                            const language = match ? match[1] : '';
-                                            
-                                            return inline ? (
-                                              <code
-                                                className="px-1 py-0.5 rounded bg-gray-100 text-gray-800 text-xs"
-                                                {...props}
-                                              >
-                                                {children}
-                                              </code>
-                                            ) : (
-                                              <div className="my-2">
-                                                <SyntaxHighlighter
-                                                  language={language}
-                                                  style={oneLight}
-                                                  customStyle={{
-                                                    backgroundColor: '#f8fafc',
-                                                    padding: '0.5rem',
-                                                    borderRadius: '0.25rem',
-                                                    border: '1px solid #e2e8f0',
-                                                    fontSize: '0.75rem',
-                                                  }}
-                                                >
-                                                  {String(children).replace(/\n$/, '')}
-                                                </SyntaxHighlighter>
-                                              </div>
-                                            );
-                                          },
-                                          // Override default paragraph to prevent extra margins
-                                          p: ({children}) => <p className="m-0">{children}</p>,
-                                          // Keep links working
-                                          a: ({node, href, children, ...props}) => (
-                                            <a 
-                                              href={href}
-                                              className="text-blue-600 hover:underline"
-                                              onClick={(e) => e.stopPropagation()}
-                                              {...props}
-                                            >
-                                              {children}
-                                            </a>
-                                          ),
-                                          // Ensure lists don't break layout
-                                          ul: ({children}) => <ul className="list-disc pl-4 my-1">{children}</ul>,
-                                          ol: ({children}) => <ol className="list-decimal pl-4 my-1">{children}</ol>,
-                                          li: ({children}) => <li className="my-0.5">{children}</li>,
-                                        }}
+                      <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt className="text-sm font-medium text-gray-500 flex items-center">
+                          Character Description
+                          {isUserAuthorized && !isEditingDescription && (
+                            <button 
+                              onClick={() => setIsEditingDescription(true)} 
+                              className="ml-2 text-xs text-blue-600 hover:text-blue-800"
+                              title="Edit description"
+                            >
+                              ✎ Edit
+                            </button>
+                          )}
+                        </dt>
+                        <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                          {isEditingDescription && isUserAuthorized ? (
+                            <div>
+                              <textarea
+                                value={editDescription}
+                                onChange={(e) => setEditDescription(e.target.value)}
+                                className="w-full border border-gray-300 rounded p-2 mb-2"
+                                rows={6}
+                                placeholder="Enter agent description..."
+                              ></textarea>
+                              <div className="flex justify-end mt-2">
+                                <SessionKeyGuard onClick={() => handleSaveAgentInfo('description')}>
+                                <button
+                                  disabled={isSaving}
+                                  className={`mr-2 text-sm px-3 py-1 rounded ${isSaving ? 'bg-blue-300' : 'bg-blue-600'} text-white`}
+                                >
+                                  {isSaving ? 'Saving...' : 'Save'}
+                                </button>
+                                </SessionKeyGuard>
+                                <button
+                                  onClick={() => handleCancelEdit('description')}
+                                  className="text-sm px-3 py-1 rounded bg-gray-200 text-gray-700"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                              <div className="mt-4 border-t border-gray-200 pt-4">
+                                <h4 className="text-xs font-medium text-gray-500 mb-2">Preview:</h4>
+                                <div className="bg-gray-50 p-3 rounded border border-gray-200">
+                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                    {editDescription}
+                                  </ReactMarkdown>
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="whitespace-pre-wrap">
+                              <ReactMarkdown 
+                                remarkPlugins={[remarkGfm]}
+                                className="prose prose-sm max-w-none"
+                                components={{
+                                  // Simplified markdown components focused on inline formatting
+                                  pre: ({children}) => <>{children}</>,
+                                  code: ({node, inline, className, children, ...props}) => {
+                                    const match = /language-(\w+)/.exec(className || '');
+                                    const language = match ? match[1] : '';
+                                    
+                                    return inline ? (
+                                      <code
+                                        className="px-1 py-0.5 rounded bg-gray-100 text-gray-800 text-xs"
+                                        {...props}
                                       >
-                                        {character.description}
-                                      </ReactMarkdown>
-                          </dd>
-                        </div>
-                      )}
+                                        {children}
+                                      </code>
+                                    ) : (
+                                      <div className="my-2">
+                                        <SyntaxHighlighter
+                                          language={language}
+                                          style={oneLight}
+                                          customStyle={{
+                                            backgroundColor: '#f8fafc',
+                                            padding: '0.5rem',
+                                            borderRadius: '0.25rem',
+                                            border: '1px solid #e2e8f0',
+                                            fontSize: '0.75rem',
+                                          }}
+                                        >
+                                          {String(children).replace(/\n$/, '')}
+                                        </SyntaxHighlighter>
+                                      </div>
+                                    );
+                                  },
+                                  // Override default paragraph to prevent extra margins
+                                  p: ({children}) => <p className="m-0">{children}</p>,
+                                  // Keep links working
+                                  a: ({node, href, children, ...props}) => (
+                                    <a 
+                                      href={href}
+                                      className="text-blue-600 hover:underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                      {...props}
+                                    >
+                                      {children}
+                                    </a>
+                                  ),
+                                  // Ensure lists don't break layout
+                                  ul: ({children}) => <ul className="list-disc pl-4 my-1">{children}</ul>,
+                                  ol: ({children}) => <ol className="list-decimal pl-4 my-1">{children}</ol>,
+                                  li: ({children}) => <li className="my-0.5">{children}</li>,
+                                }}
+                              >
+                                {character.description || "No description available."}
+                              </ReactMarkdown>
+                            </div>
+                          )}
+                        </dd>
+                      </div>
                     </>
                   )}
                   

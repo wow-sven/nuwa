@@ -123,6 +123,17 @@ module nuwa_framework::character {
         &character.knowledge
     }
 
+    // Add these functions to allow updating character properties
+    public fun update_name(character: &mut Object<Character>, new_name: String) {
+        let c = object::borrow_mut(character);
+        c.name = new_name;
+    }
+
+    public fun update_description(character: &mut Object<Character>, new_description: String) {
+        let c = object::borrow_mut(character);
+        c.description = new_description;
+    }
+
     #[test(caller = @0x42)]
     fun test_character() {
         use std::string;

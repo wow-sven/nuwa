@@ -235,4 +235,30 @@ module nuwa_framework::agent {
         assert!(object::is_shared(agent), 1);
         agent_cap::destroy_agent_cap(agent_cap);
     }
+
+    /// Update agent's character name and description
+    /// Only allowed for users who possess the AgentCap for this agent
+    public fun update_agent_character(
+        cap: &mut Object<AgentCap>,
+        new_name: String,
+        new_description: String,
+    ) {
+        let agent_obj_id = agent_cap::get_agent_obj_id(cap);
+        let agent_obj = borrow_mut_agent(agent_obj_id);
+        let agent = object::borrow_mut(agent_obj);
+        
+        // Update character properties
+        character::update_name(&mut agent.character, new_name);
+        character::update_description(&mut agent.character, new_description);
+    }
+
+    /// Entry function for updating agent character properties
+    public entry fun update_agent_character_entry(
+        cap: &mut Object<AgentCap>,
+        new_name: String,
+        new_description: String,
+    ) {
+        update_agent_character(cap, new_name, new_description);
+    }
+
 }
