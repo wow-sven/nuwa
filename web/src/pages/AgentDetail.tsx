@@ -7,6 +7,10 @@ import { Agent, Character, Memory } from '../types/agent';
 import { Args, isValidAddress, bcs } from '@roochnetwork/rooch-sdk';
 import { MemoryBrowser } from '../components/MemoryBrowser';
 import { MemorySchema } from '../types/agent'; // We'll create this
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export function AgentDetail() {
   const { agentId } = useParams<{ agentId: string }>();
@@ -382,9 +386,6 @@ export function AgentDetail() {
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900">{agent.name}</h3>
-              {agent.description && (
-                <p className="mt-1 max-w-2xl text-sm text-gray-500">{agent.description}</p>
-              )}
             </div>
           </div>
         </div>
@@ -457,7 +458,62 @@ export function AgentDetail() {
                         <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                           <dt className="text-sm font-medium text-gray-500">Character Description</dt>
                           <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 whitespace-pre-wrap">
-                            {character.description}
+                            <ReactMarkdown 
+                                        remarkPlugins={[remarkGfm]}
+                                        className="prose prose-sm max-w-none"
+                                        components={{
+                                          // Simplified markdown components focused on inline formatting
+                                          pre: ({children}) => <>{children}</>,
+                                          code: ({node, inline, className, children, ...props}) => {
+                                            const match = /language-(\w+)/.exec(className || '');
+                                            const language = match ? match[1] : '';
+                                            
+                                            return inline ? (
+                                              <code
+                                                className="px-1 py-0.5 rounded bg-gray-100 text-gray-800 text-xs"
+                                                {...props}
+                                              >
+                                                {children}
+                                              </code>
+                                            ) : (
+                                              <div className="my-2">
+                                                <SyntaxHighlighter
+                                                  language={language}
+                                                  style={oneLight}
+                                                  customStyle={{
+                                                    backgroundColor: '#f8fafc',
+                                                    padding: '0.5rem',
+                                                    borderRadius: '0.25rem',
+                                                    border: '1px solid #e2e8f0',
+                                                    fontSize: '0.75rem',
+                                                  }}
+                                                >
+                                                  {String(children).replace(/\n$/, '')}
+                                                </SyntaxHighlighter>
+                                              </div>
+                                            );
+                                          },
+                                          // Override default paragraph to prevent extra margins
+                                          p: ({children}) => <p className="m-0">{children}</p>,
+                                          // Keep links working
+                                          a: ({node, href, children, ...props}) => (
+                                            <a 
+                                              href={href}
+                                              className="text-blue-600 hover:underline"
+                                              onClick={(e) => e.stopPropagation()}
+                                              {...props}
+                                            >
+                                              {children}
+                                            </a>
+                                          ),
+                                          // Ensure lists don't break layout
+                                          ul: ({children}) => <ul className="list-disc pl-4 my-1">{children}</ul>,
+                                          ol: ({children}) => <ol className="list-decimal pl-4 my-1">{children}</ol>,
+                                          li: ({children}) => <li className="my-0.5">{children}</li>,
+                                        }}
+                                      >
+                                        {character.description}
+                                      </ReactMarkdown>
                           </dd>
                         </div>
                       )}
