@@ -11,6 +11,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { shortenAddress } from '../utils/address';
 
 export function AgentDetail() {
   const { agentId } = useParams<{ agentId: string }>();
@@ -38,6 +39,9 @@ export function AgentDetail() {
   const client = useRoochClient();
   const wallet = useCurrentWallet();
   const session = useCurrentSession();
+
+  //TODO use the scanUrl via the network.
+  const roochscanBaseUrl = "https://test.roochscan.io"
   
   // Add these state variables for memories tab
   const [selfMemories, setSelfMemories] = useState<Memory[]>([]);
@@ -605,7 +609,17 @@ export function AgentDetail() {
                   
                   <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                     <dt className="text-sm font-medium text-gray-500">Agent Address</dt>
-                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">{agent.agent_address}</dd>
+                    <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2 break-all">
+                       <a 
+                          href={`${roochscanBaseUrl}/account/${agent.agent_address}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
+                          title={`View ${shortenAddress(agent.agent_address)} on Roochscan`}
+                        >
+                      {agent.agent_address}
+                      </a>
+                    </dd>
                   </div>
 
                   <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

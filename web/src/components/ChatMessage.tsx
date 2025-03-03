@@ -22,6 +22,9 @@ interface ChatMessageProps {
 export function ChatMessage({ message, isCurrentUser, isAI, agentName, agentId }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const timestamp = message.timestamp;
+
+  //TODO use the scanUrl via the network.
+  const roochscanBaseUrl = "https://test.roochscan.io"
   
   // Use the agent's actual name if provided, otherwise fallback to address
   const displayName = isAI 
@@ -65,14 +68,36 @@ export function ChatMessage({ message, isCurrentUser, isAI, agentName, agentId }
                 </div>
               )
             ) : (
-              <UserCircleIcon className="w-8 h-8 text-gray-400" />
+              // User avatar with Roochscan link
+              <a 
+                href={`${roochscanBaseUrl}/account/${message.sender}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
+                title={`View ${shortenAddress(message.sender)} on Roochscan`}
+              >
+                <UserCircleIcon className="w-8 h-8 text-gray-400" />
+              </a>
             )}
           </div>
         )}
         <div className={`flex flex-col flex-1 ${isCurrentUser ? 'items-end' : 'items-start'}`}>
           <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
             <span className="font-medium">
-              {isCurrentUser ? 'You' : displayName}
+              {isCurrentUser ? 'You' : (
+                // Also add Roochscan link to the display name for non-AI users
+                isAI ? displayName : (
+                  <a 
+                    href={`${roochscanBaseUrl}/account/${message.sender}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-600 hover:underline transition-colors"
+                    title={`View ${message.sender} on Roochscan`}
+                  >
+                    {displayName}
+                  </a>
+                )
+              )}
             </span>
             <span>•</span>
             <span>
@@ -134,7 +159,7 @@ export function ChatMessage({ message, isCurrentUser, isAI, agentName, agentId }
                   </ReactMarkdown>
                 </div>
                 
-                {/* Move action buttons inside message bubble */}
+                {/* Action buttons */}
                 <div className="flex flex-col gap-2 pt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={handleCopy}
@@ -159,7 +184,22 @@ export function ChatMessage({ message, isCurrentUser, isAI, agentName, agentId }
             </div>
           </div>
         </div>
-        {isCurrentUser && <div className="flex-shrink-0 w-8 h-8" />}
+        {isCurrentUser && (
+          <div className="flex-shrink-0 w-8 h-8">
+            {/* Add Roochscan link for current user's avatar too */}
+            {message.sender && (
+              <a 
+                href={`${roochscanBaseUrl}/account/${message.sender}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
+                title={`View your account on Roochscan`}
+              >
+                <UserCircleIcon className="w-8 h-8 text-blue-400" />
+              </a>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -74,7 +74,7 @@ module nuwa_framework::ai_service {
             DEFAULT_ORACLE_FEE
         };
         let oracle_fee = u256::max(estimated_fee, DEFAULT_ORACLE_FEE);
-
+        let oracle_fee = oracle_fee + DEFAULT_NOTIFICATION_GAS;
         
         let from_addr = signer::address_of(from);
         let oracle_balance = oracles::get_user_balance(from_addr);
