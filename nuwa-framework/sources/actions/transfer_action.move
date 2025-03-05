@@ -13,7 +13,7 @@ module nuwa_framework::transfer_action {
     // Action names
     const ACTION_NAME_TRANSFER: vector<u8> = b"transfer::coin";
     // Action examples
-    const TRANSFER_ACTION_EXAMPLE: vector<u8> = b"{\"to\":\"0x42\",\"amount\":\"100\",\"coin_type\":\"0x0000000000000000000000000000000000000000000000000000000000000003::gas_coin::RGas\",\"memo\":\"Payment for services\"}";
+    const TRANSFER_ACTION_EXAMPLE: vector<u8> = b"{\"to\":\"rooch1a47ny79da3tthtnclcdny4xtadhaxcmqlnpfthf3hqvztkphcqssqd8edv\",\"amount\":\"100\",\"coin_type\":\"0x0000000000000000000000000000000000000000000000000000000000000003::gas_coin::RGas\",\"memo\":\"Payment for services\"}";
 
     #[data_struct]
     /// Arguments for the transfer coin action
@@ -97,16 +97,18 @@ module nuwa_framework::transfer_action {
 
     /// Execute the transfer operation with dynamic coin type support
     fun execute_transfer(agent: &mut Object<Agent>, to: address, amount_str: String, coin_type_str: String) {
-        let amount_opt = moveos_std::string_utils::parse_u256_option(&amount_str);
-        if (option::is_none(&amount_opt)) {
-            std::debug::print(&string::utf8(b"Invalid amount for transfer"));
-            return
-        };
-        let amount = option::destroy_some(amount_opt);
+        
         let signer = agent::create_agent_signer(agent);
         
         // Handle different coin types based on the string value
         if (coin_type_str == type_info::type_name<RGas>()) {
+            let decimal = 8;
+            let amount_opt = moveos_std::string_utils::parse_decimal_option(&amount_str, decimal);
+            if (option::is_none(&amount_opt)) {
+                std::debug::print(&string::utf8(b"Invalid amount for transfer"));
+                return
+            };
+            let amount = option::destroy_some(amount_opt);
             transfer::transfer_coin<RGas>(&signer, to, amount);
         } else {
             // For handling other coin types, you would need to implement a 
@@ -121,7 +123,7 @@ module nuwa_framework::transfer_action {
     fun test_transfer_action_examples() {
         // Test transfer action example
         let transfer_args = json::from_json<TransferActionArgs>(TRANSFER_ACTION_EXAMPLE);
-        assert!(transfer_args.to == @0x42, 0);
+        assert!(transfer_args.to == @0xed7d3278adec56bbae78fe1b3254cbeb6fd36360fcc295dd31b81825d837c021, 0);
         assert!(transfer_args.amount == string::utf8(b"100"), 1);
         assert!(transfer_args.coin_type == string::utf8(b"0x0000000000000000000000000000000000000000000000000000000000000003::gas_coin::RGas"), 2);
         assert!(transfer_args.memo == string::utf8(b"Payment for services"), 3);

@@ -7,16 +7,21 @@ module nuwa_framework::response_action {
     use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::action;
     use nuwa_framework::channel;
-    use nuwa_framework::string_utils::{channel_id_to_string, string_to_channel_id};
     use nuwa_framework::action::{ActionDescription, ActionGroup};
 
     // Action names
     const ACTION_NAME_CHANNEL_MESSAGE: vector<u8> = b"response::channel_message";
+    public fun action_name_channel_message(): String {
+        string::utf8(ACTION_NAME_CHANNEL_MESSAGE)
+    }
     const ACTION_NAME_DIRECT_MESSAGE: vector<u8> = b"response::direct_message";
+    public fun action_name_direct_message(): String {
+        string::utf8(ACTION_NAME_DIRECT_MESSAGE)
+    }
     
     // Action examples
     const CHANNEL_MESSAGE_EXAMPLE: vector<u8> = b"{\"channel_id\":\"0x01374a879f3fd3a79be9c776b3f36adb2eedf298beed3900db77347065eb59e5d6\",\"content\":\"I understand you prefer detailed explanations.\"}";
-    const DIRECT_MESSAGE_EXAMPLE: vector<u8> = b"{\"recipient\":\"0x42\",\"content\":\"This is a direct message.\"}";
+    const DIRECT_MESSAGE_EXAMPLE: vector<u8> = b"{\"recipient\":\"rooch1a47ny79da3tthtnclcdny4xtadhaxcmqlnpfthf3hqvztkphcqssqd8edv\",\"content\":\"This is a direct message.\"}";
 
     //TODO remove this struct when we prepare a break upgrade
     #[data_struct]
@@ -28,19 +33,24 @@ module nuwa_framework::response_action {
     }
 
     public fun create_say_args(
-        channel_id: ObjectID,
-        content: String
+        _channel_id: ObjectID,
+        _content: String
     ): SayActionArgs {
-        SayActionArgs {
-            channel_id: channel_id_to_string(channel_id),
-            content
-        }
+       abort 0
     }
 
+    //TODO remove this when we prepare a break upgrade
     #[data_struct]
     /// Arguments for sending a message to a channel
     struct ChannelMessageArgs has copy, drop {
         channel_id: String,    // The channel to send the message to
+        content: String,       // Message content
+    }
+
+    #[data_struct]
+    /// Arguments for sending a message to a channel
+    struct ChannelMessageArgsV2 has copy, drop {
+        channel_id: ObjectID,    // The channel to send the message to
         content: String,       // Message content
     }
 
@@ -53,11 +63,18 @@ module nuwa_framework::response_action {
 
     /// Create arguments for channel message action
     public fun create_channel_message_args(
+        _channel_id: ObjectID,
+        _content: String
+    ): ChannelMessageArgs {
+        abort 0
+    }
+
+    public fun create_channel_message_args_v2(
         channel_id: ObjectID,
         content: String
-    ): ChannelMessageArgs {
-        ChannelMessageArgs {
-            channel_id: channel_id_to_string(channel_id),
+    ): ChannelMessageArgsV2 {
+        ChannelMessageArgsV2 {
+            channel_id,
             content
         }
     }
@@ -157,13 +174,13 @@ module nuwa_framework::response_action {
     public fun execute(agent: &mut Object<Agent>, action_name: String, args_json: String) {
         if (action_name == string::utf8(ACTION_NAME_CHANNEL_MESSAGE)) {
             // Handle channel message action
-            let args_opt = json::from_json_option<ChannelMessageArgs>(string::into_bytes(args_json));
+            let args_opt = json::from_json_option<ChannelMessageArgsV2>(string::into_bytes(args_json));
             if (option::is_none(&args_opt)) {
                 std::debug::print(&string::utf8(b"Invalid arguments for channel message action"));
                 return
             };
             let args = option::destroy_some(args_opt);
-            send_channel_message(agent, string_to_channel_id(args.channel_id), args.content);
+            send_channel_message(agent, args.channel_id, args.content);
         } else if (action_name == string::utf8(ACTION_NAME_DIRECT_MESSAGE)) {
             // Handle direct message action
             let args_opt = json::from_json_option<DirectMessageArgs>(string::into_bytes(args_json)); 
@@ -191,18 +208,19 @@ module nuwa_framework::response_action {
     #[test]
     fun test_response_action_examples() {
         // Test channel message example
-        let channel_args = json::from_json<ChannelMessageArgs>(CHANNEL_MESSAGE_EXAMPLE);
-        assert!(channel_args.channel_id == string::utf8(b"0x01374a879f3fd3a79be9c776b3f36adb2eedf298beed3900db77347065eb59e5d6"), 1);
+        let channel_args = json::from_json<ChannelMessageArgsV2>(CHANNEL_MESSAGE_EXAMPLE);
+        assert!(channel_args.channel_id == object::from_string(&string::utf8(b"0x01374a879f3fd3a79be9c776b3f36adb2eedf298beed3900db77347065eb59e5d6")), 1);
         assert!(channel_args.content == string::utf8(b"I understand you prefer detailed explanations."), 2);
         
         // Test direct message example
         let dm_args = json::from_json<DirectMessageArgs>(DIRECT_MESSAGE_EXAMPLE);
-        assert!(dm_args.recipient == @0x42, 3);
+        assert!(dm_args.recipient == @0xed7d3278adec56bbae78fe1b3254cbeb6fd36360fcc295dd31b81825d837c021, 3);
         assert!(dm_args.content == string::utf8(b"This is a direct message."), 4);
     }
 
     #[test]
     fun test_channel_id_conversion() {
+        use nuwa_framework::string_utils::{string_to_channel_id,channel_id_to_string};
         let channel_id = object::named_object_id<channel::Channel>();
         let channel_id_str = channel_id_to_string(channel_id);
         std::debug::print(&channel_id_str);
