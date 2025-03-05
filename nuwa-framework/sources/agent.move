@@ -1,6 +1,5 @@
 module nuwa_framework::agent {
     use std::string::{Self, String};
-    use std::vector;
     use moveos_std::object::{Self, Object, ObjectID};
     use moveos_std::account::{Self, Account};
     use moveos_std::signer;
@@ -8,16 +7,16 @@ module nuwa_framework::agent {
     use nuwa_framework::character::{Self, Character};
     use nuwa_framework::agent_cap::{Self, AgentCap};
     use nuwa_framework::memory::{Self, MemoryStore};
-    use nuwa_framework::prompt_builder;
-    use nuwa_framework::action::{Self, ActionDescription};
-    use nuwa_framework::ai_request;
-    use nuwa_framework::ai_service;
     use nuwa_framework::agent_input::{AgentInput};
-    use nuwa_framework::agent_state::{Self, AgentStates};
+    use nuwa_framework::agent_state::{AgentStates};
+    use nuwa_framework::agent_info;
 
     friend nuwa_framework::memory_action;
     friend nuwa_framework::transfer_action;
     friend nuwa_framework::action_dispatcher;
+    friend nuwa_framework::agent_runner;
+
+    const ErrorDeprecatedFunction: u64 = 1;
 
     //TODO use a new agent_runner module to handle agent running, this module only contains agent data structure
     /// Agent represents a running instance of a Character
@@ -31,7 +30,7 @@ module nuwa_framework::agent {
         model_provider: String,
     }
 
-    //TODO add model_provider to AgentInfo
+    //TODO remove this after
     struct AgentInfo has copy, drop, store {
         id: ObjectID,
         name: String,            
@@ -68,84 +67,35 @@ module nuwa_framework::agent {
 
     /// Generate system prompt based on Character attributes
     public fun generate_system_prompt<I: copy + drop>(
-        agent: &Agent,
-        input: AgentInput<I>,
+        _agent: &Agent,
+        _input: AgentInput<I>,
     ): String {
-        let character = object::borrow(&agent.character);
-        let available_actions = get_available_actions(&input);
-        //TODO put AgentInfo to prompt_builder
-        prompt_builder::build_complete_prompt(
-            agent.agent_address,
-            character,
-            &agent.memory_store,
-            input,
-            available_actions,
-        )
+        abort ErrorDeprecatedFunction
     }
 
     public fun generate_system_prompt_v2<I: copy + drop>(
-        agent: &Agent,
-        states: AgentStates,
-        input: AgentInput<I>,
+        _agent: &Agent,
+        _states: AgentStates,
+        _input: AgentInput<I>,
     ): String {
-        let character = object::borrow(&agent.character);
-        let available_actions = get_available_actions(&input);
-        //TODO put AgentInfo to prompt_builder
-        prompt_builder::build_complete_prompt_v2(
-            agent.agent_address,
-            character,
-            &agent.memory_store,
-            input,
-            available_actions,
-            states,
-        )
+        abort ErrorDeprecatedFunction
     }
 
     public fun process_input<I: copy + drop>(
-        caller: &signer,
-        agent_obj: &mut Object<Agent>,
-        input: AgentInput<I>,
+        _caller: &signer,
+        _agent_obj: &mut Object<Agent>,
+        _input: AgentInput<I>,
     ) {
-        process_input_v2(caller, agent_obj, agent_state::new_agent_states(), input);
+        abort ErrorDeprecatedFunction
     }
 
     public fun process_input_v2<I: copy + drop>(
-        caller: &signer,
-        agent_obj: &mut Object<Agent>,
-        states: AgentStates,
-        input: AgentInput<I>,
+        _caller: &signer,
+        _agent_obj: &mut Object<Agent>,
+        _states: AgentStates,
+        _input: AgentInput<I>,
     ) {
-        let agent_id = object::id(agent_obj);
-        let agent = object::borrow_mut(agent_obj);
-        
-        // Generate system prompt with context
-        let system_prompt = generate_system_prompt_v2(
-            agent,
-            states,
-            input
-        );
-
-        // Create chat messages
-        let messages = vector::empty();
-        
-        // Add system message
-        vector::push_back(&mut messages, ai_request::new_system_chat_message(system_prompt));
-
-        // Create chat request
-        let chat_request = ai_request::new_chat_request(
-            agent.model_provider,
-            messages,
-        );
-
-        // Call AI service
-        ai_service::request_ai(caller, agent_id, chat_request);
-
-        agent.last_active_timestamp = timestamp::now_milliseconds();
-    }
-
-    // Helper function to get available actions
-    fun get_available_actions<I: drop>(_input: &AgentInput<I>): vector<ActionDescription> {
-        action::get_all_action_descriptions()
+        abort ErrorDeprecatedFunction
     }
 
     public fun borrow_mut_agent(agent_obj_id: ObjectID): &mut Object<Agent> {
@@ -183,6 +133,22 @@ module nuwa_framework::agent {
         }
     }
 
+    public fun get_agent_info_v2(agent: &Object<Agent>): agent_info::AgentInfo {
+        let agent_ref = object::borrow(agent);
+        let character = object::borrow(&agent_ref.character);
+        agent_info::new_agent_info(
+            object::id(agent),
+            *character::get_name(character),
+            *character::get_username(character),
+            string::utf8(b""),
+            agent_ref.agent_address,
+            *character::get_description(character),
+            *character::get_bio(character),
+            *character::get_knowledge(character),
+            agent_ref.model_provider,
+        )
+    }
+
     public fun get_agent_info_by_address(agent_addr: address): AgentInfo {
         let agent_obj_id = object::account_named_object_id<Agent>(agent_addr);
         let agent_obj = object::borrow_object<Agent>(agent_obj_id);
@@ -199,6 +165,11 @@ module nuwa_framework::agent {
         let agent_ref = object::borrow(agent);
         let character = object::borrow(&agent_ref.character);
         character::get_username(character)
+    }
+
+    public fun get_agent_model_provider(agent: &Object<Agent>): &String {
+        let agent_ref = object::borrow(agent);
+        &agent_ref.model_provider
     }
 
     public entry fun destroy_agent_cap(cap: Object<AgentCap>) {
@@ -232,10 +203,18 @@ module nuwa_framework::agent {
         memory::get_all_memories(memory_store, user_address, true)
     }
 
+    // ============== Mutating functions ==============
+
     public(friend) fun create_agent_signer(agent: &mut Object<Agent>): signer {
         let agent_ref = object::borrow_mut(agent);
         account::create_signer_with_account(&mut agent_ref.account)
     }
+
+    public(friend) fun update_last_active_timestamp(agent: &mut Object<Agent>) {
+        let agent_ref = object::borrow_mut(agent);
+        agent_ref.last_active_timestamp = timestamp::now_milliseconds();
+    }
+
 
     #[test_only]
     /// Create a test agent for unit testing
