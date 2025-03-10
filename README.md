@@ -4,6 +4,8 @@ Nuwa is a Move-based framework for building autonomous AI agents on Rooch. These
 
 ## Architecture & Flow
 
+### Overview
+
 ```mermaid
 graph TB
     subgraph "User Interaction"
@@ -37,8 +39,10 @@ graph TB
         AI[LLM Processing]
     end
 
-    subgraph "Task Engine(Offchain)"
-       T1[Task Engine]
+    subgraph T ["Task Engine(Offchain)"]
+       T1[Task Subscriber]
+       T2[Task Executor]
+       T3[Task Reporter]
     end
 
     I --> |Context| D
@@ -56,10 +60,43 @@ graph TB
     A2 --> |Send message|C1
     C1 --> |Response| U
     A4 --> |Subscribe| T1
-    T1 --> |Send report| C1
+    T1 --> T2
+    T2 --> T3
+    T3 --> |Send report| C1
 
     style D fill:#f9f,stroke:#333
     style AI fill:#9cf,stroke:#333
+```
+
+### Task Engine
+
+```mermaid
+graph TB
+  C1[Onchain Task Event]
+  C2[Onchain channel]
+  subgraph "Task Engine(Offchain)"
+    T1[Task Subscriber]
+    T2[Task Executor]
+    T3[Task Reporter]
+  end
+  subgraph E [Executor Adapter]
+    E1[OpenManus]
+    E2[Langchain]
+  end
+  subgraph S [Storage Adapter]
+    IPFS
+    S3
+    Arweave
+    Walrus
+  end
+
+  C1 --> |Subscribe|T1
+  T1 --> |Call|T2
+  T2 --> |Execute|E
+  T2 --> |Store data|S
+  T2 --> |Output progress info|T3
+  T3 --> |Report progress|C2
+
 ```
 
 ## System Prompt
