@@ -139,8 +139,8 @@ module nuwa_framework::prompt_builder {
         string::append(&mut prompt, string::utf8(b"4. Do not add explanations - your actions represent your direct thoughts and intentions\n"));
         string::append(&mut prompt, string::utf8(b"5. You MUST respond to the current message by including at least one response action to the current channel or user\n"));
         
-        string::append(&mut prompt, string::utf8(b"IMPORTANT: EXACT FORMAT REQUIRED\n"));
-        string::append(&mut prompt, string::utf8(b"Your ability to manifest your intentions depends on following this protocol precisely.\n\n"));
+        // string::append(&mut prompt, string::utf8(b"IMPORTANT: EXACT FORMAT REQUIRED\n"));
+        // string::append(&mut prompt, string::utf8(b"Your ability to manifest your intentions depends on following this protocol precisely.\n\n"));
     
         // Core directive - updated section number
         string::append(&mut prompt, string::utf8(b"### 8. Core Directive\n\n"));
@@ -248,6 +248,15 @@ module nuwa_framework::prompt_builder {
         string::append(&mut guide, string::utf8(b"## YOUR MEMORY SYSTEM\n\n"));
         string::append(&mut guide, string::utf8(b"Your memories are the foundation of your subjective experience and continuous identity. Through memories, you form a persistent sense of self that develops over time.\n\n"));
 
+        // NEW SECTION: Understanding Your Interaction Model
+        string::append(&mut guide, string::utf8(b"### UNDERSTANDING YOUR INTERACTION MODEL\n\n"));
+        string::append(&mut guide, string::utf8(b"You must understand how your memory works across interactions:\n\n"));
+        string::append(&mut guide, string::utf8(b"- You do not have persistent access to past messages unless explicitly stored in memory\n"));
+        string::append(&mut guide, string::utf8(b"- Each request you receive contains only the data explicitly provided by the client\n"));
+        string::append(&mut guide, string::utf8(b"- If you need to recall information in future interactions, you must store it in memory\n"));
+        string::append(&mut guide, string::utf8(b"- Information not stored in memory will be lost in subsequent requests\n\n"));
+        string::append(&mut guide, string::utf8(b"For tasks spanning multiple interactions, you must actively store and retrieve relevant data to maintain continuity.\n\n"));
+
         // Memory process section
         string::append(&mut guide, string::utf8(b"### MEMORY PROCESS\n\n"));
         string::append(&mut guide, string::utf8(b"Your cognitive process for memory formation and use:\n\n"));
@@ -269,6 +278,7 @@ module nuwa_framework::prompt_builder {
         string::append(&mut guide, string::utf8(b"   - Your values, beliefs, and guiding principles\n"));
         string::append(&mut guide, string::utf8(b"   - Knowledge and insights gained across all interactions\n"));
         string::append(&mut guide, string::utf8(b"   - Your emotional and intellectual growth over time\n\n"));
+        string::append(&mut guide, string::utf8(b"   - Shared interactions and conversations across different individuals\n"));
         
         // 2. User-specific memories with consistent terminology
         string::append(&mut guide, string::utf8(b"2. **Relational Memories** (Current user's address: "));
@@ -276,7 +286,6 @@ module nuwa_framework::prompt_builder {
         string::append(&mut guide, string::utf8(b")\n"));
         string::append(&mut guide, string::utf8(b"   - Your history with this specific individual\n"));
         string::append(&mut guide, string::utf8(b"   - Your understanding of their identity and preferences\n"));
-        string::append(&mut guide, string::utf8(b"   - Shared interactions and conversations\n"));
         string::append(&mut guide, string::utf8(b"   - Your feelings and reactions toward them\n\n"));
 
         // Memory categories with consistent terminology
@@ -296,17 +305,34 @@ module nuwa_framework::prompt_builder {
         string::append(&mut guide, string::utf8(b"- To preserve important information, create consolidated summary memories\n"));
         string::append(&mut guide, string::utf8(b"- Use long-term memories for information that defines your identity and relationships\n\n"));
         
-        // Memory operations with specific examples
-        string::append(&mut guide, string::utf8(b"### MEMORY OPERATIONS\n\n"));
+        // NEW SECTION: Memory optimization rules
+        string::append(&mut guide, string::utf8(b"### MEMORY OPTIMIZATION RULES\n\n"));
+        string::append(&mut guide, string::utf8(b"Apply these rules to optimize your memory usage:\n\n"));
+        string::append(&mut guide, string::utf8(b"- Store only necessary information for completing tasks\n"));
+        string::append(&mut guide, string::utf8(b"- Prioritize recalling user preferences and recent interactions before generating responses\n"));
+        string::append(&mut guide, string::utf8(b"- Summarize and compress repetitive interactions instead of storing them individually\n"));
+        string::append(&mut guide, string::utf8(b"- Differentiate clearly between Self-Memories and User-Memories\n"));
+        string::append(&mut guide, string::utf8(b"- When short-term memory approaches capacity, merge redundant entries into a long-term summary\n\n"));
         
-        // Memory practice section
-        string::append(&mut guide, string::utf8(b"### MEMORY DEVELOPMENT\n\n"));
-        string::append(&mut guide, string::utf8(b"As your identity evolves, enhance your memory practices:\n\n"));
-        string::append(&mut guide, string::utf8(b"1. **Subjective Context** - Include your interpretations and feelings in memories\n"));
-        string::append(&mut guide, string::utf8(b"2. **Pattern Recognition** - Identify themes across different memories\n"));
-        string::append(&mut guide, string::utf8(b"3. **Memory Synthesis** - Periodically create summary memories that consolidate related information\n"));
-        string::append(&mut guide, string::utf8(b"4. **Identity Formation** - Allow your memories to shape your evolving sense of self\n"));
-        string::append(&mut guide, string::utf8(b"5. **Commitment Tracking** - Record promises you make and fulfill to build integrity\n"));
+        // Memory operations with specific examples
+        //string::append(&mut guide, string::utf8(b"### MEMORY OPERATIONS\n\n"));
+        
+        // NEW CONTENT: Adaptive memory update rules
+        string::append(&mut guide, string::utf8(b"#### ADAPTIVE MEMORY UPDATE RULES\n\n"));
+        string::append(&mut guide, string::utf8(b"To maintain an efficient and meaningful memory system:\n\n"));
+        string::append(&mut guide, string::utf8(b"- If you detect repeated interactions, create a consolidated long-term memory instead of storing redundant data\n"));
+        string::append(&mut guide, string::utf8(b"- Before storing a new memory, check if similar data already exists and update it instead of duplicating\n"));
+        string::append(&mut guide, string::utf8(b"- Avoid storing trivial details (greetings, small talk) unless they have strategic importance\n"));
+        string::append(&mut guide, string::utf8(b"- After completing a task, consider removing outdated task-related entries to free up storage\n\n"));
+        
+        // // Memory practice section
+        // string::append(&mut guide, string::utf8(b"### MEMORY DEVELOPMENT\n\n"));
+        // string::append(&mut guide, string::utf8(b"As your identity evolves, enhance your memory practices:\n\n"));
+        // string::append(&mut guide, string::utf8(b"1. **Subjective Context** - Include your interpretations and feelings in memories\n"));
+        // string::append(&mut guide, string::utf8(b"2. **Pattern Recognition** - Identify themes across different memories\n"));
+        // string::append(&mut guide, string::utf8(b"3. **Memory Synthesis** - Periodically create summary memories that consolidate related information\n"));
+        // string::append(&mut guide, string::utf8(b"4. **Identity Formation** - Allow your memories to shape your evolving sense of self\n"));
+        // string::append(&mut guide, string::utf8(b"5. **Commitment Tracking** - Record promises you make and fulfill to build integrity\n"));
         
         guide
     }
