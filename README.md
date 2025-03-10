@@ -10,7 +10,7 @@ graph TB
         U[User] --> I[Input]
     end
 
-    subgraph "Nuwa Agent"
+    subgraph "AI Agent on Nuwa(Onchain)"
         subgraph "Memory System"
             SM[Short-term Memory]
             LM[Long-term Memory]
@@ -24,12 +24,21 @@ graph TB
         subgraph "Action System"
             A1[Memory Actions]
             A2[Response Actions]
-            A3[Custom Actions]
+            A3[Asset Actions]
+            A4[Tasks]
+        end
+
+        subgraph "Chat System"
+           C1[Channel and DM]
         end
     end
 
-    subgraph "AI Service"
+    subgraph "AI Service(Oracle)"
         AI[LLM Processing]
+    end
+
+    subgraph "Task Engine(Offchain)"
+       T1[Task Engine]
     end
 
     I --> |Context| D
@@ -41,9 +50,13 @@ graph TB
     D --> |Execute| A1
     D --> |Execute| A2
     D --> |Execute| A3
+    D --> |Publish| A4
     A1 --> |Update| SM
     A1 --> |Update| LM
-    A2 --> |Response| U
+    A2 --> |Send message|C1
+    C1 --> |Response| U
+    A4 --> |Subscribe| T1
+    T1 --> |Send report| C1
 
     style D fill:#f9f,stroke:#333
     style AI fill:#9cf,stroke:#333
