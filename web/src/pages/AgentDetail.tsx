@@ -198,7 +198,7 @@ export function AgentDetail() {
             }
           }
         } else {
-          setError('Agent not found');
+          setError('Agent not found:' + agentId);
         }
       } catch (err) {
         console.error('Error processing agent data:', err);
