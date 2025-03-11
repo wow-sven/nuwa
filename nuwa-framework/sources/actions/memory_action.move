@@ -477,6 +477,7 @@ module nuwa_framework::memory_action {
         use nuwa_framework::memory;
         use moveos_std::result;
 
+        nuwa_framework::character_registry::init_for_test();
         action::init_for_test();
         
         let (agent_obj, cap) = agent::create_test_agent();
