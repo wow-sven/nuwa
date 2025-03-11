@@ -57,7 +57,10 @@ module nuwa_framework::character {
             knowledge: data.knowledge,
         };
         // Every account only has one character
-        object::new(character)
+        let obj = object::new(character);
+        let character_id = object::id(&obj);
+        character_registry::register_username(data.username, character_id);
+        obj
     }
 
     fun drop_character(c: Character) {
