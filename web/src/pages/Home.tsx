@@ -168,9 +168,9 @@ export function Home() {
           
           {/* Create Agent Button - Always visible */}
           <div className="mt-4 sm:mt-0">
-            <SessionKeyGuard onClick={() => navigate('/create-agent')}>
+            <SessionKeyGuard onClick={() => navigate('/characters')}>
               <button className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors">
-                Create AI Agent
+                Launch AI Agent
               </button>
             </SessionKeyGuard>
           </div>
@@ -220,7 +220,7 @@ export function Home() {
                 ? "You don't have authorized control of any agents yet." 
                 : "No AI agents found on the network."}
             </p>
-            <SessionKeyGuard onClick={() => navigate('/create-agent')}>
+            <SessionKeyGuard onClick={() => navigate('/characters')}>
               <button
                 className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-md transition-colors"
               >

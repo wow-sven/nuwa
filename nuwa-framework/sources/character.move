@@ -7,6 +7,10 @@ module nuwa_framework::character {
     use moveos_std::json;
     use moveos_std::signer;
 
+    use nuwa_framework::character_registry;
+
+    const ErrorUsernameAlreadyRegistered: u64 = 1;
+
 
     /// Character represents an AI agent's personality and knowledge
     struct Character has key,store {
@@ -44,6 +48,7 @@ module nuwa_framework::character {
     }
 
     fun new_character(data: CharacterData) : Object<Character> {
+        assert!(character_registry::is_username_available(&data.username), ErrorUsernameAlreadyRegistered);
         let character = Character {
             name: data.name,
             username: data.username,
@@ -52,17 +57,21 @@ module nuwa_framework::character {
             knowledge: data.knowledge,
         };
         // Every account only has one character
-        object::new(character)
+        let obj = object::new(character);
+        let character_id = object::id(&obj);
+        character_registry::register_username(data.username, character_id);
+        obj
     }
 
     fun drop_character(c: Character) {
         let Character {
             name: _,
-            username: _,
+            username,
             description: _,
             bio: _,
             knowledge: _,
         } = c;
+        character_registry::unregister_username(username);
     }
 
     public fun create_character(data: CharacterData): Object<Character> {
@@ -137,6 +146,7 @@ module nuwa_framework::character {
     #[test(caller = @0x42)]
     fun test_character() {
         use std::string;
+        nuwa_framework::character_registry::init_for_test();
         // Create test character
         let data = new_character_data(
             string::utf8(b"Dobby"),
@@ -168,4 +178,5 @@ module nuwa_framework::character {
         // Clean up
         destroy_character(character_obj);
     }
+
 }

@@ -23,7 +23,7 @@ module nuwa_framework::agent_tests {
         // Initialize actions
         action::init_for_test();
         action_dispatcher::init_for_test();
-
+        nuwa_framework::character_registry::init_for_test();
         // Create test character with more detailed personality
         let char_data = character::new_character_data(
             string::utf8(b"MoveGuide"),

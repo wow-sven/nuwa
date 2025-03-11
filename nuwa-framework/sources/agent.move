@@ -215,42 +215,6 @@ module nuwa_framework::agent {
         agent_ref.last_active_timestamp = timestamp::now_milliseconds();
     }
 
-
-    #[test_only]
-    /// Create a test agent for unit testing
-    public fun create_test_agent(): (&mut Object<Agent>, Object<AgentCap>) {
-        use std::string;
-        use nuwa_framework::character;
-        
-        let char_data = character::new_character_data(
-            string::utf8(b"Test Assistant"),
-            string::utf8(b"test_assistant"),
-            string::utf8(b"A helpful test assistant"),
-            vector[string::utf8(b"Friendly"), string::utf8(b"Helpful")],
-            vector[string::utf8(b"General knowledge")]
-        );
-        let character_obj = character::create_character(char_data);
-        create_test_agent_with_character(character_obj)
-    }
-
-    #[test_only]
-    public fun create_test_agent_with_character(character: Object<Character>): (&mut Object<Agent>, Object<AgentCap>) {
-        use moveos_std::object;
-
-        let agent_cap = create_agent(character);
-        
-        let agent_obj_id = agent_cap::get_agent_obj_id(&agent_cap);
-        let agent_obj = object::borrow_mut_object_shared<Agent>(agent_obj_id);
-        (agent_obj, agent_cap)
-    }
-
-    #[test]
-    fun test_create_test_agent() {
-        let (agent, agent_cap) = create_test_agent();
-        assert!(object::is_shared(agent), 1);
-        agent_cap::destroy_agent_cap(agent_cap);
-    }
-
     /// Update agent's character name and description
     /// Only allowed for users who possess the AgentCap for this agent
     public fun update_agent_character(
@@ -274,6 +238,43 @@ module nuwa_framework::agent {
         new_description: String,
     ) {
         update_agent_character(cap, new_name, new_description);
+    }
+
+
+    #[test_only]
+    /// Create a test agent for unit testing
+    public fun create_test_agent(): (&mut Object<Agent>, Object<AgentCap>) {
+        use std::string;
+        use nuwa_framework::character; 
+       
+        let char_data = character::new_character_data(
+            string::utf8(b"Test Assistant"),
+            string::utf8(b"test_assistant"),
+            string::utf8(b"A helpful test assistant"),
+            vector[string::utf8(b"Friendly"), string::utf8(b"Helpful")],
+            vector[string::utf8(b"General knowledge")]
+        );
+        let character_obj = character::create_character(char_data);
+        create_test_agent_with_character(character_obj)
+    }
+
+    #[test_only]
+    public fun create_test_agent_with_character(character: Object<Character>): (&mut Object<Agent>, Object<AgentCap>) {
+        use moveos_std::object;
+        
+        let agent_cap = create_agent(character);
+        
+        let agent_obj_id = agent_cap::get_agent_obj_id(&agent_cap);
+        let agent_obj = object::borrow_mut_object_shared<Agent>(agent_obj_id);
+        (agent_obj, agent_cap)
+    }
+
+    #[test]
+    fun test_create_test_agent() {
+        nuwa_framework::character_registry::init_for_test();
+        let (agent, agent_cap) = create_test_agent();
+        assert!(object::is_shared(agent), 1);
+        agent_cap::destroy_agent_cap(agent_cap);
     }
 
 }

@@ -280,6 +280,7 @@ module nuwa_framework::action_dispatcher {
         use nuwa_framework::message;
 
         // Initialize
+        nuwa_framework::character_registry::init_for_test();
         action::init_for_test();
         memory_action::register_actions();
         response_action::register_actions();
