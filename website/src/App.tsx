@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Theme } from '@radix-ui/themes'
 import { Toaster } from 'react-hot-toast'
 import { Sidebar } from './components/Sidebar'
+import { Home } from './pages/Home'
 import { useState } from 'react'
 
 const queryClient = new QueryClient()
@@ -22,7 +23,7 @@ function App() {
               }`}
             >
               <Routes>
-                <Route path="/" element={<div>Home Page</div>} />
+                <Route path="/" element={<Home />} />
                 <Route path="/about" element={<div>About Page</div>} />
                 <Route path="/docs" element={<div>Docs Page</div>} />
               </Routes>

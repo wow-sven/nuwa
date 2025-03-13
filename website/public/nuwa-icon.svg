@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Star shape -->
+  <path d="M20 0L23.5 13.5L35 20L23.5 26.5L20 40L16.5 26.5L5 20L16.5 13.5L20 0Z" fill="#E855FF"/>
+  <!-- Additional rays -->
+  <path d="M20 8L21.5 14L26 16.5L21.5 19L20 25L18.5 19L14 16.5L18.5 14L20 8Z" fill="#F8B4FF"/>
+</svg> 

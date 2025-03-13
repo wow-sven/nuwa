@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="48" viewBox="0 0 200 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Icon -->
+  <g transform="translate(8, 4)">
+    <!-- Star shape -->
+    <path d="M20 0L23.5 13.5L35 20L23.5 26.5L20 40L16.5 26.5L5 20L16.5 13.5L20 0Z" fill="#E855FF"/>
+    <!-- Additional rays -->
+    <path d="M20 8L21.5 14L26 16.5L21.5 19L20 25L18.5 19L14 16.5L18.5 14L20 8Z" fill="#F8B4FF"/>
+  </g>
+  
+  <!-- Text "NUWA" -->
+  <path d="M60 32V8H66L72 26L78 8H84V32H78V16L73.5 30H70.5L66 16V32H60Z" fill="#E855FF"/>
+  <path d="M90 32V8H96V20L105 8H112L103 20L112 32H105L99 24L96 28V32H90Z" fill="#E855FF"/>
+  <path d="M118 32V8H124V20L133 8H140L131 20L140 32H133L127 24L124 28V32H118Z" fill="#E855FF"/>
+  <path d="M146 32V8H152L158 26L164 8H170V32H164V16L159.5 30H156.5L152 16V32H146Z" fill="#E855FF"/>
+</svg> 
