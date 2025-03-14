@@ -164,7 +164,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
               </div>
 
               {/* AI Characters List */}
-              <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              <div className="space-y-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                 {aiCharacters.map((ai) => (
                   <div
                     key={ai.id}
@@ -188,8 +188,6 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
               </div>
             </div>
           </div>
-
-
         </div>
 
         {/* Bottom Section */}
