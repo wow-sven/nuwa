@@ -3,14 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { Agent } from '../types/agent'
 import { Task, TaskArgument, TaskFormData } from '../types/task'
 import { PencilIcon, ArrowLeftIcon, ClipboardIcon, LockClosedIcon, PlusIcon, TrashIcon, InboxIcon } from '@heroicons/react/24/outline'
+import { mockAgent } from '../mocks/agent'
 
 export function AgentProfile() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
-  const [agent, setAgent] = useState<Agent | null>(null)
-  const [promptText, setPromptText] = useState('')
+  const [agent, setAgent] = useState<Agent | null>(mockAgent)
+  const [promptText, setPromptText] = useState(mockAgent.prompt)
 
   // Task related states
   const [tasks, setTasks] = useState<Task[]>([])
@@ -30,13 +31,7 @@ export function AgentProfile() {
   // 模拟是否是 Agent 的所有者
   const isOwner = true // 这里应该从后端或钱包状态获取
 
-  const [agentData, setAgentData] = useState<Partial<Agent>>({
-    name: 'Task Helper',
-    username: 'task_helper',
-    avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=1',
-    description: 'An AI agent who helps developers build custom tasks',
-    prompt: 'You are an AI assistant who helps developers build custom tasks. You should:\n1. Understand user requirements\n2. Provide detailed technical advice\n3. Help debug and optimize code\n4. Maintain friendly and professional communication'
-  })
+  const [agentData, setAgentData] = useState<Partial<Agent>>(mockAgent)
 
   const [editForm, setEditForm] = useState({
     name: agentData.name || '',

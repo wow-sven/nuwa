@@ -6,6 +6,8 @@ import { Sidebar } from './components/Sidebar'
 import { Home } from './pages/Home'
 import { AgentChat } from './pages/AgentChat'
 import { AgentProfile } from './pages/AgentProfile'
+import { UserProfile } from './pages/UserProfile'
+import { CreateAI } from './pages/CreateAI'
 import { useState, useEffect } from 'react'
 
 const queryClient = new QueryClient()
@@ -26,8 +28,10 @@ function AppContent() {
       <div className={`flex-1 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
         <Routes>
           <Route path="/" element={<div className="p-8 h-screen overflow-auto"><Home /></div>} />
+          <Route path="/create" element={<div className="p-8 h-screen overflow-auto"><CreateAI /></div>} />
           <Route path="/agent/:id" element={<AgentChat />} />
           <Route path="/agent/:id/profile" element={<div className="h-screen overflow-auto"><AgentProfile /></div>} />
+          <Route path="/user/:address" element={<UserProfile />} />
           <Route path="/about" element={<div className="p-8 h-screen overflow-auto">About Page</div>} />
           <Route path="/docs" element={<div className="p-8 h-screen overflow-auto">Docs Page</div>} />
         </Routes>

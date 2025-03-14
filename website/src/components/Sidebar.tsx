@@ -1,24 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Logo } from './Logo'
-import { MagnifyingGlassIcon, DocumentTextIcon, UserCircleIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, DocumentTextIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { mockUser } from '../mocks/user'
+import { mockAICharacters } from '../mocks/ai'
+import { User } from '../types/user'
 
 interface SidebarProps {
   onCollapse: (isCollapsed: boolean) => void
   isCollapsed?: boolean
-}
-
-interface User {
-  name: string
-  avatar: string
-  rgasBalance: number
-}
-
-interface AICharacter {
-  id: string
-  name: string
-  avatar: string
-  description: string
 }
 
 export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarProps) {
@@ -27,31 +17,13 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   const [user, setUser] = useState<User | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
 
   // 使用 prop 值或本地状态
   const isCollapsed = propIsCollapsed ?? localIsCollapsed
 
-  // Mock AI characters data
-  const aiCharacters: AICharacter[] = [
-    {
-      id: '1',
-      name: 'Claude',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Claude',
-      description: 'Anthropic\'s helpful AI assistant'
-    },
-    {
-      id: '2',
-      name: 'GPT-4',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=GPT4',
-      description: 'OpenAI\'s most capable model'
-    },
-    {
-      id: '3',
-      name: 'DALL-E',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=DALLE',
-      description: 'AI image generation expert'
-    }
-  ]
+  // 使用统一的 mock 数据
+  const aiCharacters = mockAICharacters
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -78,12 +50,8 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   }
 
   const handleConnectWallet = () => {
-    // 模拟连接钱包并获取用户信息
-    setUser({
-      name: 'John Doe',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=John',
-      rgasBalance: 1234.56
-    })
+    // 使用统一的 mock 数据
+    setUser(mockUser)
   }
 
   const handleLogout = () => {
@@ -92,7 +60,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   }
 
   const handleSettings = () => {
-    // TODO: 实现设置功能
+    navigate(`/user/${user?.address}`)
     setIsDropdownOpen(false)
   }
 
@@ -102,9 +70,8 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
 
   return (
     <div
-      className={`fixed left-0 top-0 h-full dark:bg-gray-900 border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out ${
-        isCollapsed ? 'w-16' : 'w-64 bg-white'
-      }`}
+      className={`fixed left-0 top-0 h-full dark:bg-gray-900 border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out ${isCollapsed ? 'w-16' : 'w-64 bg-white'
+        }`}
     >
       <div className="flex flex-col h-full">
         {/* Logo */}
@@ -150,14 +117,17 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
         {/* Create AI Button */}
         <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
           <div className="p-4">
-            <button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg px-4 py-2 font-medium hover:opacity-90 transition-opacity focus:outline-none focus:ring-0 focus:ring-offset-0">
+            <button
+              onClick={() => navigate('/create')}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg px-4 py-2 font-medium hover:opacity-90 transition-opacity focus:outline-none focus:ring-0 focus:ring-offset-0"
+            >
               Create AI
             </button>
           </div>
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Discover Section */}
           <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
             <div className="px-4">
@@ -171,9 +141,9 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                   className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               </div>
-              
+
               {/* AI Characters List */}
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                 {aiCharacters.map((ai) => (
                   <div
                     key={ai.id}
@@ -198,23 +168,23 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
             </div>
           </div>
 
-          
+
         </div>
 
         {/* Bottom Section */}
-          <div className="mt-auto">
+        <div className="mt-auto">
           {/* Docs Link */}
-            <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
-              <div className="px-4 py-2">
-                <Link
-                  to="/docs"
-                  className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 focus:outline-none focus:ring-0 focus:ring-offset-0"
-                >
-                  <DocumentTextIcon className="w-5 h-5" />
-                  <span>Docs</span>
-                </Link>
-              </div>
+          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
+            <div className="px-4 py-2">
+              <Link
+                to="/docs"
+                className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 focus:outline-none focus:ring-0 focus:ring-offset-0"
+              >
+                <DocumentTextIcon className="w-5 h-5" />
+                <span>Docs</span>
+              </Link>
             </div>
+          </div>
           {/* Connect Wallet / User Profile */}
           <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
             <div className="p-4 border-t border-gray-200 dark:border-gray-800">
@@ -238,7 +208,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                       </span>
                     </div>
                   </button>
-                  
+
                   {/* Dropdown Menu */}
                   {isDropdownOpen && (
                     <div className="absolute bottom-full left-0 mb-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 transition-all duration-200 ease-in-out">
@@ -284,7 +254,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                 className="w-8 h-8 rounded-full"
               />
             </button>
-            
+
             {/* Collapsed Dropdown Menu */}
             {isDropdownOpen && (
               <div className="absolute bottom-full left-[calc(160%)] transform -translate-x-1/2 mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 transition-all duration-200 ease-in-out">
