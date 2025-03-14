@@ -1,16 +1,22 @@
 import { AICharacter } from '../types/ai'
+import { useNavigate } from 'react-router-dom'
 
 interface AICardProps {
   ai: AICharacter
 }
 
 export function AICard({ ai }: AICardProps) {
+  const navigate = useNavigate()
+  
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+    <div 
+      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
+      onClick={() => navigate(`/agent/${ai.id}`)}
+    >
       <div className="p-3 sm:p-4">
         <div className="flex items-start space-x-3 sm:space-x-4">
           <img

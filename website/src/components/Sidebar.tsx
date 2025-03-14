@@ -5,6 +5,7 @@ import { MagnifyingGlassIcon, DocumentTextIcon, UserCircleIcon, Cog6ToothIcon, A
 
 interface SidebarProps {
   onCollapse: (isCollapsed: boolean) => void
+  isCollapsed?: boolean
 }
 
 interface User {
@@ -20,12 +21,15 @@ interface AICharacter {
   description: string
 }
 
-export function Sidebar({ onCollapse }: SidebarProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarProps) {
+  const [localIsCollapsed, setLocalIsCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [user, setUser] = useState<User | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // 使用 prop 值或本地状态
+  const isCollapsed = propIsCollapsed ?? localIsCollapsed
 
   // Mock AI characters data
   const aiCharacters: AICharacter[] = [
@@ -67,7 +71,7 @@ export function Sidebar({ onCollapse }: SidebarProps) {
 
   const handleCollapse = () => {
     const newCollapsedState = !isCollapsed
-    setIsCollapsed(newCollapsedState)
+    setLocalIsCollapsed(newCollapsedState)
     onCollapse(newCollapsedState)
     // 折叠侧边栏时关闭下拉菜单
     setIsDropdownOpen(false)
