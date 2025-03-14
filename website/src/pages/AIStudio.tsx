@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BeakerIcon, ChatBubbleLeftIcon, UserCircleIcon, ChevronUpIcon, ChevronDownIcon, PlusIcon } from '@heroicons/react/24/outline'
+import { BeakerIcon, ChatBubbleLeftIcon, UserCircleIcon, ChevronUpIcon, ChevronDownIcon, PlusIcon, PencilIcon } from '@heroicons/react/24/outline'
 import { mockAICharacters } from '../mocks/ai'
 
 const AI_TYPES = [
@@ -22,14 +22,14 @@ export function AIStudio() {
         prompt: ''
     })
 
-    // 模拟数据：草稿和已发布的 AI
+    // Mock data: draft and launched AIs
     const draftAIs = mockAICharacters.slice(0, 2).map(ai => ({ ...ai, status: 'draft' }))
     const launchedAIs = mockAICharacters.slice(2).map(ai => ({ ...ai, status: 'launched' }))
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         console.log('Form submitted:', formData)
-        // TODO: 处理表单提交
+        // TODO: Handle form submission
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -42,12 +42,12 @@ export function AIStudio() {
 
     const handleTest = (id: string) => {
         console.log('Testing AI:', id)
-        // TODO: 在 sandbox 中测试 AI
+        // TODO: Test AI in sandbox
     }
 
     const handleLaunch = (id: string) => {
         console.log('Launching AI:', id)
-        // TODO: 发布 AI
+        // TODO: Launch AI
     }
 
     return (
@@ -60,7 +60,7 @@ export function AIStudio() {
                         <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Create, test, and manage your AI agents</p>
                     </div>
                     <button
-                        onClick={() => navigate('/create')}
+                        onClick={() => navigate('/studio/create')}
                         className="flex items-center space-x-2 bg-purple-600 text-white rounded-lg px-6 py-2 font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
                     >
                         <PlusIcon className="w-5 h-5" />
@@ -114,6 +114,13 @@ export function AIStudio() {
                                             </div>
                                         </div>
                                         <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => navigate(`/studio/edit/${ai.id}`)}
+                                                className="flex-1 flex items-center justify-center space-x-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                            >
+                                                <PencilIcon className="w-5 h-5" />
+                                                <span>Edit</span>
+                                            </button>
                                             <button
                                                 onClick={() => handleTest(ai.id)}
                                                 className="flex-1 flex items-center justify-center space-x-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-600"

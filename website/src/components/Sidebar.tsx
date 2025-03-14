@@ -19,10 +19,10 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
-  // 使用 prop 值或本地状态
+  // Use prop value or local state
   const isCollapsed = propIsCollapsed ?? localIsCollapsed
 
-  // 使用统一的 mock 数据
+  // Use unified mock data
   const aiCharacters = mockAICharacters
 
   useEffect(() => {
@@ -32,25 +32,25 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
       }
     }
 
-    // 添加事件监听器
+    // Add event listener
     document.addEventListener('mousedown', handleClickOutside)
 
-    // 清理函数
+    // Cleanup function
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, []) // 空依赖数组，只在组件挂载时添加事件监听器
+  }, []) // Empty dependency array, only add event listener when component mounts
 
   const handleCollapse = () => {
     const newCollapsedState = !isCollapsed
     setLocalIsCollapsed(newCollapsedState)
     onCollapse(newCollapsedState)
-    // 折叠侧边栏时关闭下拉菜单
+    // Close dropdown when sidebar is collapsed
     setIsDropdownOpen(false)
   }
 
   const handleConnectWallet = () => {
-    // 使用统一的 mock 数据
+    // Use unified mock data
     setUser(mockUser)
   }
 

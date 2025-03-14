@@ -28,8 +28,8 @@ export function AgentProfile() {
   })
   const [taskError, setTaskError] = useState<string>('')
 
-  // 模拟是否是 Agent 的所有者
-  const isOwner = true // 这里应该从后端或钱包状态获取
+  // Mock whether user is the agent owner
+  const isOwner = true
 
   const [agentData, setAgentData] = useState<Partial<Agent>>(mockAgent)
 
@@ -57,7 +57,7 @@ export function AgentProfile() {
   const handleArgumentChange = (index: number, field: keyof TaskArgument, value: string) => {
     setTaskForm(prev => ({
       ...prev,
-      arguments: prev.arguments.map((arg, i) => 
+      arguments: prev.arguments.map((arg, i) =>
         i === index ? { ...arg, [field]: value } : arg
       )
     }))
@@ -162,14 +162,14 @@ export function AgentProfile() {
           className="mb-6 flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
           <ArrowLeftIcon className="w-5 h-5 mr-2" />
-          <span>返回聊天</span>
+          <span>Back to Chat</span>
         </button>
 
         {/* Profile Card */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
           {/* Cover Image */}
           <div className="h-32 bg-gradient-to-r from-purple-600 to-pink-600"></div>
-          
+
           {/* Profile Info */}
           <div className="px-6 pb-6">
             {/* Avatar */}
@@ -235,7 +235,7 @@ export function AgentProfile() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
               Overview
             </h2>
-            
+
             <div className="space-y-6">
               {/* Character Username */}
               <div>
@@ -261,7 +261,7 @@ export function AgentProfile() {
                   <button
                     onClick={() => handleCopy("0xb9e4b3c592dabbaf70dbc2e2cad66ebce0a91c2c864c99a8fa801863797893db")}
                     className="ml-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    title="复制到剪贴板"
+                    title="Copy to Clipboard"
                   >
                     <ClipboardIcon className="w-5 h-5" />
                   </button>
@@ -280,7 +280,7 @@ export function AgentProfile() {
                   <button
                     onClick={() => handleCopy("rooch19n5zuqjc7rlcx6zgh3ln5fyateczs8n4des4v28y7gkrt7545a9qppy0rl")}
                     className="ml-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    title="复制到剪贴板"
+                    title="Copy to Clipboard"
                   >
                     <ClipboardIcon className="w-5 h-5" />
                   </button>
@@ -299,7 +299,7 @@ export function AgentProfile() {
                   <button
                     onClick={() => handleCopy("0x0aa7a2ed20a8683404411985f3d9347a17970c5396d5cfb7bf3906a7d2a4d67d")}
                     className="ml-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    title="复制到剪贴板"
+                    title="Copy to Clipboard"
                   >
                     <ClipboardIcon className="w-5 h-5" />
                   </button>
@@ -352,7 +352,7 @@ export function AgentProfile() {
                 </div>
               )}
             </div>
-            
+
             <div className="space-y-4">
               {isEditingPrompt ? (
                 <textarea

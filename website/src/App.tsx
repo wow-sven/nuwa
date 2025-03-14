@@ -17,7 +17,7 @@ function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const location = useLocation()
 
-  // 当路由变化时检查是否需要折叠侧边栏
+  // Check if sidebar should be collapsed when route changes
   useEffect(() => {
     const shouldCollapse = location.pathname.startsWith('/agent/')
     setIsSidebarCollapsed(shouldCollapse)
@@ -30,7 +30,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<div className="p-8 h-screen overflow-auto"><Home /></div>} />
           <Route path="/studio" element={<div className="p-8 h-screen overflow-auto"><AIStudio /></div>} />
-          <Route path="/create" element={<div className="p-8 h-screen overflow-auto"><CreateAI /></div>} />
+          <Route path="/studio/create" element={<div className="p-8 h-screen overflow-auto"><CreateAI /></div>} />
           <Route path="/agent/:id" element={<AgentChat />} />
           <Route path="/agent/:id/profile" element={<div className="h-screen overflow-auto"><AgentProfile /></div>} />
           <Route path="/user/:address" element={<UserProfile />} />

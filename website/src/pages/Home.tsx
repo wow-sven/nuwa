@@ -7,9 +7,10 @@ import { AICategory, categories, categoryLabels } from '../types/ai'
 import { mockAICharacters } from '../mocks/ai'
 
 export function Home() {
-  const [selectedCategory, setSelectedCategory] = useState<AICategory>('featured')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
-  // 计算每个分类的数量
+  // Calculate count for each category
   const categoryCounts = useMemo(() => {
     const counts: Record<AICategory, number> = {
       all: mockAICharacters.length,
@@ -20,16 +21,16 @@ export function Home() {
       audio: 0,
       code: 0
     }
-    
+
     mockAICharacters.forEach(ai => {
       counts[ai.category]++
     })
-    
+
     return counts
   }, [])
 
-  const filteredAIs = selectedCategory === 'all' 
-    ? mockAICharacters 
+  const filteredAIs = selectedCategory === 'all'
+    ? mockAICharacters
     : mockAICharacters.filter(ai => ai.category === selectedCategory)
 
   return (
@@ -43,11 +44,10 @@ export function Home() {
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${
-                  selectedCategory === category
-                    ? 'bg-purple-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                }`}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap ${selectedCategory === category
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                  }`}
               >
                 <span>{categoryLabels[category]}</span>
                 {category !== 'featured' && (

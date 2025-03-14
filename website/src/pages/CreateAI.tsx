@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PlusIcon, XMarkIcon, ArrowLeftIcon } from '@heroicons/react/24/outline'
+import { Task, TaskArgument } from '../types/task'
 
 const AI_TYPES = [
     { id: 'assistant', name: 'AI Assistant' },
@@ -30,13 +31,16 @@ export function CreateAI() {
         id: '',
         name: '',
         description: '',
-        prompt: ''
+        arguments: [],
+        resolverAddress: '',
+        isOnChain: false,
+        price: 0
     })
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         console.log('Form submitted:', { ...formData, tasks })
-        // TODO: 处理表单提交
+        // TODO: Handle form submission
     }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -47,11 +51,36 @@ export function CreateAI() {
         }))
     }
 
-    const handleTaskInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleTaskInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target
         setNewTask(prev => ({
             ...prev,
-            [name]: value
+            [name]: name === 'price' ? Number(value) :
+                name === 'isOnChain' ? (e.target as HTMLInputElement).checked :
+                    value
+        }))
+    }
+
+    const handleAddArgument = () => {
+        setNewTask(prev => ({
+            ...prev,
+            arguments: [...prev.arguments, { name: '', type: 'String', description: '' }]
+        }))
+    }
+
+    const handleRemoveArgument = (index: number) => {
+        setNewTask(prev => ({
+            ...prev,
+            arguments: prev.arguments.filter((_, i) => i !== index)
+        }))
+    }
+
+    const handleArgumentChange = (index: number, field: keyof TaskArgument, value: string) => {
+        setNewTask(prev => ({
+            ...prev,
+            arguments: prev.arguments.map((arg, i) =>
+                i === index ? { ...arg, [field]: value } : arg
+            )
         }))
     }
 
@@ -62,7 +91,10 @@ export function CreateAI() {
                 id: '',
                 name: '',
                 description: '',
-                prompt: ''
+                arguments: [],
+                resolverAddress: '',
+                isOnChain: false,
+                price: 0
             })
         }
     }
@@ -210,41 +242,123 @@ export function CreateAI() {
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Task Name
+                                            Task Name *
                                         </label>
                                         <input
                                             type="text"
                                             name="name"
                                             value={newTask.name}
                                             onChange={handleTaskInputChange}
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                            placeholder="Enter task name..."
+                                            className="w-full p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
+                                            placeholder="Enter task name"
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Task Description
+                                            Description
                                         </label>
-                                        <input
-                                            type="text"
+                                        <textarea
                                             name="description"
                                             value={newTask.description}
                                             onChange={handleTaskInputChange}
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                            placeholder="Enter task description..."
+                                            className="w-full p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
+                                            placeholder="Enter task description"
+                                            rows={3}
                                         />
                                     </div>
                                     <div>
+                                        <div className="flex justify-between items-center mb-2">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                Arguments
+                                            </label>
+                                            <button
+                                                type="button"
+                                                onClick={handleAddArgument}
+                                                className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+                                            >
+                                                + Add Argument
+                                            </button>
+                                        </div>
+                                        <div className="space-y-3">
+                                            {newTask.arguments.map((arg, index) => (
+                                                <div key={index} className="flex items-start space-x-3">
+                                                    <div className="flex-1 grid grid-cols-3 gap-2">
+                                                        <input
+                                                            type="text"
+                                                            value={arg.name}
+                                                            onChange={e => handleArgumentChange(index, 'name', e.target.value)}
+                                                            className="p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
+                                                            placeholder="Name"
+                                                        />
+                                                        <select
+                                                            value={arg.type}
+                                                            onChange={e => handleArgumentChange(index, 'type', e.target.value)}
+                                                            className="p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
+                                                        >
+                                                            <option value="String">String</option>
+                                                            <option value="Number">Number</option>
+                                                            <option value="Boolean">Boolean</option>
+                                                        </select>
+                                                        <input
+                                                            type="text"
+                                                            value={arg.description}
+                                                            onChange={e => handleArgumentChange(index, 'description', e.target.value)}
+                                                            className="p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
+                                                            placeholder="Description"
+                                                        />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleRemoveArgument(index)}
+                                                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                                    >
+                                                        <XMarkIcon className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
                                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                            Task Prompt
+                                            Resolver Address
                                         </label>
-                                        <textarea
-                                            name="prompt"
-                                            value={newTask.prompt}
+                                        <input
+                                            type="text"
+                                            name="resolverAddress"
+                                            value={newTask.resolverAddress}
                                             onChange={handleTaskInputChange}
-                                            rows={3}
-                                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                            placeholder="Enter the prompt for this specific task..."
+                                            className="w-full p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
+                                            placeholder="Enter resolver address"
+                                        />
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <input
+                                            type="checkbox"
+                                            id="isOnChain"
+                                            name="isOnChain"
+                                            checked={newTask.isOnChain}
+                                            onChange={handleTaskInputChange}
+                                            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                                        />
+                                        <label
+                                            htmlFor="isOnChain"
+                                            className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                                        >
+                                            On-Chain Task
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Price (RGAS)
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="price"
+                                            value={newTask.price}
+                                            onChange={handleTaskInputChange}
+                                            className="w-full p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
+                                            placeholder="Enter price in RGAS"
+                                            min="0"
+                                            step="0.01"
                                         />
                                     </div>
                                     <button

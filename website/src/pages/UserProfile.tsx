@@ -1,19 +1,27 @@
 import { useParams } from 'react-router-dom'
 import { ArrowLeftIcon, ClipboardIcon, PencilIcon, CheckIcon, XMarkIcon, PhotoIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { User, Token } from '../types/user'
 import { mockUser } from '../mocks/user'
+import { useNavigate } from 'react-router-dom'
 
 export function UserProfile() {
   const { address } = useParams<{ address: string }>()
+  const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 使用统一的 mock 数据
+  // Use unified mock data
   const [user, setUser] = useState<User>({
     ...mockUser,
-    // 如果 URL 中有地址参数，则使用该地址
+    // If there's an address parameter in URL, use it
     address: address || mockUser.address
   })
+
+  useEffect(() => {
+    if (address) {
+      setUser(prev => ({ ...prev, address }))
+    }
+  }, [address])
 
   const [isEditingName, setIsEditingName] = useState(false)
   const [isEditingAvatar, setIsEditingAvatar] = useState(false)
@@ -29,13 +37,13 @@ export function UserProfile() {
 
   const handleEditName = () => {
     if (isEditingName) {
-      // 保存更改
+      // Save changes
       setUser(prev => ({
         ...prev,
         name: editForm.name
       }))
     } else {
-      // 开始编辑
+      // Start editing
       setEditForm(prev => ({
         ...prev,
         name: user.name
@@ -62,7 +70,7 @@ export function UserProfile() {
       const reader = new FileReader()
       reader.onloadend = () => {
         const result = reader.result as string
-        setPreviewAvatar(null) // 清除预览，直接更新
+        setPreviewAvatar(null) // Clear preview and update directly
         setUser(prev => ({
           ...prev,
           avatar: result
@@ -76,13 +84,15 @@ export function UserProfile() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back Button */}
-        <button
-          onClick={() => window.history.back()}
-          className="mb-6 flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >
-          <ArrowLeftIcon className="w-5 h-5 mr-2" />
-          <span>返回</span>
-        </button>
+        <div className="mb-6">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+          >
+            <ArrowLeftIcon className="w-5 h-5 mr-2" />
+            <span>Back</span>
+          </button>
+        </div>
 
         {/* Profile Card */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
@@ -96,10 +106,10 @@ export function UserProfile() {
               <button
                 onClick={handleEditAvatar}
                 className="w-full h-full relative rounded-full overflow-hidden"
-                title="上传头像"
+                title="Upload Avatar"
               >
                 <img
-                  src={user.avatar}
+                  src={previewAvatar || user.avatar}
                   alt={user.name}
                   className="w-full h-full rounded-full border-0 border-white dark:border-gray-800 bg-white dark:bg-gray-800 object-cover"
                 />
@@ -131,14 +141,14 @@ export function UserProfile() {
                     <button
                       onClick={handleEditName}
                       className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400"
-                      title="保存"
+                      title="Save"
                     >
                       <CheckIcon className="w-5 h-5" />
                     </button>
                     <button
                       onClick={handleCancelName}
                       className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400"
-                      title="取消"
+                      title="Cancel"
                     >
                       <XMarkIcon className="w-5 h-5" />
                     </button>
@@ -151,7 +161,7 @@ export function UserProfile() {
                     <button
                       onClick={handleEditName}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                      title="修改用户名"
+                      title="Edit Username"
                     >
                       <PencilIcon className="w-4 h-4" />
                     </button>
@@ -165,7 +175,7 @@ export function UserProfile() {
                 <button
                   onClick={() => handleCopy(user.address)}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  title="复制地址"
+                  title="Copy Address"
                 >
                   <ClipboardIcon className="w-4 h-4" />
                 </button>
@@ -193,7 +203,7 @@ export function UserProfile() {
                 </h2>
                 <button
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                  title="刷新"
+                  title="Refresh"
                 >
                   <ArrowPathIcon className="w-5 h-5" />
                 </button>
@@ -234,7 +244,7 @@ export function UserProfile() {
                       <button
                         className="px-3 py-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-600 dark:border-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                       >
-                        转账
+                        Transfer
                       </button>
                     </div>
                   </div>
