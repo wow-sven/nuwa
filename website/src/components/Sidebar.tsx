@@ -114,9 +114,11 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
           </button>
         </div>
 
-        {/* Create AI Button */}
+
+
+        {/* Navigation  */}
         <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
-          <div className="p-4">
+          <div className="px-4 pt-2">
             <button
               onClick={() => navigate('/studio')}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg px-4 py-2 font-medium hover:opacity-90 transition-opacity focus:outline-none focus:ring-0 focus:ring-offset-0"
@@ -124,6 +126,25 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
               AI Studio
             </button>
           </div>
+          <div className="space-y-2 my-2">
+            <div className="flex justify-center space-x-4 text-xs">
+              <Link
+                to="/docs"
+                className={`px-3 py-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+              >
+                {!isCollapsed && <span>Documentation</span>}
+              </Link>
+              <a
+                href="https://github.com/rooch-network/nuwa"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`px-3 py-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors ${isCollapsed ? 'justify-center' : ''}`}
+              >
+                {!isCollapsed && <span>GitHub</span>}
+              </a>
+            </div>
+          </div>
+
         </div>
 
         {/* Main Content Area */}
@@ -173,21 +194,10 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
 
         {/* Bottom Section */}
         <div className="mt-auto">
-          {/* Docs Link */}
-          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
-            <div className="px-4 py-2">
-              <Link
-                to="/docs"
-                className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 focus:outline-none focus:ring-0 focus:ring-offset-0"
-              >
-                <DocumentTextIcon className="w-5 h-5" />
-                <span>Docs</span>
-              </Link>
-            </div>
-          </div>
+
           {/* Connect Wallet / User Profile */}
           <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="p-4">
               {user ? (
                 <div className="relative" ref={dropdownRef}>
                   <button
