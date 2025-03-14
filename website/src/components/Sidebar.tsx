@@ -118,10 +118,10 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
         <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
           <div className="p-4">
             <button
-              onClick={() => navigate('/create')}
+              onClick={() => navigate('/studio')}
               className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg px-4 py-2 font-medium hover:opacity-90 transition-opacity focus:outline-none focus:ring-0 focus:ring-offset-0"
             >
-              Create AI
+              AI Studio
             </button>
           </div>
         </div>
