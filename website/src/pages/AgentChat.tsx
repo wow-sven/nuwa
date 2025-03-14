@@ -9,7 +9,7 @@ import { mockMessages, mockTopics, mockMembers } from '../mocks/chat'
 import type { ChatMember } from '../mocks/chat'
 
 export function AgentChat() {
-  const { id } = useParams<{ id: string }>()
+  const { agentname } = useParams<{ agentname: string }>()
   const navigate = useNavigate()
   const [messages, setMessages] = useState<Message[]>(mockMessages)
   const [topics, setTopics] = useState<Topic[]>(mockTopics)
@@ -41,7 +41,7 @@ export function AgentChat() {
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: `This is a mock response for agent ${id}. You said: ${inputMessage}. You can reference topics like #1 or #2.`,
+        content: `This is a mock response for agent ${agentname}. You said: ${inputMessage}. You can reference topics like #1 or #2.`,
         sender: 'Nuwa AI',
         timestamp: new Date().toISOString(),
         type: 'text'
@@ -231,7 +231,7 @@ export function AgentChat() {
 
           {/* Profile Button */}
           <button
-            onClick={() => navigate(`/agent/${id}/profile`)}
+            onClick={() => navigate(`/agent/${agentname}/profile`)}
             className="w-full flex items-center justify-center space-x-2 px-3 py-2 mt-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg transition-colors"
           >
             <UserCircleIcon className="w-5 h-5" />

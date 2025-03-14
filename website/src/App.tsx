@@ -8,7 +8,6 @@ import { AgentChat } from './pages/AgentChat'
 import { AgentProfile } from './pages/AgentProfile'
 import { UserProfile } from './pages/UserProfile'
 import { AIStudio } from './pages/AIStudio'
-import { CreateAI } from './pages/CreateAI'
 import { useState, useEffect } from 'react'
 
 const queryClient = new QueryClient()
@@ -30,9 +29,8 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<div className="p-8 h-screen overflow-auto"><Home /></div>} />
           <Route path="/studio" element={<div className="p-8 h-screen overflow-auto"><AIStudio /></div>} />
-          <Route path="/studio/create" element={<div className="p-8 h-screen overflow-auto"><CreateAI /></div>} />
-          <Route path="/agent/:id" element={<AgentChat />} />
-          <Route path="/agent/:id/profile" element={<div className="h-screen overflow-auto"><AgentProfile /></div>} />
+          <Route path="/agent/:agentname" element={<AgentChat />} />
+          <Route path="/agent/:agentname/profile" element={<div className="h-screen overflow-auto"><AgentProfile /></div>} />
           <Route path="/user/:address" element={<UserProfile />} />
           <Route path="/about" element={<div className="p-8 h-screen overflow-auto">About Page</div>} />
           <Route path="/docs" element={<div className="p-8 h-screen overflow-auto">Docs Page</div>} />

@@ -1,9 +1,8 @@
 export type AICategory = 'featured' | 'all' | 'chat' | 'image' | 'video' | 'audio' | 'code'
 
 export interface AICharacter {
-  id: string
   name: string
-  username: string
+  agentname: string
   avatar: string
   category: AICategory
   followers: number

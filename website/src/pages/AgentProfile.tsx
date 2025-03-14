@@ -6,7 +6,7 @@ import { PencilIcon, ArrowLeftIcon, ClipboardIcon, LockClosedIcon, PlusIcon, Tra
 import { mockAgent } from '../mocks/agent'
 
 export function AgentProfile() {
-  const { id } = useParams<{ id: string }>()
+  const { agentname } = useParams<{ agentname: string }>()
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
@@ -158,7 +158,7 @@ export function AgentProfile() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back Button */}
         <button
-          onClick={() => navigate(`/agent/${id}`)}
+          onClick={() => navigate(`/agent/${agentname}`)}
           className="mb-6 flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
           <ArrowLeftIcon className="w-5 h-5 mr-2" />
