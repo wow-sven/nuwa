@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Logo } from './Logo'
-import { MagnifyingGlassIcon, DocumentTextIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
 import { mockUser } from '../mocks/user'
-import { mockAICharacters } from '../mocks/ai'
+import { mockAgents } from '../mocks/agent'
 import { User } from '../types/user'
 
 interface SidebarProps {
@@ -23,7 +23,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   const isCollapsed = propIsCollapsed ?? localIsCollapsed
 
   // Use unified mock data
-  const aiCharacters = mockAICharacters
+  const agentNames = mockAgents
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -165,22 +165,23 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
 
               {/* AI Characters List */}
               <div className="space-y-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
-                {aiCharacters.map((ai) => (
+                {agentNames.map((agent) => (
                   <div
-                    key={ai.id}
+                    key={agent.agentname}
                     className="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                    onClick={() => navigate(`/agent/${agent.agentname}`)}
                   >
                     <img
-                      src={ai.avatar}
-                      alt={ai.name}
+                      src={agent.avatar}
+                      alt={agent.name}
                       className="w-10 h-10 rounded-full flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {ai.name}
+                        {agent.name}
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                        {ai.description}
+                        {agent.description}
                       </p>
                     </div>
                   </div>
