@@ -60,4 +60,5 @@ export function isAgent(obj: any): obj is Agent {
     typeof obj.stats === 'object' &&
     typeof obj.status === 'string' &&
     typeof obj.prompt === 'string';
+
 } 

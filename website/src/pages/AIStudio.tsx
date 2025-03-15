@@ -21,7 +21,6 @@ export function AIStudio() {
             setError('Please enter an agentname')
             return
         }
-
         if (checkAgentnameExists(agentname)) {
             setError('This agentname already exists')
             return

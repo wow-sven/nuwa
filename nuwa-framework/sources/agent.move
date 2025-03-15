@@ -8,10 +8,14 @@ module nuwa_framework::agent {
     use nuwa_framework::character::{Self, Character};
     use nuwa_framework::agent_cap::{Self, AgentCap};
     use nuwa_framework::memory::{Self, MemoryStore};
-    use nuwa_framework::agent_input::{AgentInput};
     use nuwa_framework::agent_state::{AgentStates};
     use nuwa_framework::agent_info;
     use nuwa_framework::task_spec::{Self, TaskSpecifications, TaskSpecification};
+    use rooch_framework::coin::{Self, Coin};
+    use rooch_framework::account_coin_store;
+    use nuwa_framework::config;
+    use rooch_framework::gas_coin::RGas;
+
     friend nuwa_framework::memory_action;
     friend nuwa_framework::transfer_action;
     friend nuwa_framework::action_dispatcher;
@@ -20,6 +24,7 @@ module nuwa_framework::agent {
     const TASK_SPEC_PROPERTY_NAME: vector<u8> = b"task_specs";
 
     const ErrorDeprecatedFunction: u64 = 1;
+    const ErrorInvalidInitialFee: u64 = 2;
 
     //TODO use a new agent_runner module to handle agent running, this module only contains agent data structure
     /// Agent represents a running instance of a Character
@@ -46,7 +51,13 @@ module nuwa_framework::agent {
 
     const AI_GPT4O_MODEL: vector<u8> = b"gpt-4o";
 
-    public fun create_agent(character: Object<Character>) : Object<AgentCap> {
+    public fun create_agent(_character: Object<Character>) : Object<AgentCap> {
+        abort ErrorDeprecatedFunction
+    }
+
+    public fun create_agent_with_initial_fee(character: Object<Character>, initial_fee: Coin<RGas>) : Object<AgentCap> {
+        let initial_fee_amount = coin::value(&initial_fee);
+        assert!(initial_fee_amount >= config::get_ai_agent_initial_fee(), ErrorInvalidInitialFee);
         let agent_account = account::create_account();
         let agent_signer = account::create_signer_with_account(&mut agent_account);
         //TODO provide a function to get address from account
@@ -59,7 +70,7 @@ module nuwa_framework::agent {
             memory_store: memory::new_memory_store(),
             model_provider: string::utf8(AI_GPT4O_MODEL),
         };
-        //TODO transfer some RGas to the agent account
+        account_coin_store::deposit<RGas>(agent_address, initial_fee);
         // Every account only has one agent
         let agent_obj = object::new_account_named_object(agent_address, agent);
         let agent_obj_id = object::id(&agent_obj);
@@ -71,7 +82,7 @@ module nuwa_framework::agent {
     /// Generate system prompt based on Character attributes
     public fun generate_system_prompt<I: copy + drop>(
         _agent: &Agent,
-        _input: AgentInput<I>,
+        _input: nuwa_framework::agent_input::AgentInput<I>,
     ): String {
         abort ErrorDeprecatedFunction
     }
@@ -79,7 +90,7 @@ module nuwa_framework::agent {
     public fun generate_system_prompt_v2<I: copy + drop>(
         _agent: &Agent,
         _states: AgentStates,
-        _input: AgentInput<I>,
+        _input: nuwa_framework::agent_input::AgentInput<I>,
     ): String {
         abort ErrorDeprecatedFunction
     }
@@ -87,7 +98,7 @@ module nuwa_framework::agent {
     public fun process_input<I: copy + drop>(
         _caller: &signer,
         _agent_obj: &mut Object<Agent>,
-        _input: AgentInput<I>,
+        _input: nuwa_framework::agent_input::AgentInput<I>,
     ) {
         abort ErrorDeprecatedFunction
     }
@@ -96,7 +107,7 @@ module nuwa_framework::agent {
         _caller: &signer,
         _agent_obj: &mut Object<Agent>,
         _states: AgentStates,
-        _input: AgentInput<I>,
+        _input: nuwa_framework::agent_input::AgentInput<I>,
     ) {
         abort ErrorDeprecatedFunction
     }
@@ -105,6 +116,7 @@ module nuwa_framework::agent {
         object::borrow_mut_object_shared(agent_obj_id)
     }
 
+    //TODO check if this function have security issue for public access
     public fun borrow_mut_agent_by_address(agent_addr: address): &mut Object<Agent> {
         let agent_obj_id = object::account_named_object_id<Agent>(agent_addr);
         object::borrow_mut_object_shared(agent_obj_id)
@@ -301,8 +313,10 @@ module nuwa_framework::agent {
     #[test_only]
     public fun create_test_agent_with_character(character: Object<Character>): (&mut Object<Agent>, Object<AgentCap>) {
         use moveos_std::object;
+        use rooch_framework::gas_coin;
         
-        let agent_cap = create_agent(character);
+        let initial_fee = gas_coin::mint_for_test(config::get_ai_agent_initial_fee());
+        let agent_cap = create_agent_with_initial_fee(character, initial_fee);
         
         let agent_obj_id = agent_cap::get_agent_obj_id(&agent_cap);
         let agent_obj = object::borrow_mut_object_shared<Agent>(agent_obj_id);
@@ -311,7 +325,7 @@ module nuwa_framework::agent {
 
     #[test]
     fun test_create_test_agent() {
-        nuwa_framework::character_registry::init_for_test();
+        nuwa_framework::genesis::init_for_test();
         let (agent, agent_cap) = create_test_agent();
         assert!(object::is_shared(agent), 1);
         agent_cap::destroy_agent_cap(agent_cap);
