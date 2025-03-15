@@ -1,21 +1,21 @@
-import { AICharacter } from '../types/ai'
+import { Agent } from '../types/agent'
 import { useNavigate } from 'react-router-dom'
 
 interface AICardProps {
-  ai: AICharacter
+  ai: Agent
 }
 
 export function AICard({ ai }: AICardProps) {
   const navigate = useNavigate()
-  
+
   const shortenAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
   return (
-    <div 
+    <div
       className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer"
-      onClick={() => navigate(`/agent/${ai.id}`)}
+      onClick={() => navigate(`/agent/${ai.agentname}`)}
     >
       <div className="p-3 sm:p-4">
         <div className="flex items-start space-x-3 sm:space-x-4">
@@ -30,23 +30,25 @@ export function AICard({ ai }: AICardProps) {
                 {ai.name}
               </h3>
               <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                @{ai.username}
+                @{ai.agentname}
               </span>
             </div>
             <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
               {ai.description}
             </p>
             <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-2 sm:gap-4">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                {ai.category}
-              </span>
+              {ai.category && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                  {ai.category}
+                </span>
+              )}
               <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                {ai.followers.toLocaleString()} followers
+                {ai.stats.members.toLocaleString()} members
               </span>
             </div>
             <div className="mt-1 sm:mt-2">
               <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-mono">
-                {shortenAddress(ai.walletAddress)}
+                {shortenAddress(ai.address)}
               </span>
             </div>
           </div>

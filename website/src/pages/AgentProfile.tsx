@@ -1,17 +1,14 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Agent } from '../types/agent'
 import { Task, TaskArgument, TaskFormData } from '../types/task'
 import { PencilIcon, ArrowLeftIcon, ClipboardIcon, LockClosedIcon, PlusIcon, TrashIcon, InboxIcon } from '@heroicons/react/24/outline'
-import { mockAgent } from '../mocks/agent'
+import { mockAgents } from '../mocks/agent'
 
 export function AgentProfile() {
-  const { agentname } = useParams<{ agentname: string }>()
   const navigate = useNavigate()
   const [isEditing, setIsEditing] = useState(false)
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
-  const [agent, setAgent] = useState<Agent | null>(mockAgent)
-  const [promptText, setPromptText] = useState(mockAgent.prompt)
 
   // Task related states
   const [tasks, setTasks] = useState<Task[]>([])
@@ -31,7 +28,8 @@ export function AgentProfile() {
   // Mock whether user is the agent owner
   const isOwner = true
 
-  const [agentData, setAgentData] = useState<Partial<Agent>>(mockAgent)
+  // 使用第一个 mock agent 作为示例
+  const [agentData, setAgentData] = useState<Partial<Agent>>(mockAgents[0])
 
   const [editForm, setEditForm] = useState({
     name: agentData.name || '',
@@ -158,11 +156,11 @@ export function AgentProfile() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Back Button */}
         <button
-          onClick={() => navigate(`/agent/${agentname}`)}
+          onClick={() => navigate(-1)}
           className="mb-6 flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
         >
           <ArrowLeftIcon className="w-5 h-5 mr-2" />
-          <span>Back to Chat</span>
+          <span>Back</span>
         </button>
 
         {/* Profile Card */}
@@ -198,7 +196,7 @@ export function AgentProfile() {
                   </h1>
                 )}
                 <div className="mt-1 text-purple-600 dark:text-purple-400">
-                  @{agentData.username}
+                  @{agentData.agentname}
                 </div>
               </div>
               <button
