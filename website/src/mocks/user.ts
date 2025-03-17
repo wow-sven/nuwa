@@ -9,15 +9,6 @@ export interface Token {
   decimals: number
 }
 
-export interface User {
-  id: string
-  name: string
-  username: string
-  avatar: string
-  address: string
-  rgasBalance: number
-  tokens: Token[]
-}
 
 export const mockUser: User = {
   id: '1',

@@ -1,15 +1,4 @@
-import { Agent, AgentName } from '../types/agent'
-
-export const mockAgentNames: AgentName[] = [
-  {
-    agentname: 'greatAgent',
-    registeredAt: new Date().toISOString()
-  },
-  {
-    agentname: 'GOATAgent',
-    registeredAt: new Date().toISOString()
-  }
-]
+import { Agent } from '../types/agent'
 
 export const mockAgents: Agent[] = [
   {

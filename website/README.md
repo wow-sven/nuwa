@@ -1,8 +1,8 @@
 # Nuwa Website
 
-这是 Nuwa 项目的官方网站。
+This is the official website of the Nuwa project.
 
-## 技术栈
+## Tech Stack
 
 - React 18
 - TypeScript
@@ -14,29 +14,29 @@
 - Radix UI
 - React Markdown
 
-## 开发
+## Development
 
 ```bash
-# 安装依赖
+# Install Dependencies
 pnpm install
 
-# 启动开发服务器
+# Start Development Server
 pnpm dev
 
-# 构建生产版本
+# Build production version
 pnpm build
 
-# 预览生产版本
+# Preview production version
 pnpm preview
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 src/
-  ├── components/     # 可复用组件
-  ├── pages/         # 页面组件
-  ├── hooks/         # 自定义 Hooks
-  ├── utils/         # 工具函数
-  └── assets/        # 静态资源
+  ├── components/     # Reusable components
+  ├── pages/         # Page components
+  ├── hooks/         # Custom Hooks
+  ├── utils/         # Utility functions
+  └── assets/        # Static resources
 ```

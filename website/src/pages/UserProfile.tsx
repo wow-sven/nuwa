@@ -1,12 +1,12 @@
 import { useParams } from 'react-router-dom'
 import { ArrowLeftIcon, ClipboardIcon, PencilIcon, CheckIcon, XMarkIcon, PhotoIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useState, useRef, useEffect } from 'react'
-import { User, Token } from '../types/user'
+import { User } from '../types/user'
 import { mockUser } from '../mocks/user'
 import { useNavigate } from 'react-router-dom'
 
 export function UserProfile() {
-  const { address } = useParams<{ address: string }>()
+  const { username } = useParams<{ username: string }>()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -14,17 +14,16 @@ export function UserProfile() {
   const [user, setUser] = useState<User>({
     ...mockUser,
     // If there's an address parameter in URL, use it
-    address: address || mockUser.address
+    name: username || mockUser.name
   })
 
   useEffect(() => {
-    if (address) {
-      setUser(prev => ({ ...prev, address }))
+    if (username) {
+      setUser(prev => ({ ...prev, name: username }))
     }
-  }, [address])
+  }, [username])
 
   const [isEditingName, setIsEditingName] = useState(false)
-  const [isEditingAvatar, setIsEditingAvatar] = useState(false)
   const [editForm, setEditForm] = useState({
     name: user.name,
     avatar: user.avatar

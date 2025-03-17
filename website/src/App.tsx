@@ -5,9 +5,9 @@ import { Toaster } from 'react-hot-toast'
 import { Sidebar } from './components/Sidebar'
 import { Home } from './pages/Home'
 import { AgentChat } from './pages/AgentChat'
-import { AgentProfile } from './pages/AgentProfile'
-import { UserProfile } from './pages/UserProfile'
 import { AIStudio } from './pages/AIStudio'
+import { CreateAgent } from './pages/CreateAgent'
+import { ProfileRouter } from './components/ProfileRouter'
 import { useState, useEffect } from 'react'
 
 const queryClient = new QueryClient()
@@ -29,9 +29,9 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<div className="p-8 h-screen overflow-auto"><Home /></div>} />
           <Route path="/studio" element={<div className="p-8 h-screen overflow-auto"><AIStudio /></div>} />
+          <Route path="/studio/create" element={<div className="p-8 h-screen overflow-auto"><CreateAgent /></div>} />
           <Route path="/agent/:agentname" element={<AgentChat />} />
-          <Route path="/agent/:agentname/profile" element={<div className="h-screen overflow-auto"><AgentProfile /></div>} />
-          <Route path="/user/:address" element={<UserProfile />} />
+          <Route path="/profile/:username" element={<ProfileRouter />} />
           <Route path="/about" element={<div className="p-8 h-screen overflow-auto">About Page</div>} />
           <Route path="/docs" element={<div className="p-8 h-screen overflow-auto">Docs Page</div>} />
         </Routes>

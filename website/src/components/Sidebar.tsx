@@ -60,7 +60,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   }
 
   const handleSettings = () => {
-    navigate(`/user/${user?.address}`)
+    navigate(`/profile/${user?.username}`)
     setIsDropdownOpen(false)
   }
 

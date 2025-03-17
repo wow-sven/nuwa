@@ -28,7 +28,7 @@ export function AgentProfile() {
   // Mock whether user is the agent owner
   const isOwner = true
 
-  // 使用第一个 mock agent 作为示例
+  // Using the first mock agent as an example
   const [agentData, setAgentData] = useState<Partial<Agent>>(mockAgents[0])
 
   const [editForm, setEditForm] = useState({

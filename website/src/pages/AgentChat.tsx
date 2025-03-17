@@ -66,24 +66,6 @@ export function AgentChat() {
     }
   }
 
-  const handleCreateTopic = () => {
-    if (!newTopicTitle.trim()) return
-
-    const newTopic: Topic = {
-      id: Date.now().toString(),
-      title: newTopicTitle.trim(),
-      lastMessage: '',
-      timestamp: new Date().toISOString(),
-      unread: 0
-    }
-
-    setTopics(prev => [...prev, newTopic])
-    setSelectedTopic(newTopic)
-    setMessages([]) // Clear messages when switching to new topic
-    setIsCreatingTopic(false)
-    setNewTopicTitle('')
-  }
-
   const handleSelectTopic = (topicId: string) => {
     setSelectedTopic(topics.find(t => t.id === topicId) || null)
     setMessages([]) // In real app, we would load messages for the selected topic
@@ -231,7 +213,7 @@ export function AgentChat() {
 
           {/* Profile Button */}
           <button
-            onClick={() => navigate(`/agent/${agentname}/profile`)}
+            onClick={() => navigate(`/profile/${agentname}`)}
             className="w-full flex items-center justify-center space-x-2 px-3 py-2 mt-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg transition-colors"
           >
             <UserCircleIcon className="w-5 h-5" />
