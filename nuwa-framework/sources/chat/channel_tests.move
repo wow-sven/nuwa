@@ -19,7 +19,7 @@ module nuwa_framework::channel_tests {
     #[test]
     fun test_create_ai_home_channel() {
         nuwa_framework::genesis::init_for_test();
-        let (agent, cap) = agent::create_test_agent();
+        let (agent, cap) = agent::create_default_test_agent();
         let ai_account = agent::get_agent_address(agent);
         timestamp::update_global_time_for_test(1000);
 
@@ -46,8 +46,7 @@ module nuwa_framework::channel_tests {
     fun test_create_ai_peer_channel() {
         nuwa_framework::genesis::init_for_test();
         let user = create_account_with_address(@0x42);
-        // Create a test agent instead of just using an address
-        let (agent, cap) = agent::create_test_agent();
+        let (agent, cap) = agent::create_default_test_agent();
         let ai_address = agent::get_agent_address(agent);
         timestamp::update_global_time_for_test(1000);
 
@@ -66,8 +65,7 @@ module nuwa_framework::channel_tests {
     fun test_message_sending() {
         nuwa_framework::genesis::init_for_test();
         let user = create_account_with_address(@0x42);
-        // Create a test agent
-        let (agent, cap) = agent::create_test_agent();
+        let (agent, cap) = agent::create_default_test_agent();
          
         // Create peer channel
         let channel_id = channel::create_ai_peer_channel(
@@ -79,14 +77,16 @@ module nuwa_framework::channel_tests {
         let channel = object::borrow_mut_object_shared(channel_id);
         let msg_content = string::utf8(b"Hello AI!");
         let mentions = vector::empty();
-        channel::send_message(&user, channel, msg_content, mentions);
+        let (_, _) = channel::send_message(&user, channel, msg_content, mentions, 0);
         
         // Verify message
         let channel = object::borrow_object(channel_id);
-        let messages = channel::get_messages(channel);
-        assert!(vector::length(&messages) == 1, 0);
+        let message_ids = channel::get_messages(channel);
+        assert!(vector::length(&message_ids) == 1, 0);
         
-        let msg = vector::borrow(&messages, 0);
+        let msg_id = vector::borrow(&message_ids, 0);
+        let msg_obj = object::borrow_object<message::Message>(*msg_id);
+        let msg = object::borrow(msg_obj);
         assert!(message::get_content(msg) == msg_content, 1);
         assert!(message::get_sender(msg) == signer::address_of(&user), 2);
         assert!(message::get_type(msg) == message::type_normal(), 3);
@@ -101,8 +101,7 @@ module nuwa_framework::channel_tests {
         nuwa_framework::genesis::init_for_test();
         let user1 = create_account_with_address(@0x42);
         let user2 = create_account_with_address(@0x44);
-        // Create a test agent
-        let (agent, cap) = agent::create_test_agent();
+        let (agent, cap) = agent::create_default_test_agent();
         
         let channel_id = channel::create_ai_peer_channel(
             &user1,
@@ -113,7 +112,7 @@ module nuwa_framework::channel_tests {
         let channel = object::borrow_mut_object_shared(channel_id);
         
         let mentions = vector::empty();
-        channel::send_message(&user2, channel, string::utf8(b"Unauthorized message"), mentions);
+        let (_, _) = channel::send_message(&user2, channel, string::utf8(b"Unauthorized message"), mentions, 0);
 
         channel::delete_channel_for_testing(channel_id);
         agent::destroy_agent_cap(cap);
@@ -123,8 +122,7 @@ module nuwa_framework::channel_tests {
     fun test_message_pagination() {
         nuwa_framework::genesis::init_for_test();
         let user = create_account_with_address(@0x42);
-        // Create a test agent
-        let (agent, cap) = agent::create_test_agent();
+        let (agent, cap) = agent::create_default_test_agent();
          
         let channel_id = channel::create_ai_peer_channel(
             &user,
@@ -136,7 +134,7 @@ module nuwa_framework::channel_tests {
         let i = 0;
         let mentions = vector::empty();
         while (i < 5) {
-            channel::send_message(&user, channel, string::utf8(b"Message"), mentions);
+            let (_, _) = channel::send_message(&user, channel, string::utf8(b"Message"), mentions, 0);
             i = i + 1;
         };
         
@@ -157,8 +155,7 @@ module nuwa_framework::channel_tests {
     fun test_member_info() {
         nuwa_framework::genesis::init_for_test();
         let user = create_account_with_address(@0x42);
-        // Create a test agent
-        let (agent, cap) = agent::create_test_agent();
+        let (agent, cap) = agent::create_default_test_agent();
         timestamp::update_global_time_for_test(1000);
         
         let channel_id = channel::create_ai_peer_channel(

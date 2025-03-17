@@ -7,7 +7,7 @@ module nuwa_framework::config {
     }
     
     /// The base fee to call the AI agent, default is 5 RGas
-    const AI_AGENT_BASE_FEE: u256 = 5_0000_0000;
+    const AI_AGENT_BASE_FEE: u256 = 15_0000_0000;
     public fun get_ai_agent_base_fee(): u256 {
         AI_AGENT_BASE_FEE
     }
@@ -16,5 +16,10 @@ module nuwa_framework::config {
     const AI_AGENT_INITIAL_FEE: u256 = 100_0000_0000;
     public fun get_ai_agent_initial_fee(): u256 {
         AI_AGENT_INITIAL_FEE
+    }
+
+    const USERNAME_REGISTRATION_FEE: u256 = 10_0000_0000;
+    public fun get_username_registration_fee(): u256 {
+        USERNAME_REGISTRATION_FEE
     }
 }

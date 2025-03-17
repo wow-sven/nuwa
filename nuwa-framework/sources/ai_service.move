@@ -1,11 +1,9 @@
 module nuwa_framework::ai_service {
     use std::string::{Self, String};
-    use std::vector;
     use std::option::{Self, Option};
     use std::signer;
     use std::u256;
-    use moveos_std::object::ObjectID;
-    use moveos_std::account;
+    use moveos_std::object::{Self, ObjectID, Object};
     use moveos_std::result::{ok, err_str, Result};
     use verity::oracles;
     use verity::registry;
@@ -20,7 +18,7 @@ module nuwa_framework::ai_service {
     friend nuwa_framework::agent_runner;
 
     const ORACLE_ADDRESS: address = @0x694cbe655b126e9e6a997e86aaab39e538abf30a8c78669ce23a98740b47b65d;
-    const NOTIFY_CALLBACK: vector<u8> = b"ai_callback::process_response_v2";
+    const NOTIFY_CALLBACK: vector<u8> = b"ai_callback::process_response";
     /// Default gas allocation for notification callbacks 0.6 RGas
     const DEFAULT_NOTIFICATION_GAS: u256 = 200000000;
     const DEFAULT_ORACLE_FEE: u256 = 3200000000;
@@ -41,69 +39,21 @@ module nuwa_framework::ai_service {
     struct PendingRequest has copy, drop, store {
         request_id: ObjectID,
         agent_obj_id: ObjectID,
-    }
-
-    struct PendingRequestV2 has copy, drop, store {
-        request_id: ObjectID,
-        agent_obj_id: ObjectID,
-        agent_input_info: nuwa_framework::agent_input::AgentInputInfo,
-    }
-
-    struct PendingRequestV3 has copy, drop, store {
-        request_id: ObjectID,
-        agent_obj_id: ObjectID,
-        agent_input_info: nuwa_framework::agent_input::AgentInputInfoV2,
-    }
-
-    struct PendingRequestV4 has copy, drop, store {
-        request_id: ObjectID,
-        agent_obj_id: ObjectID,
         agent_input_info: AgentInputInfo,
     }
 
     struct Requests has key {
-        pending: vector<PendingRequest>,
-    }
-
-    struct RequestsV2 has key {
-        pending: vector<PendingRequestV2>,
-    }
-
-    struct RequestsV3 has key {
-        pending: vector<PendingRequestV3>,
-    }
-
-    struct RequestsV4 has key {
-        pending: vector<PendingRequestV4>,
     }
 
     fun init() {
-        let signer = moveos_std::signer::module_signer<Requests>();
-        account::move_resource_to(&signer, Requests { 
-            pending: vector::empty() 
+        let requests_obj = object::new_named_object(Requests {
         });
-        init_v2();
+        object::transfer_extend(requests_obj, @nuwa_framework);
     }
 
-    entry fun init_v2() {
-        let signer = moveos_std::signer::module_signer<RequestsV2>();
-        account::move_resource_to(&signer, RequestsV2 { 
-            pending: vector::empty() 
-        });
-    }
-
-    entry fun init_v3() {
-        let signer = moveos_std::signer::module_signer<RequestsV3>();
-        account::move_resource_to(&signer, RequestsV3 { 
-            pending: vector::empty() 
-        });
-    }
-
-    entry fun init_v4() {
-        let signer = moveos_std::signer::module_signer<RequestsV4>();
-        account::move_resource_to(&signer, RequestsV4 { 
-            pending: vector::empty() 
-        });
+    fun borrow_mut_requests(): &mut Object<Requests> {
+        let requests_obj_id = object::named_object_id<Requests>();
+        object::borrow_mut_object_extend<Requests>(requests_obj_id)
     }
 
     public(friend) fun request_ai(
@@ -154,80 +104,30 @@ module nuwa_framework::ai_service {
         );
 
         // Store request information with agent ID
-        let requests = account::borrow_mut_resource<RequestsV4>(@nuwa_framework);
-        vector::push_back(&mut requests.pending, PendingRequestV4 { 
+        let requests_obj = borrow_mut_requests();
+        let pending_request = PendingRequest { 
             request_id,
             agent_obj_id,
             agent_input_info,
-        });
+        };
+        object::add_field(requests_obj, request_id, pending_request);
+    
         ok(request_id)
     }
 
-    public fun get_pending_requests(): vector<PendingRequest> {
-        let requests = account::borrow_resource<Requests>(@nuwa_framework);
-        *&requests.pending
-    }
 
-    public fun unpack_pending_request(request: PendingRequest): (ObjectID, ObjectID) {
-        (request.request_id, request.agent_obj_id)
-    }
-
-    public fun get_pending_requests_v2(): vector<PendingRequestV2> {
-        let requests = account::borrow_resource<RequestsV2>(@nuwa_framework);
-        *&requests.pending
-    }
-
-    public fun unpack_pending_request_v2(request: PendingRequestV2): (ObjectID, ObjectID, nuwa_framework::agent_input::AgentInputInfo) {
+    public(friend) fun unpack_pending_request(request: PendingRequest): (ObjectID, ObjectID, AgentInputInfo) {
         (request.request_id, request.agent_obj_id, request.agent_input_info)
     }
 
-    public fun get_pending_requests_v3(): vector<PendingRequestV3> {
-        let requests = account::borrow_resource<RequestsV3>(@nuwa_framework);
-        *&requests.pending
-    }
-
-    public fun unpack_pending_request_v3(request: PendingRequestV3): (ObjectID, ObjectID, nuwa_framework::agent_input::AgentInputInfoV2) {
-        (request.request_id, request.agent_obj_id, request.agent_input_info)
-    }
-
-    public fun get_pending_requests_v4(): vector<PendingRequestV4> {
-        let requests = account::borrow_resource<RequestsV4>(@nuwa_framework);
-        *&requests.pending
-    }
-
-    public fun unpack_pending_request_v4(request: PendingRequestV4): (ObjectID, ObjectID, AgentInputInfo) {
-        (request.request_id, request.agent_obj_id, request.agent_input_info)
-    }
-
-    public fun take_pending_request_by_id(_request_id: ObjectID): Option<PendingRequestV3> {
-        abort 0
-    }
-
-    public(friend) fun take_pending_request_by_id_v2(request_id: ObjectID): Option<PendingRequestV4> {
-        //TODO use a key-value store to optimize the lookup
-        let requests = account::borrow_mut_resource<RequestsV4>(@nuwa_framework);
-        let i = 0;
-        let len = vector::length(&requests.pending);
-        while (i < len) {
-            if (vector::borrow(&requests.pending, i).request_id == request_id) {
-                return option::some(vector::remove(&mut requests.pending, i))
-            };
-            i = i + 1;
-        };
-        option::none()
-    }
-
-    public(friend) fun remove_request(request_id: ObjectID) {
-        let requests = account::borrow_mut_resource<RequestsV4>(@nuwa_framework);
-        let i = 0;
-        let len = vector::length(&requests.pending);
-        while (i < len) {
-            if (vector::borrow(&requests.pending, i).request_id == request_id) {
-                vector::remove(&mut requests.pending, i);
-                break
-            };
-            i = i + 1;
-        };
+    public(friend) fun take_pending_request(request_id: ObjectID): Option<PendingRequest> {
+        let requests_obj = borrow_mut_requests();
+        if (object::contains_field(requests_obj, request_id)) {
+            let pending_request = object::remove_field(requests_obj, request_id);
+            option::some(pending_request)
+        } else {
+            option::none()
+        } 
     }
 
     public fun get_user_oracle_fee_balance(user_addr: address): u256 {
@@ -254,6 +154,7 @@ module nuwa_framework::ai_service {
 
     #[test]
     fun test_oracle_fee_operations() {
+        use moveos_std::account;
         oracles::init_for_test();
 
         // Initialize test accounts

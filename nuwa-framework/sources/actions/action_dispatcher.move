@@ -15,11 +15,6 @@ module nuwa_framework::action_dispatcher {
 
     friend nuwa_framework::ai_callback;
     
-    /// Error codes
-    const ERROR_INVALID_RESPONSE: u64 = 1;
-    const ERROR_MISSING_ACTION_NAME: u64 = 2;
-    const ERROR_MISSING_ARGS: u64 = 3;
-
     #[data_struct]
     struct ActionCall has copy, drop {
         action: String,
@@ -77,20 +72,7 @@ module nuwa_framework::action_dispatcher {
 
         descriptions
     }
-
-    /// Dispatch all actions from line-based format
-    public fun dispatch_actions(_agent: &mut Object<Agent>, _response: String) {
-        abort 0
-    }
-
-    public fun dispatch_actions_v2(_agent: &mut Object<Agent>, _agent_input: nuwa_framework::agent_input::AgentInputInfo, _response: String) {
-        abort 0
-    }
-
-    public fun dispatch_actions_v3(_agent: &mut Object<Agent>, _agent_input: nuwa_framework::agent_input::AgentInputInfoV2, _response: String) {
-        abort 0
-    }
-
+ 
     //TODO return result
     public(friend) fun dispatch_actions_internal(agent: &mut Object<Agent>, agent_input: AgentInputInfo, response: String) {
         let action_response = parse_line_based_response(&response);
@@ -280,21 +262,19 @@ module nuwa_framework::action_dispatcher {
     #[test]
     fun test_dispatch_actions() {
         use nuwa_framework::agent;
-        use nuwa_framework::action;
         use nuwa_framework::memory;
         use nuwa_framework::memory_action;
         use nuwa_framework::response_action;
         use nuwa_framework::channel;
         use nuwa_framework::message;
-        use nuwa_framework::agent_input_v2;
+        use nuwa_framework::agent_input;
+        use nuwa_framework::message_for_agent;
         use rooch_framework::gas_coin::RGas;
 
         // Initialize
-        rooch_framework::genesis::init_for_test();
-        nuwa_framework::character_registry::init_for_test();
-        action::init_for_test();
+        nuwa_framework::genesis::init_for_test();
 
-        let (agent, cap) = agent::create_test_agent();
+        let (agent, cap) = agent::create_default_test_agent();
         let test_addr = @0x42;
        
 
@@ -307,8 +287,7 @@ module nuwa_framework::action_dispatcher {
             true,
         );
         
-        let response_args = response_action::create_channel_message_args_v2(
-            channel_id,
+        let response_args = response_action::create_say_args(
             string::utf8(b"I understand you prefer detailed explanations.")
         );
 
@@ -318,7 +297,7 @@ module nuwa_framework::action_dispatcher {
         );
         
         let response_action = create_action_call_with_object(
-            response_action::action_name_channel_message(), 
+            response_action::action_name_say(), 
             response_args
         );
 
@@ -334,11 +313,12 @@ module nuwa_framework::action_dispatcher {
             test_addr,
             string::utf8(b"Hi, I'm Alex. I prefer learning with real code examples and practical projects. I'm very interested in Move smart contracts and blockchain development. Could you help me learn?"),
             message::type_normal(),
-            vector::empty()
+            vector::empty(),
+            0
         );
         let coin_input_info = agent_input_info::new_coin_input_info_by_type<RGas>(1000000000000000000u256);
-        let agent_input = message::new_agent_input_v4(vector[message]);
-        let agent_input_info = agent_input_v2::into_agent_input_info(agent_input, coin_input_info);
+        let agent_input = message_for_agent::new_agent_input(vector[message]);
+        let agent_input_info = agent_input::into_agent_input_info(agent_input, coin_input_info);
 
         // Execute actions
         dispatch_actions_internal(agent, agent_input_info, test_response);

@@ -7,37 +7,37 @@ module nuwa_framework::agent_info {
     #[data_struct]
     struct AgentInfo has copy, drop, store {
         id: ObjectID,
+        agent_address: address,
         name: String,            
         username: String,
         avatar: String,        
-        agent_address: address,  // AI's agent address
         description: String,
-        bio: vector<String>,
-        knowledge: vector<String>,
+        instructions: String,
         model_provider: String,
+        status: u8,
     }
 
     public fun new_agent_info(
         id: ObjectID,
+        agent_address: address,
         name: String,
         username: String,
         avatar: String,
-        agent_address: address,
         description: String,
-        bio: vector<String>,
-        knowledge: vector<String>,
+        instructions: String,
         model_provider: String,
+        status: u8,
     ): AgentInfo {
         AgentInfo {
             id,
+            agent_address,
             name,
             username,
             avatar,
-            agent_address,
             description,
-            bio,
-            knowledge,
+            instructions,
             model_provider,
+            status,
         }
     }
 
@@ -66,40 +66,34 @@ module nuwa_framework::agent_info {
         &agent_info.description
     }
 
-    public fun get_bio(agent_info: &AgentInfo): &vector<String> {
-        &agent_info.bio
-    }
-
-    public fun get_knowledge(agent_info: &AgentInfo): &vector<String> {
-        &agent_info.knowledge
+    public fun get_instructions(agent_info: &AgentInfo): &String {
+        &agent_info.instructions
     }
 
     public fun get_model_provider(agent_info: &AgentInfo): &String {
         &agent_info.model_provider
     }
 
+    public fun get_status(agent_info: &AgentInfo): u8 {
+        agent_info.status
+    }
+
     /// The PromptAgentInfo struct is used to display agent information in a prompt
     struct PromptAgentInfo has copy, drop, store {
         name: String,            
         username: String,
-        avatar: String,        
         agent_address: address,  // AI's agent address
         description: String,
-        bio: vector<String>,
-        knowledge: vector<String>,
-        model_provider: String,
+        instructions: String,
     }
 
     public fun to_prompt(agent_info: &AgentInfo): String {
         let prompt_agent_info = PromptAgentInfo {
             name: agent_info.name,
             username: agent_info.username,
-            avatar: agent_info.avatar,
             agent_address: agent_info.agent_address,
             description: agent_info.description,
-            bio: agent_info.bio,
-            knowledge: agent_info.knowledge,
-            model_provider: agent_info.model_provider,
+            instructions: agent_info.instructions,
         };
         let prompt = b"```json\n";
         vector::append(&mut prompt, json::to_json(&prompt_agent_info));
