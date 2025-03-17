@@ -222,9 +222,17 @@ export function AgentChat() {
         </div>
 
         {/* Members List Section */}
-        <div className="p-3 flex items-center space-x-2 border-b border-gray-200 dark:border-gray-700">
-          <UserGroupIcon className="w-5 h-5 text-gray-400" />
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Members</h2>
+        <div className="p-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-2">
+            <UserGroupIcon className="w-5 h-5 text-gray-400" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Members</h2>
+          </div>
+          <button
+            onClick={() => {/* TODO: 实现添加成员功能 */ }}
+            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <PlusIcon className="w-5 h-5" />
+          </button>
         </div>
         <div className="overflow-y-auto h-[calc(100vh-20rem)]">
           {members.map(member => (
