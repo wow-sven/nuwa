@@ -129,7 +129,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
           <div className="space-y-2 my-2">
             <div className="flex justify-center space-x-4 text-xs">
               <Link
-                to="/docs"
+                to="/docs/getting-started"
                 className={`px-3 py-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors ${isCollapsed ? 'justify-center' : ''}`}
               >
                 {!isCollapsed && <span>Documentation</span>}

@@ -10,6 +10,7 @@ import { CreateAgent } from './pages/CreateAgent'
 import { AllAgents } from './pages/AllAgents'
 import { ProfileRouter } from './components/ProfileRouter'
 import { useState, useEffect } from 'react'
+import { DocPage } from './pages/docs/DocPage'
 
 const queryClient = new QueryClient()
 
@@ -19,7 +20,7 @@ function AppContent() {
 
   // Check if sidebar should be collapsed when route changes
   useEffect(() => {
-    const shouldCollapse = location.pathname.startsWith('/agent/')
+    const shouldCollapse = location.pathname.startsWith('/agent/') || location.pathname.startsWith('/docs/')
     setIsSidebarCollapsed(shouldCollapse)
   }, [location.pathname])
 
@@ -35,7 +36,7 @@ function AppContent() {
           <Route path="/profile/:username" element={<ProfileRouter />} />
           <Route path="/allagents" element={<div className="p-8 h-screen overflow-auto"><AllAgents /></div>} />
           <Route path="/about" element={<div className="p-8 h-screen overflow-auto">About Page</div>} />
-          <Route path="/docs" element={<div className="p-8 h-screen overflow-auto">Docs Page</div>} />
+          <Route path="/docs/:docId" element={<DocPage />} />
         </Routes>
       </div>
     </div>
