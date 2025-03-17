@@ -1,4 +1,3 @@
-export type AgentCategory = 'featured' | 'all' | 'chat' | 'image' | 'video' | 'audio' | 'code'
 export type AgentStatus = 'online' | 'offline' | 'busy'
 
 export interface AgentStats {
@@ -19,27 +18,8 @@ export interface Agent {
   stats: AgentStats        // Statistics
   status: AgentStatus      // Status
   prompt: string          // Prompt
-  category?: AgentCategory // Category
-}
-
-export const agentCategories: AgentCategory[] = [
-  'featured',
-  'all',
-  'chat',
-  'image',
-  'video',
-  'audio',
-  'code'
-]
-
-export const categoryLabels: Record<AgentCategory, string> = {
-  featured: 'Featured',
-  all: 'All',
-  chat: 'Chat',
-  image: 'Image',
-  video: 'Video',
-  audio: 'Audio',
-  code: 'Code'
+  isFeatured?: boolean    // Whether the agent is featured
+  isTrending?: boolean    // Whether the agent is trending
 }
 
 export function isAgent(obj: any): obj is Agent {
@@ -55,5 +35,4 @@ export function isAgent(obj: any): obj is Agent {
     typeof obj.stats === 'object' &&
     typeof obj.status === 'string' &&
     typeof obj.prompt === 'string';
-
 } 

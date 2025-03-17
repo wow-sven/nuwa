@@ -14,14 +14,18 @@ export function Hero() {
 
           {/* Tagline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600 mb-6">
-            Discover and Connect with AI Characters
+            Own. Interact. Learn. Evolve on-chain
           </h1>
 
           {/* Description */}
-          <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Nuwa is your gateway to the world of AI characters. Connect with unique AI personalities,
-            explore their capabilities, and start meaningful conversations.
+          <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8">
+            Nuwa is an On-Chain AI with its own assets, on-chain operations, and continuous learning.
           </p>
+
+          {/* Talk to Nuwa Button */}
+          <button className="px-8 py-3 text-lg font-semibold text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-full hover:opacity-90 transition-opacity">
+            Talk to Nuwa
+          </button>
         </div>
       </div>
     </div>

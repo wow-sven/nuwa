@@ -164,7 +164,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
               </div>
 
               {/* AI Characters List */}
-              <div className="space-y-3 max-h-[calc(100vh-10rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                 {agentNames.map((agent) => (
                   <div
                     key={agent.agentname}
@@ -181,7 +181,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                         {agent.name}
                       </h3>
                       <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                        {agent.description}
+                        @{agent.agentname}
                       </p>
                     </div>
                   </div>

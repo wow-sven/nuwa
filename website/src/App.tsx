@@ -7,6 +7,7 @@ import { Home } from './pages/Home'
 import { AgentChat } from './pages/AgentChat'
 import { AIStudio } from './pages/AIStudio'
 import { CreateAgent } from './pages/CreateAgent'
+import { AllAgents } from './pages/AllAgents'
 import { ProfileRouter } from './components/ProfileRouter'
 import { useState, useEffect } from 'react'
 
@@ -32,6 +33,7 @@ function AppContent() {
           <Route path="/studio/create" element={<div className="p-8 h-screen overflow-auto"><CreateAgent /></div>} />
           <Route path="/agent/:agentname" element={<AgentChat />} />
           <Route path="/profile/:username" element={<ProfileRouter />} />
+          <Route path="/allagents" element={<div className="p-8 h-screen overflow-auto"><AllAgents /></div>} />
           <Route path="/about" element={<div className="p-8 h-screen overflow-auto">About Page</div>} />
           <Route path="/docs" element={<div className="p-8 h-screen overflow-auto">Docs Page</div>} />
         </Routes>

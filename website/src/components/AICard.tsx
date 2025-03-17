@@ -29,28 +29,19 @@ export function AICard({ ai }: AICardProps) {
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {ai.name}
               </h3>
-              <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                @{ai.agentname}
-              </span>
+            </div>
+            <div className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+              @{ai.agentname}
             </div>
             <p className="mt-1 text-xs sm:text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
               {ai.description}
             </p>
             <div className="mt-2 sm:mt-3 flex flex-wrap items-center gap-2 sm:gap-4">
-              {ai.category && (
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                  {ai.category}
-                </span>
-              )}
               <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                 {ai.stats.members.toLocaleString()} members
               </span>
             </div>
-            <div className="mt-1 sm:mt-2">
-              <span className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-mono">
-                {shortenAddress(ai.address)}
-              </span>
-            </div>
+
           </div>
         </div>
       </div>
