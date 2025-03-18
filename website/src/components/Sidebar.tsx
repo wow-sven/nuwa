@@ -5,6 +5,7 @@ import { MagnifyingGlassIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@
 import { mockUser } from '../mocks/user'
 import { mockAgents } from '../mocks/agent'
 import { User } from '../types/user'
+import { UsernameModal } from './UsernameModal'
 
 interface SidebarProps {
   onCollapse: (isCollapsed: boolean) => void
@@ -16,6 +17,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   const [searchQuery, setSearchQuery] = useState('')
   const [user, setUser] = useState<User | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
 
@@ -50,8 +52,18 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   }
 
   const handleConnectWallet = () => {
-    // Use unified mock data
-    setUser(mockUser)
+    setIsUsernameModalOpen(true)
+  }
+
+  const handleUsernameSubmit = (username: string) => {
+    // 使用提供的用户名创建用户
+    const newUser = {
+      ...mockUser,
+      username,
+      name: username
+    }
+    setUser(newUser)
+    setIsUsernameModalOpen(false)
   }
 
   const handleLogout = () => {
@@ -129,7 +141,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
           <div className="space-y-2 my-2">
             <div className="flex justify-center space-x-4 text-xs">
               <Link
-                to="/docs"
+                to="/docs/intro"
                 className={`px-3 py-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors ${isCollapsed ? 'justify-center' : ''}`}
               >
                 {!isCollapsed && <span>Documentation</span>}
@@ -286,6 +298,12 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
           </div>
         )}
       </div>
+
+      <UsernameModal
+        isOpen={isUsernameModalOpen}
+        onClose={() => setIsUsernameModalOpen(false)}
+        onSubmit={handleUsernameSubmit}
+      />
     </div>
   )
 } 

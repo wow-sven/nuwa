@@ -13,13 +13,13 @@ export function UserProfile() {
   // Use unified mock data
   const [user, setUser] = useState<User>({
     ...mockUser,
-    // If there's an address parameter in URL, use it
-    name: username || mockUser.name
+    username: username || mockUser.username,
+    name: mockUser.name
   })
 
   useEffect(() => {
     if (username) {
-      setUser(prev => ({ ...prev, name: username }))
+      setUser(prev => ({ ...prev, username }))
     }
   }, [username])
 
@@ -135,7 +135,7 @@ export function UserProfile() {
                       value={editForm.name}
                       onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                       className="block flex-1 text-2xl font-bold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                      placeholder="Enter name"
+                      placeholder="Enter display name"
                     />
                     <button
                       onClick={handleEditName}
@@ -160,24 +160,29 @@ export function UserProfile() {
                     <button
                       onClick={handleEditName}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                      title="Edit Username"
+                      title="Edit Display Name"
                     >
                       <PencilIcon className="w-4 h-4" />
                     </button>
                   </div>
                 )}
               </div>
-              <div className="mt-1 flex items-center space-x-2">
-                <code className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                  {user.address.slice(0, 6)}...{user.address.slice(-4)}
-                </code>
-                <button
-                  onClick={() => handleCopy(user.address)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  title="Copy Address"
-                >
-                  <ClipboardIcon className="w-4 h-4" />
-                </button>
+              <div className="mt-1 flex flex-col space-y-2">
+                <div className="text-gray-500 dark:text-gray-400">
+                  @{user.username}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <code className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+                    {user.address.slice(0, 6)}...{user.address.slice(-4)}
+                  </code>
+                  <button
+                    onClick={() => handleCopy(user.address)}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    title="Copy Address"
+                  >
+                    <ClipboardIcon className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
 

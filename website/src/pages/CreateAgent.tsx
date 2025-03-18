@@ -8,6 +8,7 @@ interface CreateAgentForm {
     avatar: string | null
     description: string
     prompt: string
+    isPaid: boolean
 }
 
 export function CreateAgent() {
@@ -18,16 +19,17 @@ export function CreateAgent() {
         name: '',
         avatar: null,
         description: '',
-        prompt: ''
+        prompt: '',
+        isPaid: false
     })
     const [errors, setErrors] = useState<Partial<CreateAgentForm>>({})
     const [previewAvatar, setPreviewAvatar] = useState<string | null>(null)
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = e.target
+        const { name, value, type, checked } = e.target as HTMLInputElement
         setForm(prev => ({
             ...prev,
-            [name]: value
+            [name]: type === 'checkbox' ? checked : value
         }))
         // Clear error when user types
         if (errors[name as keyof CreateAgentForm]) {
@@ -187,6 +189,23 @@ export function CreateAgent() {
                                 className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
                                 placeholder="Enter agent prompt"
                             />
+                        </div>
+
+                        {/* Paid Option */}
+                        <div className="mb-6">
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="isPaid"
+                                    name="isPaid"
+                                    checked={form.isPaid}
+                                    onChange={handleInputChange}
+                                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                />
+                                <label htmlFor="isPaid" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                    It takes 100 RGAS to create an agent. It will be charged to the agent's account.
+                                </label>
+                            </div>
                         </div>
 
                         {/* Submit Button */}
