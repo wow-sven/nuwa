@@ -1,11 +1,20 @@
-import React from 'react';
+import { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
+import mermaid from 'mermaid';
 
 interface DocContentProps {
     content: string;
 }
 
-export const DocContent: React.FC<DocContentProps> = ({ content }) => {
+export const DocContent = ({ content }: DocContentProps) => {
+    useEffect(() => {
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            securityLevel: 'loose',
+        });
+    }, []);
+
     return (
         <div className="max-w-3xl mx-auto px-6 py-12 bg-white dark:bg-gray-900">
             <div className="prose prose-slate dark:prose-invert max-w-none
@@ -38,7 +47,23 @@ export const DocContent: React.FC<DocContentProps> = ({ content }) => {
                 prose-td:px-4 prose-td:py-2
                 prose-img:rounded-lg prose-img:shadow-md prose-img:mx-auto
                 prose-figure:my-8">
-                <ReactMarkdown>{content}</ReactMarkdown>
+                <ReactMarkdown
+                    components={{
+                        code({ className, children }) {
+                            const match = /language-(\w+)/.exec(className || '');
+                            if (match && match[1] === 'mermaid') {
+                                return (
+                                    <div className="mermaid my-8">
+                                        {String(children).replace(/\n$/, '')}
+                                    </div>
+                                );
+                            }
+                            return <code className={className}>{children}</code>;
+                        },
+                    }}
+                >
+                    {content}
+                </ReactMarkdown>
             </div>
         </div>
     );
