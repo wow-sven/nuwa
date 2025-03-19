@@ -1,14 +1,29 @@
 export function Hero() {
   return (
-    <div className="bg-gradient-to-b from-purple-50 to-white dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-16 sm:py-24">
+    <div className="relative min-h-[600px]">
+      <div className="absolute inset-0 bg-gradient-to-b from-white via-white/95 to-[#FF15FB] dark:from-gray-900 dark:via-gray-900 dark:to-[#FF15FB] bg-[length:100%_200%] bg-[position:0%_30%]"></div>
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url('/hero-background.png')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      ></div>
+      <div className="relative container mx-auto px-4 py-16 sm:py-24">
         <div className="text-center">
           {/* Logo */}
           <div className="flex justify-center mb-8 sm:mb-12">
             <img
-              src="/nuwa-logo-horizontal.svg"
+              src="/nuwa-logo-horizontal-dark.svg"
+              className="h-16 sm:h-20 w-auto hidden dark:block"
               alt="Nuwa"
-              className="h-16 sm:h-20 w-auto dark:brightness-[10]"
+            />
+            <img
+              src="/nuwa-logo-horizontal.svg"
+              className="h-16 sm:h-20 w-auto dark:hidden"
+              alt="Nuwa"
             />
           </div>
 

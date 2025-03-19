@@ -1,16 +1,10 @@
 export function CreateAISection() {
   return (
-    <div className="bg-gradient-to-b from-white to-purple-50 dark:from-gray-800 dark:to-gray-900 py-16 sm:py-24">
+    <div className="bg-gradient-to-b from-white to-purple-50 dark:from-gray-800 dark:to-gray-900 py-16 sm:py-24 bg-[url('/createai-background.png')] bg-cover bg-center bg-no-repeat">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
-          {/* Image */}
-          <div className="w-full md:w-1/2 flex justify-center">
-            <img
-              src="/create-ai-illustration.svg"
-              alt="Create AI"
-              className="w-full max-w-lg h-auto"
-            />
-          </div>
+          {/* Empty div to maintain layout */}
+          <div className="w-full md:w-1/2"></div>
 
           {/* Content */}
           <div className="w-full md:w-1/2 text-center md:text-left">
@@ -18,7 +12,7 @@ export function CreateAISection() {
               Create Your Own AI Character
             </h2>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
-              Join the AI revolution by creating your own unique AI character. 
+              Join the AI revolution by creating your own unique AI character.
               Share your AI's capabilities with the world and connect with other creators.
             </p>
             <button
