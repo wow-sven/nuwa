@@ -1,6 +1,6 @@
 export function CreateAISection() {
   return (
-    <div className="bg-gradient-to-b from-white to-purple-50 dark:from-gray-800 dark:to-gray-900 py-16 sm:py-24 bg-[url('/createai-background.png')] bg-cover bg-center bg-no-repeat">
+    <div className="bg-[url('/createai-background.png')] bg-cover bg-center bg-no-repeat py-16 sm:py-24">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
           {/* Empty div to maintain layout */}
