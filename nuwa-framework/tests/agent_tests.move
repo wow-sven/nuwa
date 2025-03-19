@@ -10,8 +10,9 @@ module nuwa_framework::agent_tests {
     use nuwa_framework::channel;
     use nuwa_framework::message;
     use nuwa_framework::agent_input_info;
-    use nuwa_framework::task_spec;
     use nuwa_framework::message_for_agent;
+    use nuwa_framework::prompt_input;
+    
     #[test]
     fun test_prompt_builder() {
         nuwa_framework::genesis::init_for_test();
@@ -47,16 +48,15 @@ module nuwa_framework::agent_tests {
         
         let agent_input_info = agent_input::into_agent_input_info(agent_input, coin_input);
         
-        let app_task_specs = task_spec::empty_task_specifications();
         // Get first prompt
-        let prompt = agent_runner::generate_system_prompt(agent, agent_input_info, app_task_specs);
-
+        let prompt_input = agent_runner::generate_system_prompt(agent, agent_input_info);
+        let prompt = prompt_input::format_prompt(&prompt_input);
         // Print first prompt for debugging
         debug::print(&string::utf8(b"First Prompt:"));
         debug::print(string::bytes(&prompt));
 
         // Clean up
         channel::delete_channel_for_testing(channel_id);
-        agent::destroy_agent_cap(cap);
+        agent::destroy_agent_cap(agent, cap);
     }
 }

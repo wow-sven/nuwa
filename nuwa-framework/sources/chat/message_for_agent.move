@@ -6,6 +6,7 @@ module nuwa_framework::message_for_agent {
     use moveos_std::json;
     use nuwa_framework::message::{Self, Message};
     use nuwa_framework::agent_input::{Self, AgentInput};
+    use nuwa_framework::task_spec;
 
     #[data_struct]
     struct MessageForAgent has copy, drop, store{
@@ -15,6 +16,7 @@ module nuwa_framework::message_for_agent {
         timestamp: u64,
         message_type: u8,
         reply_to: u64,
+        status: u8,
     }
 
     /// Message Input Description
@@ -38,6 +40,7 @@ module nuwa_framework::message_for_agent {
                 timestamp: message::get_timestamp(&msg),
                 message_type: message::get_type(&msg),
                 reply_to: message::get_reply_to(&msg),
+                status: message::get_status(&msg),
             });
         });
         let current = vector::pop_back(&mut messages_for_agent);
@@ -45,6 +48,7 @@ module nuwa_framework::message_for_agent {
         string::append(&mut description, object::to_string(&channel_id));
         string::append(&mut description, string::utf8(b")\n"));
         string::append(&mut description, string::utf8(MESSAGE_INPUT_DESCRIPTION));
+        let app_task_specs = task_spec::empty_task_specifications();
         agent_input::new_agent_input(
             current.sender,
             channel_id,
@@ -52,7 +56,8 @@ module nuwa_framework::message_for_agent {
             MessageInput {
                 history: messages_for_agent,
                 current,
-            }
+            },
+            app_task_specs
         )
     }
 
