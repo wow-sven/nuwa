@@ -21,8 +21,8 @@ function AppContent() {
   }, [location.pathname])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-      <Sidebar onCollapse={setIsSidebarCollapsed} isCollapsed={isSidebarCollapsed}/>
+    <div className="flex h-screen overflow-hidden dark:bg-gray-900">
+      <Sidebar onCollapse={setIsSidebarCollapsed} isCollapsed={isSidebarCollapsed} />
       <div className={`flex-1 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
         <Routes>
           <Route path="/" element={<div className="p-8 h-screen overflow-auto"><Home /></div>} />
