@@ -4,11 +4,11 @@ import './index.css'
 import "@roochnetwork/rooch-sdk-kit/dist/index.css";
 import '@radix-ui/themes/styles.css';
 import App from './App.tsx'
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
-import {Theme} from '@radix-ui/themes'
-import {networkConfig} from "./hooks/use-networks.ts";
-import {PACKAGE_ID} from "./constants.ts";
-import {RoochProvider, WalletProvider} from "@roochnetwork/rooch-sdk-kit";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Theme } from '@radix-ui/themes'
+import { networkConfig } from "./hooks/use-networks.ts";
+import { PACKAGE_ID } from "./constants.ts";
+import { RoochProvider, WalletProvider } from "@roochnetwork/rooch-sdk-kit";
 
 const queryClient = new QueryClient()
 
