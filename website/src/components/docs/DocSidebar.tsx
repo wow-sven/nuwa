@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 
 const docs = [
     { path: '/docs/intro', title: 'Nuwa Introduction' },
+    { path: '/docs/use-cases', title: 'Use Cases' },
     { path: '/docs/create-agent', title: 'Create Agent' },
     { path: '/docs/security', title: 'Security' },
     { path: '/docs/future-works', title: 'Future Works' },
