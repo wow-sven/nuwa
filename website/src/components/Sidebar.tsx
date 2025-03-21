@@ -7,6 +7,9 @@ import { mockAgents } from '../mocks/agent'
 import { User } from '../types/user'
 import { UsernameModal } from './UsernameModal'
 import { ThemeToggle } from './ThemeToggle'
+import { useConnectionStatus, useCurrentAddress, useSubscribeOnRequest } from '@roochnetwork/rooch-sdk-kit'
+import useRgasBalance from '../hooks/use-rgas-balance'
+import useAllAgents from '../hooks/use-all-agents'
 
 interface SidebarProps {
   onCollapse: (isCollapsed: boolean) => void
