@@ -1,6 +1,4 @@
 import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Theme } from '@radix-ui/themes'
 import { Toaster } from 'react-hot-toast'
 import { Sidebar } from './components/Sidebar'
 import { Home } from './pages/Home'
@@ -15,12 +13,18 @@ import { mockUser } from './mocks/user'
 import { User } from './types/user'
 import { NewPage } from './pages/NewPage'
 import { ThemeToggle } from './components/ThemeToggle'
+import { ConnectButton, useConnectionStatus, useCurrentAddress, useSubscribeOnRequest } from '@roochnetwork/rooch-sdk-kit'
+import useRgasBalance from './hooks/use-rgas-balance'
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [user, setUser] = useState<User | null>(null)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const location = useLocation()
+  const address = useCurrentAddress()
+  const connectionStatus = useConnectionStatus()
+  const {rGas, refetchBalance} = useRgasBalance()
+  const subscribeOnRequest = useSubscribeOnRequest()
 
   // Check if sidebar should be collapsed when route changes
   useEffect(() => {
@@ -52,10 +56,40 @@ function AppContent() {
     return () => observer.disconnect()
   }, [])
 
-  const handleConnectWallet = () => {
-    // TODO: Implement wallet connection
-    console.log('Connect wallet clicked')
+  const handleLogout = () => {
+    setUser(null)
+    const prefix = 'rooch-sdk-kit'
+
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith(prefix)) {
+        localStorage.removeItem(key)
+      }
+    })
+    window.location.reload()
   }
+
+  useEffect(() => {
+    const unsubscribe = subscribeOnRequest((status) => {
+      switch (status) {
+        case 'success':
+          refetchBalance()
+          break
+      }
+    })
+
+    return () => {
+      unsubscribe()
+    }
+  }, [subscribeOnRequest, address, refetchBalance])
+
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      setUser({
+        ...mockUser,
+        rgasBalance: rGas?.fixedBalance || 0
+      })
+    }
+  }, [rGas]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
@@ -83,12 +117,11 @@ function AppContent() {
               <ThemeToggle />
             </div>
             {!user ? (
-              <button
-                onClick={handleConnectWallet}
+              <ConnectButton
                 className="px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
               >
                 Connect Wallet
-              </button>
+              </ConnectButton>
             ) : (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-gray-600 dark:text-gray-300">

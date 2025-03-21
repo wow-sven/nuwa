@@ -1,14 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Logo } from './Logo'
-import { MagnifyingGlassIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from '@heroicons/react/24/outline'
-import { mockUser } from '../mocks/user'
-import { mockAgents } from '../mocks/agent'
-import { User } from '../types/user'
-import { UsernameModal } from './UsernameModal'
-import { ThemeToggle } from './ThemeToggle'
-import { useConnectionStatus, useCurrentAddress, useSubscribeOnRequest } from '@roochnetwork/rooch-sdk-kit'
-import useRgasBalance from '../hooks/use-rgas-balance'
+import { useNavigate } from 'react-router-dom'
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import useAllAgents from '../hooks/use-all-agents'
 
 interface SidebarProps {
@@ -17,17 +9,11 @@ interface SidebarProps {
 }
 
 export function Sidebar({onCollapse, isCollapsed: propIsCollapsed}: SidebarProps) {
-  const address = useCurrentAddress()
   const [localIsCollapsed, setLocalIsCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [user, setUser] = useState<User | null>(null)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
-  const connectionStatus = useConnectionStatus()
-  const {rGas, refetchBalance} = useRgasBalance()
-  const subscribeOnRequest = useSubscribeOnRequest()
   const {agents} = useAllAgents()
 
   // Use prop value or local state
@@ -60,65 +46,16 @@ export function Sidebar({onCollapse, isCollapsed: propIsCollapsed}: SidebarProps
     setIsDropdownOpen(false)
   }
 
-  const handleConnectWallet = () => {
-    setIsUsernameModalOpen(true)
-  }
-
-  const handleUsernameSubmit = (username: string) => {
-    // 使用提供的用户名创建用户
-    const newUser = {
-      ...mockUser,
-      username,
-      name: username
-    }
-    setUser(newUser)
-    setIsUsernameModalOpen(false)
-  }
-
-  const handleLogout = () => {
-    setUser(null)
-    const prefix = 'rooch-sdk-kit'
-
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith(prefix)) {
-        localStorage.removeItem(key)
-      }
-    })
-    window.location.reload()
-    setIsDropdownOpen(false)
-  }
-
-  const handleSettings = () => {
-    navigate(`/profile/${user?.username}`)
-    setIsDropdownOpen(false)
-  }
-
-  const toggleDropdown = () => {
-    setIsDropdownOpen(!isDropdownOpen)
-  }
-
-  useEffect(() => {
-    const unsubscribe = subscribeOnRequest((status) => {
-      switch (status) {
-        case 'success':
-          refetchBalance()
-          break
-      }
-    })
-
-    return () => {
-      unsubscribe()
-    }
-  }, [subscribeOnRequest, address, refetchBalance])
-
-  useEffect(() => {
-    if (connectionStatus === 'connected') {
-      setUser({
-        ...mockUser,
-        rgasBalance: rGas?.fixedBalance || 0
-      })
-    }
-  }, [rGas]);
+  // const handleUsernameSubmit = (username: string) => {
+  //   // 使用提供的用户名创建用户
+  //   const newUser = {
+  //     ...mockUser,
+  //     username,
+  //     name: username
+  //   }
+  //   setUser(newUser)
+  //   setIsUsernameModalOpen(false)
+  // }
 
   return (
     <div
@@ -222,95 +159,6 @@ export function Sidebar({onCollapse, isCollapsed: propIsCollapsed}: SidebarProps
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="mt-auto">
-          {/* User Profile */}
-          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
-            <div className="p-4">
-              {user && (
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={toggleDropdown}
-                    className="w-full flex items-center space-x-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg p-2 transition-colors focus:outline-none focus:ring-0 focus:ring-offset-0"
-                  >
-                    <img
-                      src={user.avatar}
-                      alt={user.name}
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <div className="flex-1 text-left">
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300 block">
-                        {user.name}
-                      </span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {user.rgasBalance.toLocaleString()} RGAS
-                      </span>
-                    </div>
-                  </button>
-
-                  {/* Dropdown Menu */}
-                  {isDropdownOpen && (
-                    <div
-                      className="absolute bottom-full left-0 mb-2 w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 transition-all duration-200 ease-in-out">
-                      <button
-                        onClick={handleSettings}
-                        className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-0 focus:ring-offset-0"
-                      >
-                        <Cog6ToothIcon className="w-4 h-4"/>
-                        <span>Settings</span>
-                      </button>
-                      <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-0 focus:ring-offset-0"
-                      >
-                        <ArrowRightOnRectangleIcon className="w-4 h-4"/>
-                        <span>Logout</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Collapsed User Avatar with Dropdown */}
-        {isCollapsed && user && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center transition-all duration-300 ease-in-out"
-               ref={dropdownRef}>
-            <button
-              onClick={toggleDropdown}
-              className="focus:outline-none focus:ring-0 focus:ring-offset-0 p-0"
-            >
-              <img
-                src={user.avatar}
-                alt={user.name}
-                className="w-8 h-8 rounded-full"
-              />
-            </button>
-
-            {/* Collapsed Dropdown Menu */}
-            {isDropdownOpen && (
-              <div
-                className="absolute bottom-full left-[calc(160%)] transform -translate-x-1/2 mb-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 transition-all duration-200 ease-in-out">
-                <button
-                  onClick={handleSettings}
-                  className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-0 focus:ring-offset-0"
-                >
-                  <Cog6ToothIcon className="w-4 h-4"/>
-                  <span>Settings</span>
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-red-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-0 focus:ring-offset-0"
-                >
-                  <ArrowRightOnRectangleIcon className="w-4 h-4"/>
-                  <span>Logout</span>
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* <UsernameModal
