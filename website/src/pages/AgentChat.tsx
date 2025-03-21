@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Chat } from '../components/Chat'
 import { Message, Topic } from '../types/chat'
-import { Agent } from '../types/agent'
 import { PlusIcon, ChatBubbleLeftIcon, UserCircleIcon, UserGroupIcon, CurrencyDollarIcon, ChartBarIcon } from '@heroicons/react/24/outline'
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import { mockMessages, mockTopics, mockMembers } from '../mocks/chat'
