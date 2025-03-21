@@ -20,6 +20,7 @@ export function AgentChat() {
   const [isCreatingTopic, setIsCreatingTopic] = useState(false)
   const [newTopicTitle, setNewTopicTitle] = useState('')
 
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim()) return
 
