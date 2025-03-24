@@ -5,6 +5,7 @@ export interface AgentStats {
 }
 
 export interface Agent {
+  id: string                 // Agent Object ID
   address: string                 // Agent address
   username: string         // Agent name (associated with AgentName)
   name: string              // Display name

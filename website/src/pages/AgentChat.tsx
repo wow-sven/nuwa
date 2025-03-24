@@ -82,13 +82,13 @@ export function AgentChat() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="h-[calc(100vh-4rem)] flex bg-gray-50 dark:bg-gray-900">
       {/* Left Sidebar */}
-      <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-        <div className="p-4">
+      <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+        <div className="p-4 flex-none">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Dialog List</h2>
         </div>
-        <div className="overflow-y-auto h-[calc(100vh-4rem)]">
+        <div className="flex-1 overflow-y-auto">
           {topics.map(topic => (
             <div
               key={topic.id}
@@ -120,37 +120,39 @@ export function AgentChat() {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Chat Header */}
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex-none p-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {selectedTopic?.title}
           </h2>
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.map(message => (
-            <div
-              key={message.id}
-              className={`flex ${message.sender === 'User' ? 'justify-end' : 'justify-start'
-                }`}
-            >
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 space-y-4">
+            {messages.map(message => (
               <div
-                className={`max-w-[70%] rounded-lg p-3 ${message.sender === 'User'
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                key={message.id}
+                className={`flex ${message.sender === 'User' ? 'justify-end' : 'justify-start'
                   }`}
               >
-                <p className="text-sm">{message.content}</p>
-                <p className="text-xs mt-1 opacity-70">
-                  {new Date(message.timestamp).toLocaleTimeString()}
-                </p>
+                <div
+                  className={`max-w-[70%] rounded-lg p-3 ${message.sender === 'User'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                    }`}
+                >
+                  <p className="text-sm">{message.content}</p>
+                  <p className="text-xs mt-1 opacity-70">
+                    {new Date(message.timestamp).toLocaleTimeString()}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Input Area */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex-none p-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex space-x-2">
             <input
               type="text"
@@ -171,9 +173,9 @@ export function AgentChat() {
       </div>
 
       {/* Right Sidebar - Agent Profile & Members List */}
-      <div className="w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
+      <div className="w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
         {/* Agent Profile Section */}
-        <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex-none p-3 border-b border-gray-200 dark:border-gray-700">
           <div className="flex flex-col items-center">
             <img
               src="https://api.dicebear.com/7.x/bottts/svg?seed=1"
@@ -220,7 +222,7 @@ export function AgentChat() {
         </div>
 
         {/* Members List Section */}
-        <div className="p-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+        <div className="flex-none p-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-2">
             <UserGroupIcon className="w-5 h-5 text-gray-400" />
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Members</h2>
@@ -232,7 +234,7 @@ export function AgentChat() {
             <PlusIcon className="w-5 h-5" />
           </button>
         </div>
-        <div className="overflow-y-auto h-[calc(100vh-20rem)]">
+        <div className="flex-1 overflow-y-auto">
           {members.map(member => (
             <div
               key={member.id}

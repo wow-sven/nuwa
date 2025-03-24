@@ -33,7 +33,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
     >
       <div className="flex flex-col h-full">
         {/* Collapse Button */}
-        <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-end'} px-2 py-2`}>
+        <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-start'} px-2 py-2`}>
           <button
             onClick={handleCollapse}
             className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-0 focus:ring-offset-0 transition-colors duration-200 rounded-lg text-gray-600 dark:text-gray-300"

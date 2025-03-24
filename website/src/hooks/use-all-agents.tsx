@@ -30,6 +30,7 @@ export default function useAllAgents() {
         const username = String(agentData.username || 'unnamed');
 
         return {
+          id: obj.id,
           address: agentAddress,
           username,
           name: String(agentData.name || 'Unnamed Agent'),

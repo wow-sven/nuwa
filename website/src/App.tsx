@@ -17,6 +17,11 @@ function AppContent() {
   const [isDarkMode, setIsDarkMode] = useState(false)
   const location = useLocation()
 
+  // 监听路由变化，滚动到顶部
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
   // Check if sidebar should be collapsed when route changes
   useEffect(() => {
     const shouldCollapse = location.pathname.startsWith('/agent/') || location.pathname.startsWith('/docs/')
@@ -48,22 +53,21 @@ function AppContent() {
   }, [])
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header isDarkMode={isDarkMode} />
 
       {/* Main Content */}
-      <div className="flex-1 pt-16">
+      <div className="flex flex-1 pt-16">
         <Sidebar onCollapse={setIsSidebarCollapsed} isCollapsed={isSidebarCollapsed} />
         <div className={`flex-1 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
           <Routes>
-            <Route path="/" element={<div className="p-8 h-screen overflow-auto"><Home /></div>} />
-            <Route path="/new" element={<div className="p-8 h-screen overflow-auto"><NewPage /></div>} />
-            <Route path="/studio" element={<div className="p-8 h-screen overflow-auto"><AIStudio /></div>} />
-            <Route path="/studio/create" element={<div className="p-8 h-screen overflow-auto"><CreateAgent /></div>} />
+            <Route path="/" element={<Home />} />
+            <Route path="/new" element={<NewPage />} />
+            <Route path="/studio" element={<AIStudio />} />
+            <Route path="/studio/create" element={<CreateAgent />} />
             <Route path="/agent/:agentname" element={<AgentChat />} />
             <Route path="/profile/:username" element={<ProfileRouter />} />
-            <Route path="/allagents" element={<div className="p-8 h-screen overflow-auto"><AllAgents /></div>} />
-            <Route path="/about" element={<div className="p-8 h-screen overflow-auto">About Page</div>} />
+            <Route path="/allagents" element={<AllAgents />} />
             <Route path="/docs/:docId" element={<DocPage />} />
           </Routes>
         </div>
