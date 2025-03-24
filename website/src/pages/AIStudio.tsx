@@ -46,7 +46,7 @@ export function AIStudio() {
                             {sortedAgents.map((agent) => (
                                 <div key={agent.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 relative flex flex-col min-h-[200px]">
                                     <button
-                                        onClick={() => navigate(`/agent/${agent.name}`)}
+                                        onClick={() => navigate(`/agent/${agent.id}`)}
                                         className="absolute top-3 right-3 flex items-center justify-center p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
                                         title="Chat"
                                     >
@@ -62,7 +62,7 @@ export function AIStudio() {
                                     </div>
                                     <div className="flex items-center space-x-3 mt-auto">
                                         <button
-                                            onClick={() => navigate(`/profile/${agent.id}`)}
+                                            onClick={() => navigate(`/agent/profile/${agent.id}`)}
                                             className="flex-1 flex items-center justify-center space-x-2 bg-purple-600 text-white rounded-lg px-4 py-2 hover:bg-purple-700"
                                         >
                                             {caps.has(agent.id) && <PencilIcon className="w-5 h-5" />}

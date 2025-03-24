@@ -11,6 +11,8 @@ import { useState, useEffect } from 'react'
 import { DocPage } from './pages/docs/DocPage'
 import { NewPage } from './pages/NewPage'
 import { Header } from './components/Header'
+import { UserProfile } from './pages/UserProfile'
+import { AgentProfile } from './pages/AgentProfile'
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -60,8 +62,9 @@ function AppContent() {
             <Route path="/new" element={<div className="p-8 h-screen overflow-auto"><NewPage /></div>} />
             <Route path="/studio" element={<div className="p-8 h-screen overflow-auto"><AIStudio /></div>} />
             <Route path="/studio/create" element={<div className="p-8 h-screen overflow-auto"><CreateAgent /></div>} />
-            <Route path="/agent/:agentname" element={<AgentChat />} />
-            <Route path="/profile/:username" element={<ProfileRouter />} />
+            <Route path="/agent/:id" element={<AgentChat />} />
+            <Route path="/user/profile/:id" element={<div className="h-screen overflow-auto"><UserProfile /></div>} />
+            <Route path="/agent/profile/:id" element={<div className="h-screen overflow-auto"><AgentProfile /></div>} />
             <Route path="/allagents" element={<div className="p-8 h-screen overflow-auto"><AllAgents /></div>} />
             <Route path="/about" element={<div className="p-8 h-screen overflow-auto">About Page</div>} />
             <Route path="/docs/:docId" element={<DocPage />} />

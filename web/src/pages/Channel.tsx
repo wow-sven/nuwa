@@ -7,9 +7,9 @@ import { Layout } from '../components/Layout';
 import { ChatMessage } from '../components/ChatMessage';
 import { ChatInput } from '../components/ChatInput';
 import { TypingIndicator } from '../components/TypingIndicator';
-import { Channel, Message, CHANNEL_STATUS, MessageSchema, CHANNEL_TYPE } from '../types/channel'; // Add MessageSchema to imports
+import { Message, CHANNEL_STATUS, CHANNEL_TYPE } from '../types/channel'; // Add MessageSchema to imports
 import { formatTimestamp } from '../utils/time';
-import { deserializeObjectIDVec, ObjectIDVecSchema } from '../types/object';
+import { deserializeObjectIDVec } from '../types/object';
 
 export function ChannelPage() {
   const { channelId } = useParams<{ channelId: string }>();
