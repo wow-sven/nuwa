@@ -10,7 +10,7 @@ export const DocPage: React.FC = () => {
     React.useEffect(() => {
         // In a real application, this should fetch from a backend API
         // For now, we're loading from local files
-        fetch(`/src/content/docs/${docId}.md`)
+        fetch(`/public/docs/${docId}.md`)
             .then((response) => response.text())
             .then((text) => setContent(text))
             .catch((error) => console.error('Error loading document:', error));
