@@ -1,7 +1,7 @@
-import {useNetworkVariable} from "./use-networks.ts";
-import {useRoochClient} from "@roochnetwork/rooch-sdk-kit";
-import {useQuery} from "@tanstack/react-query";
-import {RoochAddress} from "@roochnetwork/rooch-sdk";
+import { useNetworkVariable } from "./use-networks.ts";
+import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
+import { useQuery } from "@tanstack/react-query";
+import { RoochAddress } from "@roochnetwork/rooch-sdk";
 
 export default function useAllAgents() {
   const client = useRoochClient()
@@ -31,7 +31,7 @@ export default function useAllAgents() {
           name: String(agentData.name || 'Unnamed Agent'),
           username: String(agentData.username || 'unnamed'),
           description: String(agentData.description || 'No description available'),
-          avatar: String(agentData.avatar || ''),
+          avatar: String(agentData.avatar || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + agentData.username),
           agent_address: agentAddress,
         };
       })
@@ -39,6 +39,6 @@ export default function useAllAgents() {
   })
 
   return {
-    agents:agents??[], isPending, isError, refetch
+    agents: agents ?? [], isPending, isError, refetch
   }
 }
