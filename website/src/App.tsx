@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, useLocation, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { Sidebar } from './components/Sidebar'
 import { Home } from './pages/Home'
@@ -9,22 +9,13 @@ import { AllAgents } from './pages/AllAgents'
 import { ProfileRouter } from './components/ProfileRouter'
 import { useState, useEffect } from 'react'
 import { DocPage } from './pages/docs/DocPage'
-import { mockUser } from './mocks/user'
-import { User } from './types/user'
 import { NewPage } from './pages/NewPage'
-import { ThemeToggle } from './components/ThemeToggle'
-import { ConnectButton, useConnectionStatus, useCurrentAddress, useSubscribeOnRequest } from '@roochnetwork/rooch-sdk-kit'
-import useRgasBalance from './hooks/use-rgas-balance'
+import { Header } from './components/Header'
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
-  const [user, setUser] = useState<User | null>(null)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const location = useLocation()
-  const address = useCurrentAddress()
-  const connectionStatus = useConnectionStatus()
-  const {rGas, refetchBalance} = useRgasBalance()
-  const subscribeOnRequest = useSubscribeOnRequest()
 
   // Check if sidebar should be collapsed when route changes
   useEffect(() => {
@@ -56,87 +47,9 @@ function AppContent() {
     return () => observer.disconnect()
   }, [])
 
-  const handleLogout = () => {
-    setUser(null)
-    const prefix = 'rooch-sdk-kit'
-
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith(prefix)) {
-        localStorage.removeItem(key)
-      }
-    })
-    window.location.reload()
-  }
-
-  useEffect(() => {
-    const unsubscribe = subscribeOnRequest((status) => {
-      switch (status) {
-        case 'success':
-          refetchBalance()
-          break
-      }
-    })
-
-    return () => {
-      unsubscribe()
-    }
-  }, [subscribeOnRequest, address, refetchBalance])
-
-  useEffect(() => {
-    if (connectionStatus === 'connected') {
-      setUser({
-        ...mockUser,
-        rgasBalance: rGas?.fixedBalance || 0
-      })
-    }
-  }, [rGas]);
-
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-      {/* Top Navigation Bar */}
-      <div className="fixed top-0 right-0 left-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
-        <div className="h-full flex items-center justify-between px-4">
-          {/* Logo */}
-          <Link to="/" className="flex items-center">
-            <img 
-              src={isDarkMode ? "/nuwa-logo-horizontal-dark.svg" : "/nuwa-logo-horizontal.svg"} 
-              alt="Nuwa Logo" 
-              className="h-8 w-auto" 
-            />
-          </Link>
-          
-          {/* Right side content */}
-          <div className="flex items-center space-x-4">
-            <Link
-              to="/docs/intro"
-              className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-            >
-              Documentation
-            </Link>
-            <div className="p-1">
-              <ThemeToggle />
-            </div>
-            {!user ? (
-              <ConnectButton
-                className="px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
-              >
-                Connect Wallet
-              </ConnectButton>
-            ) : (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600 dark:text-gray-300">
-                  {user.rgasBalance.toLocaleString()} RGAS
-                </span>
-                <img
-                  src={user.avatar}
-                  alt={user.name}
-                  className="w-8 h-8 rounded-full"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <Header isDarkMode={isDarkMode} />
 
       {/* Main Content */}
       <div className="flex-1 pt-16">
@@ -162,8 +75,8 @@ function AppContent() {
 function App() {
   return (
     <Router>
-      <AppContent/>
-      <Toaster position="bottom-right"/>
+      <AppContent />
+      <Toaster position="bottom-right" />
     </Router>
   )
 }
