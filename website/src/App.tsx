@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react'
 import { DocPage } from './pages/docs/DocPage'
 import { NewPage } from './pages/NewPage'
 import { Header } from './components/Header'
+import { HelmetProvider } from 'react-helmet-async'
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -78,10 +79,12 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-      <Toaster position="bottom-right" />
-    </Router>
+    <HelmetProvider>
+      <Router>
+        <AppContent />
+        <Toaster position="bottom-right" />
+      </Router>
+    </HelmetProvider>
   )
 }
 

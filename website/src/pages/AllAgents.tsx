@@ -1,7 +1,8 @@
 import { AICard } from '../components/AICard'
 import useAllAgents from '../hooks/use-all-agents'
+import { SEO } from '../components/SEO'
 
-export function AllAgents() {
+export const AllAgents = () => {
     const { agents, isPending, isError } = useAllAgents()
 
     if (isPending) {
@@ -20,17 +21,23 @@ export function AllAgents() {
         )
     }
 
-
     return (
-        <div className="min-h-screen">
-            <div className="container mx-auto px-4 py-12">
-                <h1 className="text-3xl font-bold mb-8">All Agents</h1>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {agents.map(ai => (
-                        <AICard key={ai.agent_address} ai={ai} />
-                    ))}
+        <>
+            <SEO
+                title="All Agents"
+                description="Browse all AI agents on Nuwa platform. Discover and interact with autonomous AI agents that can manage crypto assets and execute on-chain operations."
+                keywords="AI Agents, Web3 AI, Autonomous Agents, Crypto Agents, Blockchain AI, Nuwa Agents"
+            />
+            <div className="min-h-screen">
+                <div className="container mx-auto px-4 py-12">
+                    <h1 className="text-3xl font-bold mb-8">All Agents</h1>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {agents.map(ai => (
+                            <AICard key={ai.agent_address} ai={ai} />
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     )
 } 
