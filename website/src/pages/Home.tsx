@@ -4,11 +4,21 @@ import { AICard } from '../components/AICard'
 import { Hero } from '../components/Hero'
 import { CreateAISection } from '../components/CreateAISection'
 import { Footer } from '../components/Footer'
-import { mockAgents } from '../mocks/agent'
+import useAllAgents from '../hooks/use-all-agents'
 
 export function Home() {
-  const trendingAgents = useMemo(() => mockAgents.filter(ai => ai.isTrending), [])
-  const featuredAgents = useMemo(() => mockAgents.filter(ai => ai.isFeatured), [])
+  const { agents, isPending } = useAllAgents()
+
+  const trendingAgents = useMemo(() => agents.filter(ai => ai.isTrending), [agents])
+  const featuredAgents = useMemo(() => agents.filter(ai => ai.isFeatured), [agents])
+
+  if (isPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col">

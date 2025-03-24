@@ -23,7 +23,7 @@ export function AICard({ ai }: AICardProps) {
     const monthsAgo = Math.floor(Math.random() * 5) + 1 // 1-6个月
     const createdAt = new Date(now.setMonth(now.getMonth() - monthsAgo))
     const diffInDays = Math.floor((new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
-    
+
     if (diffInDays > 30) {
       const months = Math.floor(diffInDays / 30)
       return `${months}mo`
@@ -43,13 +43,13 @@ export function AICard({ ai }: AICardProps) {
   return (
     <div
       className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer group border border-gray-100 dark:border-gray-700"
-      onClick={() => navigate(`/agent/${ai.agentname}`)}
+      onClick={() => navigate(`/agent/${ai.username}`)}
     >
       {/* Cover Image */}
       <div className="h-32 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-pink-600/10"></div>
         {/* Star Button */}
-        <div 
+        <div
           className="absolute top-3 right-3 cursor-pointer group/star p-2 rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all duration-200"
           onClick={(e) => {
             e.stopPropagation()
@@ -78,7 +78,7 @@ export function AICard({ ai }: AICardProps) {
               {ai.name}
             </h3>
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              @{ai.agentname}
+              @{ai.username}
             </div>
           </div>
 
@@ -110,7 +110,7 @@ export function AICard({ ai }: AICardProps) {
                 {getPopularity()}%
               </span>
             </div>
-            <div 
+            <div
               className="flex items-center space-x-1 cursor-pointer group/like"
               onClick={(e) => {
                 e.stopPropagation()
@@ -132,7 +132,7 @@ export function AICard({ ai }: AICardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation()
-              navigate(`/agent/${ai.agentname}`)
+              navigate(`/agent/${ai.username}`)
             }}
             className="group relative w-full px-8 py-3 text-sm font-semibold rounded-lg border-2 border-purple-600 bg-white dark:bg-gray-900 transition-all duration-500 ease-in-out overflow-hidden"
           >
