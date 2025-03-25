@@ -1,3 +1,8 @@
+export interface AgentCap {
+  id: string
+  agentId: string
+}
+
 export interface AgentStats {
   members: number        // Number of members
   messageCount: number         // Number of messages

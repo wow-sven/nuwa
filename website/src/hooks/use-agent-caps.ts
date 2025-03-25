@@ -1,6 +1,7 @@
 import {useNetworkVariable} from "./use-networks.ts";
 import {useCurrentAddress, useRoochClient} from "@roochnetwork/rooch-sdk-kit";
 import {useQuery} from "@tanstack/react-query";
+import { AgentCap } from "../types/agent.ts";
 
 export default function useAgentCaps() {
   const client = useRoochClient()
@@ -24,7 +25,7 @@ export default function useAgentCaps() {
           },
       })
 
-      return new Map(
+      return new Map<string, AgentCap>(
         agentCapsResponse.data
           .filter((obj) => obj.decoded_value?.value?.agent_obj_id)
           .map((obj) => [
@@ -40,6 +41,6 @@ export default function useAgentCaps() {
   })
 
   return {
-    caps: caps ?? new Map(), isPending, isError, refetch
+    caps: caps ?? new Map<string, AgentCap>(), isPending, isError, refetch
   }
 }
