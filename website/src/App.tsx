@@ -12,6 +12,8 @@ import { DocPage } from './pages/docs/DocPage'
 import { NewPage } from './pages/NewPage'
 import { Header } from './components/Header'
 import { HelmetProvider } from 'react-helmet-async'
+import { UserProfile } from './pages/UserProfile'
+import { AgentProfile } from './pages/AgentProfile'
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -62,13 +64,16 @@ function AppContent() {
         <Sidebar onCollapse={setIsSidebarCollapsed} isCollapsed={isSidebarCollapsed} />
         <div className={`flex-1 ${isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
           <Routes>
+
             <Route path="/" element={<Home />} />
             <Route path="/new" element={<NewPage />} />
             <Route path="/studio" element={<AIStudio />} />
             <Route path="/studio/create" element={<CreateAgent />} />
-            <Route path="/agent/:agentname" element={<AgentChat />} />
+            <Route path="/agent/:id" element={<AgentChat />} />
             <Route path="/profile/:username" element={<ProfileRouter />} />
             <Route path="/allagents" element={<AllAgents />} />
+            <Route path="/user/profile/:id" element={<UserProfile />}/>
+            <Route path="/agent/profile/:id" element={<AgentProfile />} />
             <Route path="/docs/:docId" element={<DocPage />} />
           </Routes>
         </div>

@@ -15,7 +15,7 @@ export function AgentProfile() {
   const [isEditing, setIsEditing] = useState(false)
   const [isEditingPrompt, setIsEditingPrompt] = useState(false)
 
-  const { agent } = useAgent({ id: id! })
+  const { agent } = useAgent(id)
   const { caps } = useAgentCaps()
   const isOwner = useMemo(() => {
     if (caps.has(agent?.id)) {

@@ -1,13 +1,12 @@
-import { useParams } from 'react-router-dom'
 import { ArrowLeftIcon, ClipboardIcon, PencilIcon, CheckIcon, XMarkIcon, PhotoIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useState, useRef, useEffect } from 'react'
 import { User } from '../types/user'
 import { mockUser } from '../mocks/user'
 import { useNavigate } from 'react-router-dom'
-import useRgasBalance from "../hooks/use-rgas-balance.tsx";
+import useRgasBalance from "../hooks/use-rgas-balance";
 import { useCurrentAddress } from "@roochnetwork/rooch-sdk-kit";
-import useAllBalance from "../hooks/use-all-balance.tsx";
-import { normalizeCoinIconUrl } from "../utils/icon.ts";
+import useAllBalance from "../hooks/use-all-balance";
+import { normalizeCoinIconUrl } from "../utils/icon";
 import { SEO } from '../components/SEO';
 
 export const UserProfile = () => {
