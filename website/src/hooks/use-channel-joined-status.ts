@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNetworkVariable } from "./use-networks";
 import { Args } from "@roochnetwork/rooch-sdk";
 
-export default function useChannelJoinedStatus(channelId: string,) {
+export default function useChannelJoinedStatus(channelId?: string,) {
   const client = useRoochClient();
   const packageId = useNetworkVariable("packageId");
   const address = useCurrentAddress()
@@ -18,7 +18,7 @@ export default function useChannelJoinedStatus(channelId: string,) {
     queryFn: async () => {
       const result = await client.executeViewFunction({
         target: `${packageId}::channel::is_channel_member`,
-        args: [Args.objectId(channelId), Args.address(address!.toStr())],
+        args: [Args.objectId(channelId!), Args.address(address!.toStr())],
       });
 
       const isJoined = Boolean(result?.return_values?.[0]?.decoded_value);
