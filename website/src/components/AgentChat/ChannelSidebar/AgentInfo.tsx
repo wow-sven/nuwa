@@ -2,6 +2,7 @@ import {
     UserCircleIcon,
     UserGroupIcon
 } from "@heroicons/react/24/outline";
+import { useNavigate } from "react-router-dom";
 import useAgent from "../../../hooks/use-agent";
 
 /**
@@ -12,8 +13,6 @@ interface AgentInfoProps {
     agentId?: string;
     /** Number of members in the channel */
     membersCount: number;
-    /** Navigation function for routing */
-    navigate: (path: string) => void;
 }
 
 /**
@@ -23,7 +22,8 @@ interface AgentInfoProps {
  * - Channel member count
  * - Profile navigation button
  */
-export function AgentInfo({ agentId, membersCount, navigate }: AgentInfoProps) {
+export function AgentInfo({ agentId, membersCount }: AgentInfoProps) {
+    const navigate = useNavigate();
     const { agent, isPending, isError } = useAgent(agentId);
 
     if (isPending) {

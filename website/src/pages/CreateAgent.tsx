@@ -1,13 +1,13 @@
-import React, { useState, useRef } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PhotoIcon } from '@heroicons/react/24/outline'
 import { useCreateAgent } from '../hooks/use-agent-create'
 import { SessionKeyGuard } from '@roochnetwork/rooch-sdk-kit'
 import toast from 'react-hot-toast'
-import { SEO } from '../components/SEO'
+import { SEO } from '../components/layout/SEO'
 
 interface CreateAgentForm {
-    agentname: string
+    username: string
     name: string
     avatar: string | null
     description: string
@@ -17,9 +17,8 @@ interface CreateAgentForm {
 
 export const CreateAgent = () => {
     const navigate = useNavigate()
-    const fileInputRef = useRef<HTMLInputElement>(null)
     const [form, setForm] = useState<CreateAgentForm>({
-        agentname: '',
+        username: '',
         name: '',
         avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=default',
         description: '',
@@ -29,6 +28,12 @@ export const CreateAgent = () => {
     const { mutate, isPending } = useCreateAgent()
     const [errors, setErrors] = useState<Partial<CreateAgentForm>>({})
     const [previewAvatar, setPreviewAvatar] = useState<string | null>('https://api.dicebear.com/7.x/bottts/svg?seed=default')
+    const [avatarError, setAvatarError] = useState<string | null>(null)
+    const [hasCustomAvatar, setHasCustomAvatar] = useState(false)
+
+    const getDefaultAvatar = (username: string) => {
+        return `https://api.dicebear.com/7.x/bottts/svg?seed=${username || 'default'}`
+    }
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type, checked } = e.target as HTMLInputElement
@@ -43,50 +48,46 @@ export const CreateAgent = () => {
                 [name]: undefined
             }))
         }
+        // Update default avatar when username changes and no custom avatar is set
+        if (name === 'username' && !hasCustomAvatar) {
+            const defaultAvatar = getDefaultAvatar(value)
+            setPreviewAvatar(defaultAvatar)
+            setForm(prev => ({
+                ...prev,
+                avatar: defaultAvatar
+            }))
+        }
     }
 
-    const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const handleAvatarError = () => {
+        const defaultAvatar = getDefaultAvatar(form.username)
+        setPreviewAvatar(defaultAvatar)
+        setAvatarError('Failed to load image. Please check the URL and try again.')
+        setForm(prev => ({
+            ...prev,
+            avatar: defaultAvatar
+        }))
+        setHasCustomAvatar(false)
+    }
 
-        const validImageTypes = ["image/png", "image/jpeg", "image/svg+xml"];
-        if (!validImageTypes.includes(file.type)) {
-            alert("Invalid file type. Please upload a PNG, JPEG, or SVG file.");
-            return;
-        }
-
-        const reader = new FileReader();
-
-        if (file.type === "image/svg+xml") {
-            reader.onload = () => {
-                const svgContent = reader.result as string;
-                setPreviewAvatar(`data:image/svg+xml;utf8,${encodeURIComponent(svgContent || '')}`);
-                setForm((prev) => ({
-                    ...prev,
-                    avatar: svgContent,
-                }));
-            };
-            reader.readAsText(file);
-        } else {
-            reader.onload = () => {
-                const base64Image = reader.result as string;
-                setPreviewAvatar(base64Image);
-                setForm((prev) => ({
-                    ...prev,
-                    avatar: base64Image,
-                }));
-            };
-            reader.readAsDataURL(file);
-        }
-    };
+    const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const url = e.target.value.trim()
+        setAvatarError(null)
+        setPreviewAvatar(url)
+        setForm(prev => ({
+            ...prev,
+            avatar: url
+        }))
+        setHasCustomAvatar(true)
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
         // Validate form
         const newErrors: Partial<CreateAgentForm> = {}
-        if (!form.agentname.trim()) {
-            newErrors.agentname = 'Username is required'
+        if (!form.username.trim()) {
+            newErrors.username = 'Username is required'
         }
         if (!form.name.trim()) {
             newErrors.name = 'Display name is required'
@@ -99,7 +100,7 @@ export const CreateAgent = () => {
 
         mutate({
             name: form.name,
-            username: form.agentname,
+            username: form.username,
             avatar: form.avatar!,
             description: form.description,
             instructions: form.prompt
@@ -128,20 +129,20 @@ export const CreateAgent = () => {
 
                             {/* Username */}
                             <div className="mb-6">
-                                <label htmlFor="agentname" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Username *
                                 </label>
                                 <input
                                     type="text"
-                                    id="agentname"
-                                    name="agentname"
-                                    value={form.agentname}
+                                    id="username"
+                                    name="username"
+                                    value={form.username}
                                     onChange={handleInputChange}
-                                    className={`block w-full rounded-lg border ${errors.agentname ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500`}
+                                    className={`block w-full rounded-lg border ${errors.username ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500`}
                                     placeholder="Enter globally unique username"
                                 />
-                                {errors.agentname && (
-                                    <p className="mt-1 text-sm text-red-500">{errors.agentname}</p>
+                                {errors.username && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.username}</p>
                                 )}
                             </div>
 
@@ -164,55 +165,36 @@ export const CreateAgent = () => {
                                 )}
                             </div>
 
+                            {/* Avatar URL */}
                             <div className="mb-6">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     Avatar
                                 </label>
                                 <div className="flex items-center space-x-4">
-                                    {/* Upload Button */}
-                                    <button
-                                        type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="relative w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-purple-500 dark:hover:border-purple-400 transition-colors"
-                                    >
+                                    <div className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center border-2 border-gray-300 dark:border-gray-600">
                                         {previewAvatar ? (
                                             <img
                                                 src={previewAvatar}
                                                 alt="Avatar preview"
                                                 className="w-full h-full object-cover"
+                                                onError={handleAvatarError}
                                             />
                                         ) : (
                                             <PhotoIcon className="w-8 h-8 text-gray-400" />
                                         )}
-                                    </button>
-                                    <input
-                                        ref={fileInputRef}
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={handleAvatarChange}
-                                        className="hidden"
-                                    />
-
-                                    {/* URL Input */}
+                                    </div>
                                     <div className="flex-1">
-                                        <label htmlFor="avatarUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            Or enter a URL
-                                        </label>
                                         <input
                                             type="url"
                                             id="avatarUrl"
                                             name="avatarUrl"
-                                            placeholder="https://example.com/avatar.png"
+                                            placeholder="Enter the url to your avatar"
                                             className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                            onChange={(e) => {
-                                                const url = e.target.value.trim()
-                                                setPreviewAvatar(url)
-                                                setForm(prev => ({
-                                                    ...prev,
-                                                    avatar: url
-                                                }))
-                                            }}
+                                            onChange={handleAvatarChange}
                                         />
+                                        {avatarError && (
+                                            <p className="mt-1 text-sm text-red-500">{avatarError}</p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -278,7 +260,7 @@ export const CreateAgent = () => {
                                 <SessionKeyGuard onClick={() => { }}>
                                     <button
                                         type="submit"
-                                        disabled={isPending} // Disable button when loading
+                                        disabled={isPending}
                                         className={`px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 ${isPending
                                             ? "bg-purple-400 cursor-not-allowed"
                                             : "bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
@@ -286,7 +268,7 @@ export const CreateAgent = () => {
                                     >
                                         {isPending ? (
                                             <svg
-                                                className="w-5 h-5 animate-spin mx-auto text-white" // Center spinner
+                                                className="w-5 h-5 animate-spin mx-auto text-white"
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 fill="none"
                                                 viewBox="0 0 24 24"

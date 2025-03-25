@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { AgentCard } from '../components/AgentCard'
-import { Hero } from '../components/Hero'
-import { CreateAISection } from '../components/CreateAISection'
-import { Footer } from '../components/Footer'
+import { Hero } from '../components/home/Hero'
+import { CreateAISection } from '../components/home/CreateAISection'
+import { Footer } from '../components/home/Footer'
 import useAllAgents from '../hooks/use-all-agents'
-import { SEO } from '../components/SEO'
+import { SEO } from '../components/layout/SEO'
 
 export const Home = () => {
   const { agents, isPending } = useAllAgents()

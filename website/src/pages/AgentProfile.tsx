@@ -4,9 +4,8 @@ import { Agent } from '../types/agent'
 import { Task, TaskArgument, TaskFormData } from '../types/task'
 import { PencilIcon, ArrowLeftIcon, ClipboardIcon, LockClosedIcon, PlusIcon, TrashIcon, InboxIcon } from '@heroicons/react/24/outline'
 import useAgent from '../hooks/use-agent'
-import { formatDate } from '../utils/time'
 import useAgentCaps from '../hooks/use-agent-caps'
-import { SEO } from '../components/SEO'
+import { SEO } from '../components/layout/SEO'
 
 export function AgentProfile() {
   const { id } = useParams<{ id: string }>()
@@ -17,7 +16,7 @@ export function AgentProfile() {
   const { agent } = useAgent(id)
   const { caps } = useAgentCaps()
   const isOwner = useMemo(() => {
-    if (caps.has(agent?.id)) {
+    if (agent?.id && caps.has(agent.id)) {
       return true
     }
     return false
@@ -50,8 +49,9 @@ export function AgentProfile() {
     instructions: '',
     agent_address: '',
     avatar: '',
-    model_provider: '',
-    last_active_timestamp: Date.now(),
+    modelProvider: '',
+    lastActive: '',
+    createdAt: '',
   })
 
   const [editForm, setEditForm] = useState({
@@ -343,7 +343,7 @@ export function AgentProfile() {
                       Model Provider
                     </h3>
                     <p className="text-sm text-gray-900 dark:text-gray-100">
-                      {agent?.model_provider}
+                      {agent?.modelProvider}
                     </p>
                   </div>
 
@@ -352,7 +352,7 @@ export function AgentProfile() {
                       Last Active
                     </h3>
                     <p className="text-sm text-gray-900 dark:text-gray-100">
-                      {formatDate(agent?.last_active_timestamp)}
+                      {agent?.lastActive}
                     </p>
                   </div>
                 </div>

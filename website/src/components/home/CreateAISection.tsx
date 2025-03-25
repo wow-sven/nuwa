@@ -1,6 +1,10 @@
+import { useNavigate } from 'react-router-dom';
+
 export function CreateAISection() {
+  const navigate = useNavigate();
+
   return (
-    <div 
+    <div
       className="bg-gradient-to-b from-white to-purple-50 dark:from-gray-900 dark:to-gray-800 py-16 sm:py-24"
       style={{
         backgroundImage: `url('/createai-background.png')`,
@@ -26,8 +30,7 @@ export function CreateAISection() {
             <button
               className="inline-flex items-center px-6 py-3 rounded-full text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-500 dark:hover:bg-purple-600 transition-colors duration-200 font-medium text-lg"
               onClick={() => {
-                // TODO: Implement create AI functionality
-                console.log('Create AI clicked')
+                navigate('/studio')
               }}
             >
               <svg

@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import useAgentChannels from "../hooks/use-agent-channels";
 import useChannelMembers from "../hooks/use-channel-member";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
@@ -14,7 +14,6 @@ import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat
 export function AgentChat() {
   // Get agent ID from URL parameters
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
 
   // Fetch channel information for the current agent
   const { channels } = useAgentChannels(id);
@@ -40,7 +39,6 @@ export function AgentChat() {
         <ChannelSidebar
           agentId={id}
           members={members}
-          navigate={navigate}
         />
       </div>
     </div>

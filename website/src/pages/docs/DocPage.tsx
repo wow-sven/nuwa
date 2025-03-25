@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams } from 'react-router-dom';
 import { DocContent } from '../../components/docs/DocContent';
 import { DocSidebar } from '../../components/docs/DocSidebar';
-import { SEO } from '../../components/SEO';
+import { SEO } from '../../components/layout/SEO';
 
 export const DocPage: React.FC = () => {
     const { docId } = useParams<{ docId: string }>();

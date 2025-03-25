@@ -3,7 +3,7 @@ import { ChatBubbleLeftIcon, PencilIcon, PlusIcon } from '@heroicons/react/24/ou
 import useAllAgents from '../hooks/use-all-agents'
 import useAgentCaps from '../hooks/use-agent-caps'
 import { useMemo } from 'react'
-import { SEO } from '../components/SEO'
+import { SEO } from '../components/layout/SEO'
 import { useCurrentWallet, ConnectButton } from '@roochnetwork/rooch-sdk-kit'
 
 /**

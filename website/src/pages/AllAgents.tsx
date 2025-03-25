@@ -1,6 +1,6 @@
 import { AgentCard } from '../components/AgentCard'
 import useAllAgents from '../hooks/use-all-agents'
-import { SEO } from '../components/SEO'
+import { SEO } from '../components/layout/SEO'
 
 export const AllAgents = () => {
     const { agents, isPending, isError } = useAllAgents()

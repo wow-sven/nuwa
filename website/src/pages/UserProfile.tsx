@@ -7,7 +7,7 @@ import useRgasBalance from "../hooks/use-rgas-balance";
 import { useCurrentAddress } from "@roochnetwork/rooch-sdk-kit";
 import useAllBalance from "../hooks/use-all-balance";
 import { normalizeCoinIconUrl } from "../utils/icon";
-import { SEO } from '../components/SEO';
+import { SEO } from '../components/layout/SEO';
 
 export const UserProfile = () => {
   const navigate = useNavigate()

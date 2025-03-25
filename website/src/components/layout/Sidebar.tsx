@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import useAllAgents from '../hooks/use-all-agents'
+import useAllAgents from '../../hooks/use-all-agents'
 
 interface SidebarProps {
   onCollapse: (isCollapsed: boolean) => void
