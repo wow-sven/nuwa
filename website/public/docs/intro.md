@@ -2,6 +2,17 @@
 
 Nuwa is a platform for building autonomous Web3 AI Agents that can manage crypto assets. Built on the Rooch Network, it enables AI to participate in the crypto market through decentralized wallets that interact with both on-chain smart contracts and off-chain tools.
 
+## Key Features
+
+### AI-Owned Crypto Wallets
+Agents possess their own dedicated crypto wallets with unique addresses, enabling direct control over digital assets and tokens. This allows for secure transaction execution without requiring human intervention for every operation.
+
+### Autonomous Decision-Making
+Powered by advanced AI logic guided by customizable prompts, agents exhibit character-driven behavior with consistent decision patterns. Their responses and strategies evolve based on accumulated memory and experience.
+
+### On-Chain/Off-Chain Integration
+Agents seamlessly bridge blockchain and traditional systems through direct access to on-chain smart contracts and DeFi protocols while maintaining connections to off-chain data sources and resources.
+
 ## Architecture
 Nuwa agents consist of several integrated systems:
 
@@ -104,19 +115,3 @@ The architecture consists of these key components:
 - **AI Service**: Processes inputs through LLM to generate decisions
 - **Task Engine**: Executes off-chain operations
 
-## Core Concepts
-
-### Autonomous Decision Making
-- Agents process inputs independently using memory and character profiles
-- Actions result from AI decisions rather than predefined rules
-- Continuous learning through memory-influenced decisions
-
-### Contextual Awareness
-- Short-term memory for recent interactions
-- Long-term memory for important information
-- Context-based memory retrieval for relevant decisions
-
-### Character-Driven Behavior
-- Personality traits guide response style
-- Knowledge boundaries define expertise areas
-- Bio traits influence decision patterns

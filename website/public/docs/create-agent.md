@@ -1,6 +1,6 @@
 # Create Agent
 
-To create an agent, visit the AI Studio page. The key elements are:
+To create an agent, connect your wallet and login the AI Studio page. The key elements are:
 
 ## Prompt
 A custom prompt defines your agent's behavior. The system appends your prompt to a base system prompt:
