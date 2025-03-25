@@ -286,18 +286,18 @@ export function ChatMessage({
           </div>
           <div className="relative group">
             <div
-              className={`rounded-lg px-4 py-2 ${isCurrentUser
-                ? "bg-blue-50 text-gray-900 border border-blue-100"
+              className={`rounded-lg px-2 py-0.5 ${isCurrentUser
+                ? "bg-blue-600 text-white border border-blue-500 dark:bg-blue-700 dark:border-blue-600"
                 : isAI
-                  ? "bg-purple-50 border border-purple-100"
-                  : "bg-gray-50 border border-gray-100"
+                  ? "bg-purple-600 text-white border border-purple-500 dark:bg-purple-700 dark:border-purple-600"
+                  : "bg-gray-600 text-white border border-gray-500 dark:bg-gray-700 dark:border-gray-600"
                 }`}
             >
-              <div className="flex flex-col justify-between items-start gap-4">
-                <div className="text-sm leading-relaxed flex-1">
+              <div className="flex flex-col justify-between items-start">
+                <div className="text-sm leading-tight flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
-                    className="prose prose-sm max-w-none"
+                    className="prose prose-sm max-w-none dark:prose-invert prose-p:m-0 prose-ul:m-0 prose-ol:m-0 prose-li:m-0 prose-pre:m-0 prose-headings:m-0 prose-hr:m-0 prose-blockquote:m-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:mb-0"
                     components={{
                       pre: ({ children }) => children,
                       code: ({
@@ -315,10 +315,10 @@ export function ChatMessage({
                               language={language}
                               style={oneLight}
                               customStyle={{
-                                backgroundColor: "#f8fafc",
+                                backgroundColor: "#1f2937",
                                 padding: "1rem",
                                 borderRadius: "0.375rem",
-                                border: "1px solid #e2e8f0",
+                                border: "1px solid #374151",
                               }}
                             >
                               {String(children).replace(/\n$/, "")}
@@ -327,8 +327,8 @@ export function ChatMessage({
                         ) : (
                           <code
                             className={`px-1.5 py-0.5 rounded ${isCurrentUser
-                              ? "bg-blue-100/50 text-blue-800"
-                              : "bg-slate-100 text-slate-800"
+                              ? "bg-blue-500/30 text-white"
+                              : "bg-gray-500/30 text-white"
                               }`}
                             {...props}
                           >
@@ -340,40 +340,29 @@ export function ChatMessage({
                   >
                     {message.content}
                   </ReactMarkdown>
-
-                  {/* Add attachments section */}
-                  {/* {message.attachments && message.attachments.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {message.attachments.map((attachment, index) => (
-                        <MessageAttachment
-                          key={`${message.index}-${index}`}
-                          attachment={attachment}
-                        />
-                      ))}
-                    </div>
-                  )} */}
                 </div>
+              </div>
 
-                <div className="flex w-full justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button
-                    onClick={handleCopy}
-                    className="p-1.5 rounded-full hover:bg-white/50 text-gray-500 hover:text-gray-700 transition-colors"
-                    title="Copy message"
-                  >
-                    {copied ? (
-                      <CheckIcon className="w-4 h-4 text-green-500" />
-                    ) : (
-                      <ClipboardDocumentIcon className="w-4 h-4" />
-                    )}
-                  </button>
-                  <button
-                    onClick={handleShare}
-                    className="p-1.5 rounded-full hover:bg-white/50 text-gray-500 hover:text-gray-700 transition-colors"
-                    title="Share on Twitter"
-                  >
-                    <ShareIcon className="w-4 h-4" />
-                  </button>
-                </div>
+              {/* 按钮移到气泡外部 */}
+              <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={handleCopy}
+                  className="p-1 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition-colors"
+                  title="复制消息"
+                >
+                  {copied ? (
+                    <CheckIcon className="w-3 h-3 text-green-500" />
+                  ) : (
+                    <ClipboardDocumentIcon className="w-3 h-3" />
+                  )}
+                </button>
+                <button
+                  onClick={handleShare}
+                  className="p-1 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition-colors"
+                  title="分享到推特"
+                >
+                  <ShareIcon className="w-3 h-3" />
+                </button>
               </div>
             </div>
           </div>
