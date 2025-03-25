@@ -287,10 +287,10 @@ export function ChatMessage({
           <div className="relative group">
             <div
               className={`rounded-lg px-2 py-0.5 ${isCurrentUser
-                ? "bg-blue-600 text-white border border-blue-500 dark:bg-blue-700 dark:border-blue-600"
+                ? "bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-700 dark:text-white dark:border-blue-600"
                 : isAI
-                  ? "bg-purple-600 text-white border border-purple-500 dark:bg-purple-700 dark:border-purple-600"
-                  : "bg-gray-600 text-white border border-gray-500 dark:bg-gray-700 dark:border-gray-600"
+                  ? "bg-purple-100 text-purple-900 border border-purple-200 dark:bg-purple-700 dark:text-white dark:border-purple-600"
+                  : "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 }`}
             >
               <div className="flex flex-col justify-between items-start">
@@ -310,16 +310,18 @@ export function ChatMessage({
                         const language = match ? match[1] : "";
 
                         return !inline ? (
-                          <div className="my-4">
+                          <div className="my-1">
                             <SyntaxHighlighter
                               language={language}
                               style={oneLight}
                               customStyle={{
-                                backgroundColor: "#1f2937",
-                                padding: "1rem",
+                                backgroundColor: "var(--tw-prose-pre-bg, #f8fafc)",
+                                padding: "0.75rem",
+                                margin: 0,
                                 borderRadius: "0.375rem",
-                                border: "1px solid #374151",
+                                border: "1px solid var(--tw-prose-pre-border, #e2e8f0)",
                               }}
+                              className="dark:!bg-gray-800 dark:border-gray-700"
                             >
                               {String(children).replace(/\n$/, "")}
                             </SyntaxHighlighter>
@@ -327,8 +329,8 @@ export function ChatMessage({
                         ) : (
                           <code
                             className={`px-1.5 py-0.5 rounded ${isCurrentUser
-                              ? "bg-blue-500/30 text-white"
-                              : "bg-gray-500/30 text-white"
+                              ? "bg-blue-200/70 text-blue-800 dark:bg-blue-500/30 dark:text-white"
+                              : "bg-gray-200/70 text-gray-800 dark:bg-gray-500/30 dark:text-white"
                               }`}
                             {...props}
                           >

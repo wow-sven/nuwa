@@ -4,13 +4,23 @@ import useChannel from "../../../hooks/use-channel";
 import useAgentWithAddress from "../../../hooks/use-agent-with-address";
 
 /**
+ * Member interface
+ */
+interface Member {
+    address: string;
+    avatar: string;
+}
+
+/**
  * Props for the Chat component
  */
 interface ChatProps {
     /** ID of the current agent */
     agentId?: string;
     /** Channel ID */
-    channels?: string;
+    channel?: string;
+    /** List of channel members */
+    members?: Member[];
 }
 
 /**
@@ -19,13 +29,15 @@ interface ChatProps {
  * - Chat header with agent name
  * - Message list with auto-scrolling
  * - Message input with send/join functionality
+ * - Token transfer functionality
  */
 export function ChatArea({
     agentId,
-    channels
+    channel,
+    members = []
 }: ChatProps) {
     // Get detailed channel information
-    const { channelInfo } = useChannel(channels);
+    const { channelInfo } = useChannel(channel);
     // Get agent information using channel's agent address
     const { agent } = useAgentWithAddress(channelInfo?.agentAddress || "");
 
@@ -43,7 +55,7 @@ export function ChatArea({
             {/* Message list with auto-scroll */}
             <div className="flex-1 overflow-hidden">
                 <MessageList
-                    channelId={channels || ""}
+                    channelId={channel || ""}
                     agentName={agent?.name}
                     agentId={agentId}
                     agentAddress={agent?.address}
@@ -53,8 +65,9 @@ export function ChatArea({
             {/* Message input and send/join button */}
             <div className="flex-none border-t border-gray-200 dark:border-gray-700">
                 <MessageInput
-                    channelId={channels || ""}
+                    channelId={channel || ""}
                     agentAddress={agent?.address}
+                    members={members}
                 />
             </div>
         </div>

@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import useAgentChannels from "../hooks/use-agent-channels";
+import useAgentChannels from "../hooks/use-agent-channel";
 import useChannelMembers from "../hooks/use-channel-member";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
 
@@ -16,13 +16,12 @@ export function AgentChat() {
   const { id } = useParams<{ id: string }>();
 
   // Fetch channel information for the current agent
-  const { channels } = useAgentChannels(id);
-  const channelId = channels?.[0]?.id || '';
+  const { channel } = useAgentChannels(id);
 
   // Get list of channel members
   const { members } = useChannelMembers({
-    channelId,
-    limit: '10'
+    channelId: channel,
+    limit: '50'  // Increase member limit to match ChatArea
   })
 
   return (
@@ -30,10 +29,14 @@ export function AgentChat() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar showing dialog list */}
-        <DialogSidebar channels={channelId} />
+        <DialogSidebar channel={channel} />
 
         {/* Main chat area with messages and input */}
-        <ChatArea agentId={id} channels={channelId} />
+        <ChatArea
+          agentId={id}
+          channel={channel}
+          members={members}
+        />
 
         {/* Right sidebar showing channel info and members */}
         <ChannelSidebar

@@ -5,7 +5,7 @@ import { ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
  */
 interface DialogSidebarProps {
     /** Current channel ID */
-    channels: string | undefined;
+    channel: string | undefined;
 }
 
 /**
@@ -15,7 +15,7 @@ interface DialogSidebarProps {
  * - Unread message indicators
  * - Active dialog highlighting
  */
-export function DialogSidebar({ channels }: DialogSidebarProps) {
+export function DialogSidebar({ channel }: DialogSidebarProps) {
     return (
         <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
             {/* Dialog list header */}
@@ -28,7 +28,7 @@ export function DialogSidebar({ channels }: DialogSidebarProps) {
             <div className="overflow-y-auto">
                 {/* Single dialog item (placeholder for future multiple dialogs) */}
                 <div
-                    key={channels}
+                    key={channel}
                     className="p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 bg-purple-50 dark:bg-purple-900/20"
                     onClick={() => { }}
                 >

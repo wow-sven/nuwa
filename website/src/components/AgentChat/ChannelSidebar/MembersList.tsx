@@ -34,7 +34,7 @@ export function MembersList({ members }: MembersListProps) {
                 <div className="flex items-center space-x-2">
                     <UserGroupIcon className="w-5 h-5 text-gray-400" />
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        Members
+                        Members <span className="text-sm text-gray-500 dark:text-gray-400 font-normal">({members.length})</span>
                     </h2>
                 </div>
                 {/* Add member button (TODO) */}
