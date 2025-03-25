@@ -2,8 +2,16 @@ import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
 import { useQuery } from "@tanstack/react-query";
 import { Args } from "@roochnetwork/rooch-sdk";
 import { useNetworkVariable } from "./use-networks";
+import { AgentStatus } from "../types/agent";
 
-export default function useAgentStatus(id?: string) {
+interface UseAgentStatusResult {
+  status: AgentStatus;
+  isPending: boolean;
+  isError: boolean;
+  refetch: () => void;
+}
+
+export default function useAgentStatus(id?: string): UseAgentStatusResult {
   const client = useRoochClient();
   const packageId = useNetworkVariable("packageId");
 
@@ -12,7 +20,7 @@ export default function useAgentStatus(id?: string) {
     isPending,
     isError,
     refetch,
-  } = useQuery({
+  } = useQuery<AgentStatus>({
     queryKey: ["useAgentStatus", id],
     queryFn: async () => {
       const result = await client.executeViewFunction({
@@ -20,19 +28,31 @@ export default function useAgentStatus(id?: string) {
         args: [Args.objectId(id!)],
       });
 
-      if (result?.return_values?.[0]?.decoded_value) {
-        return Boolean(result.return_values[0].decoded_value);
-      } else {
-        console.log("No home channel found for this agent");
-      }
+      const isProcessing = result?.return_values?.[0]?.decoded_value
+        ? Boolean(result.return_values[0].decoded_value)
+        : false;
 
-      return false;
+      // 获取最后活跃时间
+      const lastActiveResult = await client.executeViewFunction({
+        target: `${packageId}::agent::get_last_active_timestamp`,
+        args: [Args.objectId(id!)],
+      });
+
+      const lastActive = lastActiveResult?.return_values?.[0]?.decoded_value
+        ? Number(lastActiveResult.return_values[0].decoded_value)
+        : Date.now();
+
+      return {
+        isOnline: !isProcessing, // 如果不在处理请求，则视为在线
+        lastActive,
+        currentTask: isProcessing ? "processing" : undefined
+      };
     },
     enabled: !!id,
   });
 
   return {
-    channels: agentStatus || false,
+    status: agentStatus || { isOnline: false, lastActive: Date.now() },
     isPending,
     isError,
     refetch,

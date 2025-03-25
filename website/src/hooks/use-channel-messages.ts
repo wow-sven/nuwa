@@ -8,11 +8,20 @@ export const ObjectIDSchema = bcs.struct("ObjectID", {
   id: bcs.vector(bcs.Address),
 });
 
-export default function useChannelMessages(input: {
+interface ChannelMessagesInput {
   channelId?: string;
   page: number;
   size: number;
-}) {
+}
+
+interface UseChannelMessagesResult {
+  messages: Message[];
+  isPending: boolean;
+  isError: boolean;
+  refetch: () => void;
+}
+
+export default function useChannelMessages(input: ChannelMessagesInput): UseChannelMessagesResult {
   const client = useRoochClient();
   const packageId = useNetworkVariable("packageId");
 
@@ -21,7 +30,7 @@ export default function useChannelMessages(input: {
     isPending,
     isError,
     refetch,
-  } = useQuery({
+  } = useQuery<Message[]>({
     queryKey: ["useChannelMessages", input],
     queryFn: async () => {
       const result = await client.executeViewFunction({
@@ -63,26 +72,22 @@ export default function useChannelMessages(input: {
             const value = obj?.decoded_value?.value as any;
             if (!value) return null;
             return {
-              index: Number(value.index),
+              id: obj.id,
               channel_id: String(value.channel_id),
               sender: String(value.sender),
               content: String(value.content),
-              timestamp: Number(value.timestamp),
+              created_at: Number(value.timestamp),
               message_type: Number(value.message_type),
               mentions: Array.isArray(value.mentions)
                 ? value.mentions.map(String)
                 : [],
-              reply_to: Number(value.reply_to),
-              attachments: Array.isArray(value.attachments.value)
-                ? value.attachments.value.map((att: any) => ({
-                    attachment_type: Number(att[0]),
-                    attachment_json: String(att[1]),
-                  }))
-                : [],
+              reply_to: Number(value.reply_to) || undefined,
             } as Message;
           })
           .filter((msg): msg is Message => msg !== null);
       }
+
+      return [];
     },
     refetchInterval: 5000,
     enabled: !!input && input.size > 0,

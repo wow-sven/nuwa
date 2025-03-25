@@ -4,11 +4,11 @@ import { HeartIcon, ChatBubbleLeftIcon, FireIcon, ClockIcon, StarIcon } from '@h
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid'
 import { useState } from 'react'
 
-interface AICardProps {
-  ai: Agent
+interface AgentCardProps {
+  agent: Agent
 }
 
-export function AICard({ ai }: AICardProps) {
+export function AgentCard({ agent }: AgentCardProps) {
   const navigate = useNavigate()
   const [isLiked, setIsLiked] = useState(false)
   const [isStarred, setIsStarred] = useState(false)
@@ -33,7 +33,7 @@ export function AICard({ ai }: AICardProps) {
 
   const getPopularity = () => {
     // 如果是trending，返回较高的热度值（85-99）
-    if (ai.isTrending) {
+    if (agent.isTrending) {
       return Math.floor(Math.random() * 15) + 85
     }
     // 否则返回较低的热度值（30-84）
@@ -43,13 +43,13 @@ export function AICard({ ai }: AICardProps) {
   return (
     <div
       className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer group border border-gray-100 dark:border-gray-700"
-      onClick={() => navigate(`/agent/${ai.username}`)}
+      onClick={() => navigate(`/agent/${agent.id}`)}
     >
       {/* Cover Image */}
       <div className="h-32 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 relative">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-pink-600/10"></div>
         {/* Star Button */}
-        <div
+        {/* <div
           className="absolute top-3 right-3 cursor-pointer group/star p-2 rounded-full bg-white/10 backdrop-blur-sm hover:bg-white/20 transition-all duration-200"
           onClick={(e) => {
             e.stopPropagation()
@@ -61,7 +61,7 @@ export function AICard({ ai }: AICardProps) {
           ) : (
             <StarIcon className="w-5 h-5 text-white hover:text-yellow-400 transition-colors duration-200" />
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* Profile Section */}
@@ -70,32 +70,32 @@ export function AICard({ ai }: AICardProps) {
         <div className="w-full">
           <div className="relative -mt-12 flex flex-col items-center">
             <img
-              src={ai.avatar}
-              alt={ai.name}
+              src={agent.avatar}
+              alt={agent.name}
               className="w-16 h-16 mb-2"
             />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-center">
-              {ai.name}
+              {agent.name}
             </h3>
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              @{ai.username}
+              @{agent.username}
             </div>
           </div>
 
           {/* Bio with max height and scroll */}
           <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 text-center max-w-sm mx-auto max-h-[60px] overflow-y-auto">
-            {ai.description}
+            {agent.description}
           </p>
         </div>
 
-        {/* Stats and Button Container */}
+        {/* Stats and Button Contagentner */}
         <div className="w-full space-y-4">
           {/* Stats */}
-          <div className="flex items-center justify-center space-x-6">
+          {/* <div className="flex items-center justify-center space-x-6">
             <div className="flex items-center space-x-1">
               <ChatBubbleLeftIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
               <span className="text-sm text-gray-600 dark:text-gray-300">
-                {ai.stats.members.toLocaleString()}
+                {0}
               </span>
             </div>
             <div className="flex items-center space-x-1">
@@ -126,13 +126,13 @@ export function AICard({ ai }: AICardProps) {
                 {Math.floor(Math.random() * 1000).toLocaleString()}
               </span>
             </div>
-          </div>
+          </div> */}
 
           {/* Action Button */}
           <button
             onClick={(e) => {
               e.stopPropagation()
-              navigate(`/agent/${ai.username}`)
+              navigate(`/agent/${agent.id}`)
             }}
             className="group relative w-full px-8 py-3 text-sm font-semibold rounded-lg border-2 border-purple-600 bg-white dark:bg-gray-900 transition-all duration-500 ease-in-out overflow-hidden"
           >

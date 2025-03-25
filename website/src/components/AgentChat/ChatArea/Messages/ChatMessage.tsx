@@ -1,14 +1,14 @@
-import { Message, MESSAGE_TYPE } from "../types/channel";
+import { Message, MESSAGE_TYPE } from "../../../../types/channel";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
-import { formatTimestamp } from "../utils/time";
+import { formatTimestamp } from "../../../../utils/time";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { useState } from "react";
+import { useState, ComponentPropsWithoutRef } from "react";
 import { ClipboardDocumentIcon, ShareIcon } from "@heroicons/react/24/outline";
 import { CheckIcon } from "@heroicons/react/24/solid";
-import { shortenAddress } from "../utils/address";
+import { shortenAddress } from "../../../../utils/address";
 import { Link } from "react-router-dom";
 import { RoochAddress } from "@roochnetwork/rooch-sdk";
 
@@ -262,19 +262,19 @@ export function ChatMessage({
               {isCurrentUser ? (
                 "You"
               ) : // Also add Roochscan link to the display name for non-AI users
-              isAI ? (
-                displayName
-              ) : (
-                <a
-                  href={`${roochscanBaseUrl}/account/${senderAddress}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-blue-600 hover:underline transition-colors"
-                  title={`View ${senderAddress} on Roochscan`}
-                >
-                  {displayName}
-                </a>
-              )}
+                isAI ? (
+                  displayName
+                ) : (
+                  <a
+                    href={`${roochscanBaseUrl}/account/${senderAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-600 hover:underline transition-colors"
+                    title={`View ${senderAddress} on Roochscan`}
+                  >
+                    {displayName}
+                  </a>
+                )}
             </span>
             <span>•</span>
             <span>{formatTimestamp(timestamp)}</span>
@@ -286,13 +286,12 @@ export function ChatMessage({
           </div>
           <div className="relative group">
             <div
-              className={`rounded-lg px-4 py-2 ${
-                isCurrentUser
-                  ? "bg-blue-50 text-gray-900 border border-blue-100"
-                  : isAI
-                    ? "bg-purple-50 border border-purple-100"
-                    : "bg-gray-50 border border-gray-100"
-              }`}
+              className={`rounded-lg px-4 py-2 ${isCurrentUser
+                ? "bg-blue-50 text-gray-900 border border-blue-100"
+                : isAI
+                  ? "bg-purple-50 border border-purple-100"
+                  : "bg-gray-50 border border-gray-100"
+                }`}
             >
               <div className="flex flex-col justify-between items-start gap-4">
                 <div className="text-sm leading-relaxed flex-1">
@@ -302,12 +301,11 @@ export function ChatMessage({
                     components={{
                       pre: ({ children }) => children,
                       code: ({
-                        node,
                         inline,
                         className,
                         children,
                         ...props
-                      }) => {
+                      }: ComponentPropsWithoutRef<'code'> & { inline?: boolean }) => {
                         const match = /language-(\w+)/.exec(className || "");
                         const language = match ? match[1] : "";
 
@@ -328,11 +326,10 @@ export function ChatMessage({
                           </div>
                         ) : (
                           <code
-                            className={`px-1.5 py-0.5 rounded ${
-                              isCurrentUser
-                                ? "bg-blue-100/50 text-blue-800"
-                                : "bg-slate-100 text-slate-800"
-                            }`}
+                            className={`px-1.5 py-0.5 rounded ${isCurrentUser
+                              ? "bg-blue-100/50 text-blue-800"
+                              : "bg-slate-100 text-slate-800"
+                              }`}
                             {...props}
                           >
                             {children}

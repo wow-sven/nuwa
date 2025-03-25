@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { AICard } from '../components/AICard'
+import { AgentCard } from '../components/AgentCard'
 import { Hero } from '../components/Hero'
 import { CreateAISection } from '../components/CreateAISection'
 import { Footer } from '../components/Footer'
@@ -10,8 +10,8 @@ import { SEO } from '../components/SEO'
 export const Home = () => {
   const { agents, isPending } = useAllAgents()
 
-  const trendingAgents = useMemo(() => agents.filter(ai => ai.isTrending), [agents])
-  const featuredAgents = useMemo(() => agents.filter(ai => ai.isFeatured), [agents])
+  const trendingAgents = useMemo(() => agents.filter(agent => agent.isTrending), [agents])
+  const featuredAgents = useMemo(() => agents.filter(agent => agent.isFeatured), [agents])
 
   if (isPending) {
     return (
@@ -47,8 +47,8 @@ export const Home = () => {
               <div className="mb-12">
                 <h3 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-400">Trending Agents</h3>
                 <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-6">
-                  {trendingAgents.slice(0, 4).map(ai => (
-                    <AICard key={ai.address} ai={ai} />
+                  {trendingAgents.slice(0, 4).map(agent => (
+                    <AgentCard key={agent.agent_address} agent={agent} />
                   ))}
                 </div>
               </div>
@@ -57,8 +57,8 @@ export const Home = () => {
               <div className="mb-12">
                 <h3 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-400">Featured Agents</h3>
                 <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-6">
-                  {featuredAgents.slice(0, 4).map(ai => (
-                    <AICard key={ai.address} ai={ai} />
+                  {featuredAgents.slice(0, 4).map(agent => (
+                    <AgentCard key={agent.agent_address} agent={agent} />
                   ))}
                 </div>
               </div>

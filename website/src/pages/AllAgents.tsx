@@ -1,4 +1,4 @@
-import { AICard } from '../components/AICard'
+import { AgentCard } from '../components/AgentCard'
 import useAllAgents from '../hooks/use-all-agents'
 import { SEO } from '../components/SEO'
 
@@ -33,7 +33,7 @@ export const AllAgents = () => {
                     <h1 className="text-3xl font-bold mb-8">All Agents</h1>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         {agents.map(ai => (
-                            <AICard key={ai.agent_address} ai={ai} />
+                            <AgentCard key={ai.agent_address} agent={ai} />
                         ))}
                     </div>
                 </div>

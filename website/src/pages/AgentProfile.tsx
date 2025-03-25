@@ -3,7 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Agent } from '../types/agent'
 import { Task, TaskArgument, TaskFormData } from '../types/task'
 import { PencilIcon, ArrowLeftIcon, ClipboardIcon, LockClosedIcon, PlusIcon, TrashIcon, InboxIcon } from '@heroicons/react/24/outline'
-import { mockAgents } from '../mocks/agent'
 import useAgent from '../hooks/use-agent'
 import { formatDate } from '../utils/time'
 import useAgentCaps from '../hooks/use-agent-caps'
@@ -43,7 +42,17 @@ export function AgentProfile() {
   // const isOwner = true
 
   // Using the first mock agent as an example
-  const [agentData, setAgentData] = useState<Partial<Agent>>(mockAgents[0])
+  const [agentData, setAgentData] = useState<Partial<Agent>>({
+    name: '',
+    description: '',
+    prompt: '',
+    username: '',
+    instructions: '',
+    agent_address: '',
+    avatar: '',
+    model_provider: '',
+    last_active_timestamp: Date.now(),
+  })
 
   const [editForm, setEditForm] = useState({
     name: agentData.name || '',
@@ -173,7 +182,7 @@ export function AgentProfile() {
         keywords={`${agent?.name}, AI Agent, Web3 AI, Autonomous Agent, Crypto Agent, Blockchain AI, Nuwa Agent`}
         ogUrl={`https://nuwa.dev/agents/${id}`}
       />
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Back Button */}
           <button

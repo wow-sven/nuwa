@@ -17,6 +17,13 @@ export interface Message {
   attachments: Attachment[];
 }
 
+export interface MessageSendParams {
+  channelId: string;
+  content: string;
+  mentions: string[];
+  replyTo?: number;
+}
+
 export interface Channel {
   parent_channel: string | null;
   title: string;

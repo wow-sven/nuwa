@@ -15,4 +15,57 @@ export interface User {
   address: string
   rgasBalance: number
   tokens: Token[]
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  bio?: string;
+  email?: string;
+  website?: string;
+  socialLinks?: {
+    twitter?: string;
+    github?: string;
+    linkedin?: string;
+  };
+}
+
+export interface UserSettings {
+  theme: 'light' | 'dark' | 'system';
+  notifications: {
+    email: boolean;
+    push: boolean;
+    inApp: boolean;
+  };
+  language: string;
+  timezone: string;
+}
+
+export interface UserPreferences {
+  displayName: string;
+  avatarUrl: string;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+}
+
+export interface UserStats {
+  totalTasks: number;
+  completedTasks: number;
+  activeChannels: number;
+  totalMessages: number;
+  lastActive: number;
+}
+
+export interface UserSession {
+  id: string;
+  userId: string;
+  token: string;
+  expiresAt: number;
+  deviceInfo: {
+    browser: string;
+    os: string;
+    ip: string;
+  };
 } 

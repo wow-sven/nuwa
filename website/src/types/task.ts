@@ -23,4 +23,40 @@ export interface TaskFormData {
   resolverAddress: string
   isOnChain: boolean
   price: number
+}
+
+export interface TaskExecution {
+  id: string;
+  taskId: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  startTime: number;
+  endTime?: number;
+  result?: any;
+  error?: string;
+  arguments: Record<string, any>;
+}
+
+export interface TaskExecutionResult {
+  success: boolean;
+  data?: any;
+  error?: string;
+}
+
+export interface TaskQueryParams {
+  page?: number;
+  limit?: number;
+  status?: TaskExecution['status'];
+  taskId?: string;
+}
+
+export interface TaskPagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface TaskListResponse {
+  tasks: Task[];
+  pagination: TaskPagination;
 } 

@@ -40,14 +40,10 @@ export default function useAllAgents() {
           createdAt: new Date(Number(agentData.created_at) || Date.now()).toISOString(),
           modelProvider: "GPT-4",
           agent_address: agentAddress,
-          stats: {
-            members: 0,
-            messageCount: 0,
-            balance: 0
-          },
           prompt: String(agentData.prompt || ''),
           isFeatured: FEATURED_AGENTS.includes(username as any),
-          isTrending: TRENDING_AGENTS.includes(username as any)
+          isTrending: TRENDING_AGENTS.includes(username as any),
+          instructions: String(agentData.instructions || ''),
         } as Agent;
       })
     },

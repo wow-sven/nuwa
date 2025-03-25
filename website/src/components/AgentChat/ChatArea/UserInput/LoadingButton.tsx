@@ -1,13 +1,12 @@
-export function LoadingButton(input: {isPending: boolean, onClick?: ()=>void, children: React.ReactNode, className?: string}) {
+export function LoadingButton(input: { isPending: boolean, onClick?: () => void, children: React.ReactNode, className?: string }) {
     return (
         <button
             onClick={input.onClick}
             disabled={input.isPending} // Disable button when loading
-            className={`${input.className} px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                input.isPending
-                    ? "bg-purple-400 cursor-not-allowed"
-                    : "bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
-            }`}
+            className={`${input.className} px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 ${input.isPending
+                ? "bg-purple-400 cursor-not-allowed"
+                : "bg-purple-600 hover:bg-purple-700 focus:ring-purple-500"
+                }`}
         >
             {input.isPending ? (
                 <svg
