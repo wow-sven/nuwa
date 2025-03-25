@@ -94,7 +94,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                   <div
                     key={agent.username}
                     className="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                    onClick={() => navigate(`/agent/${agent.username}`)}
+                    onClick={() => navigate(`/agent/${agent.id}`)}
                   >
                     <img
                       src={agent.avatar}
@@ -123,7 +123,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                 <div
                   key={agent.username}
                   className="flex justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg p-2 transition-colors"
-                  onClick={() => navigate(`/agent/${agent.username}`)}
+                  onClick={() => navigate(`/agent/${agent.id}`)}
                 >
                   <img
                     src={agent.avatar}

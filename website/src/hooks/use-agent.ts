@@ -2,7 +2,7 @@ import {useRoochClient} from "@roochnetwork/rooch-sdk-kit";
 import {useQuery} from "@tanstack/react-query";
 import {RoochAddress} from "@roochnetwork/rooch-sdk";
 
-export default function useAgent({id}:{id: string}) {
+export default function useAgent(id?: string) {
   const client = useRoochClient()
 
   const {
@@ -15,7 +15,7 @@ export default function useAgent({id}:{id: string}) {
     queryFn: async () => {
       const agentsResponse = await client.queryObjectStates({
         filter: {
-          object_id: id,
+          object_id: id!,
         },
       })
 
@@ -40,6 +40,7 @@ export default function useAgent({id}:{id: string}) {
 
       return agents[0]
     },
+    enabled: !!id
   })
 
   return {

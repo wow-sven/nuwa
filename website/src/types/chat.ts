@@ -1,11 +1,20 @@
 export type MessageRole = 'user' | 'assistant'
 
+export interface Attachment {
+  attachment_type: number;
+  attachment_json: string;
+}
+
 export interface Message {
-  id: string
-  content: string
-  sender: string
-  timestamp: string
-  type: 'text' | 'image' | 'file'
+  index: number;
+  channel_id: string;
+  sender: string;
+  content: string;
+  timestamp: number;
+  message_type: number;
+  mentions: string[];
+  reply_to: number;
+  attachments: Attachment[];
 }
 
 export interface Topic {

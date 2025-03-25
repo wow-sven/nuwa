@@ -5,7 +5,7 @@ import { UserProfile } from '../pages/UserProfile'
 export function ProfileRouter() {
     const { id } = useParams<{ id: string }>()
 
-    if (!id?.startsWith('0x')) {
+    if (!id?.endsWith('0x')) {
         return <UserProfile />
     }
 
