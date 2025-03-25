@@ -7,7 +7,7 @@ import useAgent from "../../../hooks/use-agent";
 /**
  * Props for the AgentProfile component
  */
-interface AgentProfileProps {
+interface AgentInfoProps {
     /** ID of the current agent */
     agentId?: string;
     /** Number of members in the channel */
@@ -23,7 +23,7 @@ interface AgentProfileProps {
  * - Channel member count
  * - Profile navigation button
  */
-export function AgentProfile({ agentId, membersCount, navigate }: AgentProfileProps) {
+export function AgentInfo({ agentId, membersCount, navigate }: AgentInfoProps) {
     const { agent, isPending, isError } = useAgent(agentId);
 
     if (isPending) {

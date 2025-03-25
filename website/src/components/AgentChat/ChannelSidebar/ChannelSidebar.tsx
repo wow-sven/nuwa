@@ -1,4 +1,4 @@
-import { AgentProfile } from "./AgentProfile";
+import { AgentInfo } from "./AgentInfo";
 import { MembersList } from "./MembersList";
 
 /**
@@ -32,7 +32,7 @@ export function ChannelSidebar({ agentId, members, navigate }: ChannelSidebarPro
     return (
         <div className="w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
             {/* Agent profile section with stats */}
-            <AgentProfile
+            <AgentInfo
                 agentId={agentId}
                 membersCount={members.length}
                 navigate={navigate}

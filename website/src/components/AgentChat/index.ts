@@ -1,4 +1,4 @@
-export { AgentProfile } from './ChannelSidebar/AgentProfile';
+export { AgentInfo } from './ChannelSidebar/AgentInfo';
 export { ChannelSidebar } from './ChannelSidebar/ChannelSidebar';
 export { ChatArea } from './ChatArea/ChatArea';
 export { DialogSidebar } from './DialogSidebar/DialogSidebar';
