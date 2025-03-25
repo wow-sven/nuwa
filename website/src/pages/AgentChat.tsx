@@ -10,7 +10,7 @@ import {
   ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
-import useAgentChannels from "../hooks/use-agent-channels";
+import useAgentChannel from "../hooks/use-agent-channel";
 import useChannel from "../hooks/use-channel";
 import useAgentWithAddress from "../hooks/use-agent-with-address";
 import useChannelMessageCount from "../hooks/use-channel-message-count";
@@ -31,23 +31,24 @@ export function AgentChat() {
   const [inputMessage, setInputMessage] = useState("");
 
   const address = useCurrentAddress()
-  const { channels } = useAgentChannels(id);
+  const { channel } = useAgentChannel(id);
   const { members } = useChannelMembers({
-    channelId: channels,
+    channelId: channel,
     limit: '10'
   })
-  const { channelInfo } = useChannel(channels);
-  const { agent } = useAgentWithAddress(channelInfo?.agentAddress || "");
-  const { messageCount, refetch: refetchMessageCount } = useChannelMessageCount(channels || "");
-  const { isJoined, refetch: refetchJoinStatus } = useChannelJoinedStatus(channels || "");
+  const { channelInfo } = useChannel(channel);
+  const { agent } = useAgentWithAddress(channelInfo?.agentAddress);
+  const { messageCount, refetch: refetchMessageCount } = useChannelMessageCount(channel);
+  const { isJoined, refetch: refetchJoinStatus } = useChannelJoinedStatus(channel);
   const { mutateAsync: sendMessage, isPending: sendingMessage } = useChannelMessageSend()
   const { mutateAsync: joinChannel, isPending: joiningChannel} = useChannelJoin()
 
-  console.log(members)
+  console.log(channel)
+  // console.log(members)
   // console.log(channels);
-  // console.log(channelInfo);
+  console.log(channelInfo);
   // console.log(agent);
-  console.log(messageCount);
+  // console.log(messageCount);
   // console.log(isJoined);
   // console.log(msg)
 
@@ -57,7 +58,7 @@ export function AgentChat() {
   }, [messageCount]);
 
   const { messages: msg, refetch: refetchMsg } = useChannelMessages({
-    channelId: channels || "",
+    channelId: channel,
     page: initialPage,
     size: 100,
   })
@@ -77,7 +78,7 @@ export function AgentChat() {
   const handleAction = async () => {
     if (!isJoined) {
       try {
-        await joinChannel({ address: channels || "" });
+        await joinChannel({ id: channel || "" });
         await refetchJoinStatus();
       } catch (e) {
         console.log(e);
@@ -88,7 +89,7 @@ export function AgentChat() {
       setInputMessage("");
       try {
         await sendMessage({
-          channelId: channels || "",
+          channelId: channel || "",
           content: msg,
           mentions: [],
           aiAddress: agent?.address || "",
@@ -148,7 +149,7 @@ export function AgentChat() {
           <div className="overflow-y-auto">
             {/* {topics.map((topic) => ( */}
               <div
-                key={channels}
+                key={channel}
                 className={`p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 ${
                   true
                     ? "bg-purple-50 dark:bg-purple-900/20"

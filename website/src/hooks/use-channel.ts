@@ -1,9 +1,9 @@
-import {useRoochClient} from "@roochnetwork/rooch-sdk-kit";
-import {useQuery} from "@tanstack/react-query";
+import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
+import { useQuery } from "@tanstack/react-query";
 import { CHANNEL_STATUS } from "../types/channel";
 
 export default function useChannel(id?: string) {
-  const client = useRoochClient()
+  const client = useRoochClient();
 
   const {
     data: channelInfo,
@@ -11,31 +11,32 @@ export default function useChannel(id?: string) {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['useChannel', id],
+    queryKey: ["useChannel", id],
     queryFn: async () => {
+      const result = await client.queryObjectStates({
+        filter: {
+          object_id: id!,
+        },
+      });
+      console.log("channel", result);
+      const channel = result?.data?.[0]?.decoded_value?.value;
 
-        const result = await client.queryObjectStates(
-          {
-            filter: {
-              object_id: id!,
-            }
-          }
-        );
-
-        const channel = result?.data?.[0]?.decoded_value?.value
-  
-      const isChannelActive = channel?.status === CHANNEL_STATUS.ACTIVE
-      let aiAddress = channel?.creator as string
+      const isChannelActive = channel?.status === CHANNEL_STATUS.ACTIVE;
+      let aiAddress = channel?.creator as string;
 
       return {
-        active : isChannelActive,
-        agentAddress: aiAddress
-      }
+        active: isChannelActive,
+        // createAt: last_active,
+        agentAddress: aiAddress,
+      };
     },
-    enabled: !id
-  })
+    enabled: !!id,
+  });
 
   return {
-    channelInfo, isPending, isError, refetch
-  }
+    channelInfo,
+    isPending,
+    isError,
+    refetch,
+  };
 }

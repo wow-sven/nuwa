@@ -10,7 +10,7 @@ import { mutationKeys } from "./mutationKeys";
 import { useNetworkVariable } from "./use-networks";
 
 type UseChannelJoinArgs = {
-  address: string;
+  id: string;
 };
 
 type UseChannelJoinResult = void;
@@ -40,7 +40,7 @@ UseChannelJoinResult,
       agentTx.callFunction({
         target: `${packageId}::channel::join_channel_entry`,
         args: [
-          Args.string(args.address),
+          Args.objectId(args.id),
         ],
       });
 
