@@ -1,4 +1,4 @@
-import { Serializer } from "@roochnetwork/rooch-sdk";
+import { RoochAddress, Serializer } from "@roochnetwork/rooch-sdk";
 import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
 import { useQuery } from "@tanstack/react-query";
 import { useNetworkVariable } from "./use-networks";
@@ -56,17 +56,21 @@ export default function useChannelMembers(input: {
         },
       });
 
-      const infos = resultInfos.data.map((item: any) => ({
-        avatar: item.decoded_value.value.avatar as string,
-        name: item.decoded_value.value.name as string,
-        username: item.decoded_value.value.username as string,
-      }));
+      const infos = resultInfos.data.reduce((acc: { [key: string]: any }, item: any) => {
+        const key = new RoochAddress(item.owner).toHexAddress();
+        acc[key] = {
+          avatar: item.decoded_value.value.avatar as string,
+          name: item.decoded_value.value.name as string,
+          username: item.decoded_value.value.username as string,
+        };
+        return acc;
+      }, {});
 
-      return members.map((item, index) => ({
+      return members.map((item) => ({
         address: item.address,
-        avatar: infos[index].avatar,
-        name: infos[index].name,
-        username: infos[index].username,
+        avatar: infos[item.address]?.avatar || "",
+        name: infos[item.address]?.name ||"",
+        username: infos[item.address]?.username ||"",
       }));
     },
     enabled: !!input.channelId,
