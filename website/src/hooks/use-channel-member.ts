@@ -58,8 +58,8 @@ export default function useChannelMembers(input: {
 
       const infos = resultInfos.data.map((item: any) => ({
         avatar: item.decoded_value.value.avatar as string,
-        name: item.decoded_value.value.avatar as string,
-        username: item.decoded_value.value.avatar as string,
+        name: item.decoded_value.value.name as string,
+        username: item.decoded_value.value.username as string,
       }));
 
       return members.map((item, index) => ({
