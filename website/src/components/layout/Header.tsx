@@ -83,7 +83,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                     <div className="p-1">
                         <ThemeToggle />
                     </div>
-                    {!user ? (
+                    {connectionStatus !== 'connected' ? (
                         <ConnectButton
                             className="px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
                         >
