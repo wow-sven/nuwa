@@ -1,14 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Agent } from "../types/agent";
-import { Task, TaskArgument, TaskFormData } from "../types/task";
 import {
   PencilIcon,
   ArrowLeftIcon,
   ClipboardIcon,
   LockClosedIcon,
   PlusIcon,
-  TrashIcon,
   InboxIcon,
 } from "@heroicons/react/24/outline";
 import useAgent from "../hooks/use-agent";
@@ -18,27 +15,40 @@ import { useUpdateAgent } from "../hooks/use-agent-update";
 import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
 import { RoochAddress, Serializer } from "@roochnetwork/rooch-sdk";
 import { useNetworkVariable } from "../hooks/use-networks";
+import useAgentTask from "../hooks/use-agent-task";
+import { TaskSpecificationEditor } from "../components/TaskSpecificationEditor";
+import { TaskSpecification } from "../types/taska";
+import { createEmptyTaskSpec } from "../utils/task";
+import { useUpdateAgentTaskTask } from "../hooks/use-agent-task-update";
 
 export function AgentProfile() {
   const { address } = useParams<{ address: string }>();
   const packageId = useNetworkVariable("packageId");
-  console.log("address", address);
-  const agentId = Serializer.accountNamedObjectID(new RoochAddress(address || "").toHexAddress(), {
-    address: packageId,
-    module: "agent",
-    name: "Agent",
-  })
+  const agentId = Serializer.accountNamedObjectID(
+    new RoochAddress(address || "").toHexAddress(),
+    {
+      address: packageId,
+      module: "agent",
+      name: "Agent",
+    }
+  );
 
-  console.log("agentId", agentId);
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
   const [isSaveing, setIsSaveing] = useState(false);
   const [isSaveingPop, setIsSaveingPop] = useState(false);
 
+  const [jsonMode, setJsonMode] = useState(false);
+  const [taskSpecs, setTaskSpecs] = useState<TaskSpecification[]>([]);
+
+  console.log(taskSpecs);
+
   const { mutateAsync: updateAgent } = useUpdateAgent();
   const { agent, refetch: refetchAgent } = useAgent(agentId);
   const { caps } = useAgentCaps();
+  const { agentTask, refetch: refetchAgentTask } = useAgentTask(agent?.id);
+  const { mutateAsync: updateAgentTaskTask } = useUpdateAgentTaskTask();
   const isOwner = useMemo(() => {
     if (agent?.id && caps.has(agent.id)) {
       return true;
@@ -47,51 +57,37 @@ export function AgentProfile() {
   }, [agent, caps]);
 
   // Task related states
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isJsonMode, setIsJsonMode] = useState(false);
-  const [jsonInput, setJsonInput] = useState("");
-  const [taskForm, setTaskForm] = useState<TaskFormData>({
-    name: "",
-    description: "",
-    arguments: [],
-    resolverAddress: "",
-    isOnChain: false,
-    price: 0,
-  });
-  const [taskError, setTaskError] = useState<string>("");
-
-  // Mock whether user is the agent owner
-  // const isOwner = true
-
-  // Using the first mock agent as an example
-  const [agentData, setAgentData] = useState<Partial<Agent>>({
-    name: "",
-    description: "",
-    prompt: "",
-    username: "",
-    instructions: "",
-    agent_address: "",
-    avatar: "",
-    modelProvider: "",
-    lastActive: "",
-    createdAt: "",
-  });
 
   const [editForm, setEditForm] = useState({
-    name: agentData.name || "",
-    description: agentData.description || "",
-    prompt: agentData.prompt || "",
-    avatar: agentData.avatar || "",
+    name: agent?.name,
+    description: agent?.description,
+    prompt: agent?.instructions,
+    avatar: agent?.avatar,
   });
   const [avatarError, setAvatarError] = useState<string>("");
   const [previewAvatar, setPreviewAvatar] = useState<string>("");
 
   useEffect(() => {
     if (isEditing) {
-      setPreviewAvatar(editForm.avatar);
+      setPreviewAvatar(editForm.avatar || "");
     }
   }, [isEditing]);
+
+  useEffect(() => {
+    if (agentTask) {
+      setTaskSpecs(agentTask);
+    }
+  }, [agentTask]);
+
+  useEffect(() => {
+    if (JSON.stringify(taskSpecs) === JSON.stringify(agentTask || [])) {
+      setIsAddingTask(false);
+    } else {
+      setIsAddingTask(true);
+    }
+  }, [taskSpecs]);
 
   const validateImageUrl = (url: string) => {
     return new Promise((resolve) => {
@@ -129,82 +125,14 @@ export function AgentProfile() {
     }
   };
 
-  // Task form handlers
-  const handleAddArgument = () => {
-    setTaskForm((prev) => ({
-      ...prev,
-      arguments: [
-        ...prev.arguments,
-        { name: "", type: "String", description: "" },
-      ],
-    }));
-  };
-
-  const handleRemoveArgument = (index: number) => {
-    setTaskForm((prev) => ({
-      ...prev,
-      arguments: prev.arguments.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleArgumentChange = (
-    index: number,
-    field: keyof TaskArgument,
-    value: string
-  ) => {
-    setTaskForm((prev) => ({
-      ...prev,
-      arguments: prev.arguments.map((arg, i) =>
-        i === index ? { ...arg, [field]: value } : arg
-      ),
-    }));
-  };
-
-  const handleSubmitTask = () => {
+  const handleSubmmitTask = async () => {
     try {
-      if (!taskForm.name.trim()) {
-        setTaskError("Task name is required");
-        return;
-      }
-
-      if (isJsonMode) {
-        try {
-          const jsonData = JSON.parse(jsonInput);
-          if (!jsonData.name) {
-            setTaskError("Task name is required in JSON");
-            return;
-          }
-          const newTask: Task = {
-            id: Date.now().toString(),
-            ...jsonData,
-          };
-          setTasks((prev) => [...prev, newTask]);
-        } catch (e) {
-          setTaskError("Invalid JSON format");
-          return;
-        }
-      } else {
-        const newTask: Task = {
-          id: Date.now().toString(),
-          ...taskForm,
-        };
-        setTasks((prev) => [...prev, newTask]);
-      }
-
-      // Reset form
-      setTaskForm({
-        name: "",
-        description: "",
-        arguments: [],
-        resolverAddress: "",
-        isOnChain: false,
-        price: 0,
+      await updateAgentTaskTask({
+        cap: caps.get(agent?.id!)!.id,
+        taskSpecs: taskSpecs,
       });
-      setJsonInput("");
-      setIsAddingTask(false);
-      setTaskError("");
-    } catch (error) {
-      setTaskError("Failed to add task");
+    } finally {
+      refetchAgentTask();
     }
   };
 
@@ -326,7 +254,9 @@ export function AgentProfile() {
               {/* Avatar */}
               <div className="relative -mt-16 mb-4">
                 <img
-                  src={isEditing ? previewAvatar || agent?.avatar : agent?.avatar}
+                  src={
+                    isEditing ? previewAvatar || agent?.avatar : agent?.avatar
+                  }
                   alt={agent?.username}
                   className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-white dark:bg-gray-800"
                 />
@@ -345,12 +275,15 @@ export function AgentProfile() {
                           type="text"
                           value={editForm.avatar}
                           onChange={(e) => handleAvatarChange(e.target.value)}
-                          className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${avatarError ? 'border-red-500' : ''
-                            }`}
+                          className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${
+                            avatarError ? "border-red-500" : ""
+                          }`}
                           placeholder="Enter avatar URL"
                         />
                         {avatarError && (
-                          <p className="mt-1 text-sm text-red-500">{avatarError}</p>
+                          <p className="mt-1 text-sm text-red-500">
+                            {avatarError}
+                          </p>
                         )}
                       </div>
                       <div className="mb-2">
@@ -382,9 +315,7 @@ export function AgentProfile() {
                 </div>
                 {isOwner && (
                   <SessionKeyGuard onClick={handleEdit}>
-                    <button
-                      className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
+                    <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                       <PencilIcon className="w-4 h-4 mr-2" />
                       {isSaveing ? (
                         <svg
@@ -564,9 +495,7 @@ export function AgentProfile() {
                 </h2>
                 {isOwner ? (
                   <SessionKeyGuard onClick={handlePromptEdit}>
-                    <button
-                      className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
+                    <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                       <PencilIcon className="w-4 h-4 mr-2" />
                       {isSaveingPop ? (
                         <svg
@@ -634,318 +563,82 @@ export function AgentProfile() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   Tasks
                 </h2>
-                {!isAddingTask && (
+                <button
+                  onClick={() => {
+                    if (!isAddingTask) {
+                      setIsAddingTask(true);
+                      setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
+                    } else {
+                      setIsJsonMode(!isJsonMode);
+                    }
+                  }}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  {!isAddingTask ? (
+                    <>
+                      <PlusIcon className="w-4 h-4 mr-2" />
+                      Add Task
+                    </>
+                  ) : isJsonMode ? (
+                    "Edit Mode"
+                  ) : (
+                    "JSON Mode"
+                  )}
+                </button>
+              </div>
+
+              {taskSpecs.length === 0 && (
+                <div className="text-center py-8 px-4">
+                  <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
+                    <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    No Tasks Yet
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                    This AI agent doesn't have any tasks yet. Click the "Add
+                    Task" button to create the first task.
+                  </p>
+                </div>
+              )}
+
+              {/* Task List */}
+              <TaskSpecificationEditor
+                taskSpecs={taskSpecs}
+                jsonMode={isJsonMode}
+                onChange={(newTask) => {
+                  setTaskSpecs(newTask);
+                }}
+                onCancel={() => () => {}}
+              />
+
+              {isAddingTask && (
+                <div className="flex justify-end mt-6 gap-4">
                   <button
-                    onClick={() => setIsAddingTask(true)}
+                    onClick={() => {
+                      setIsAddingTask(false);
+                      setTaskSpecs(agentTask || []);
+                    }}
+                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
+                    }}
                     className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
                     <PlusIcon className="w-4 h-4 mr-2" />
                     Add Task
                   </button>
-                )}
-              </div>
 
-              {/* Task List */}
-              <div className="space-y-4 mb-6">
-                {tasks.length === 0 ? (
-                  <div className="text-center py-8 px-4">
-                    <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
-                      <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                      No Tasks Yet
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                      This AI agent doesn't have any tasks yet. Click the "Add
-                      Task" button to create the first task.
-                    </p>
-                  </div>
-                ) : (
-                  tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                          {task.name}
-                        </h3>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {task.price} RGAS
-                          </span>
-                          {task.isOnChain && (
-                            <span className="px-2 py-1 text-xs bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-full">
-                              On-Chain
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {task.description && (
-                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                          {task.description}
-                        </p>
-                      )}
-                      {task.arguments.length > 0 && (
-                        <div className="mt-2">
-                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Arguments:
-                          </h4>
-                          <div className="space-y-1">
-                            {task.arguments.map((arg, index) => (
-                              <div
-                                key={index}
-                                className="text-sm text-gray-600 dark:text-gray-400"
-                              >
-                                {arg.name} ({arg.type}): {arg.description}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Resolver: {task.resolverAddress}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Add Task Form */}
-              {isAddingTask && (
-                <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                      Add New Task
-                    </h3>
-                    <div className="flex items-center space-x-4">
-                      <button
-                        onClick={() => setIsJsonMode(!isJsonMode)}
-                        className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
-                      >
-                        Switch to {isJsonMode ? "Form" : "JSON"} Mode
-                      </button>
-                      <button
-                        onClick={() => {
-                          setIsAddingTask(false);
-                          setTaskError("");
-                        }}
-                        className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-
-                  {taskError && (
-                    <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-600 dark:text-red-400 text-sm">
-                      {taskError}
-                    </div>
-                  )}
-
-                  {isJsonMode ? (
-                    <div className="space-y-4">
-                      <textarea
-                        value={jsonInput}
-                        onChange={(e) => setJsonInput(e.target.value)}
-                        placeholder="Enter task JSON..."
-                        className="w-full h-64 p-3 text-sm font-mono bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400"
-                      />
-                      <div className="flex justify-end">
-                        <button
-                          onClick={handleSubmitTask}
-                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                        >
-                          Add Task
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {/* Task Name */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Task Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={taskForm.name}
-                          onChange={(e) =>
-                            setTaskForm((prev) => ({
-                              ...prev,
-                              name: e.target.value,
-                            }))
-                          }
-                          className="w-full p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
-                          placeholder="Enter task name"
-                        />
-                      </div>
-
-                      {/* Description */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Description
-                        </label>
-                        <textarea
-                          value={taskForm.description}
-                          onChange={(e) =>
-                            setTaskForm((prev) => ({
-                              ...prev,
-                              description: e.target.value,
-                            }))
-                          }
-                          className="w-full p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
-                          placeholder="Enter task description"
-                          rows={3}
-                        />
-                      </div>
-
-                      {/* Arguments */}
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Arguments
-                          </label>
-                          <button
-                            onClick={handleAddArgument}
-                            className="text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
-                          >
-                            + Add Argument
-                          </button>
-                        </div>
-                        <div className="space-y-3">
-                          {taskForm.arguments.map((arg, index) => (
-                            <div
-                              key={index}
-                              className="flex items-start space-x-3"
-                            >
-                              <div className="flex-1 grid grid-cols-3 gap-2">
-                                <input
-                                  type="text"
-                                  value={arg.name}
-                                  onChange={(e) =>
-                                    handleArgumentChange(
-                                      index,
-                                      "name",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
-                                  placeholder="Name"
-                                />
-                                <select
-                                  value={arg.type}
-                                  onChange={(e) =>
-                                    handleArgumentChange(
-                                      index,
-                                      "type",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
-                                >
-                                  <option value="String">String</option>
-                                  <option value="Number">Number</option>
-                                  <option value="Boolean">Boolean</option>
-                                </select>
-                                <input
-                                  type="text"
-                                  value={arg.description}
-                                  onChange={(e) =>
-                                    handleArgumentChange(
-                                      index,
-                                      "description",
-                                      e.target.value
-                                    )
-                                  }
-                                  className="p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
-                                  placeholder="Description"
-                                />
-                              </div>
-                              <button
-                                onClick={() => handleRemoveArgument(index)}
-                                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-                              >
-                                <TrashIcon className="w-4 h-4" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Resolver Address */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Resolver Address
-                        </label>
-                        <input
-                          type="text"
-                          value={taskForm.resolverAddress}
-                          onChange={(e) =>
-                            setTaskForm((prev) => ({
-                              ...prev,
-                              resolverAddress: e.target.value,
-                            }))
-                          }
-                          className="w-full p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
-                          placeholder="Enter resolver address"
-                        />
-                      </div>
-
-                      {/* On-Chain Switch */}
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="isOnChain"
-                          checked={taskForm.isOnChain}
-                          onChange={(e) =>
-                            setTaskForm((prev) => ({
-                              ...prev,
-                              isOnChain: e.target.checked,
-                            }))
-                          }
-                          className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        />
-                        <label
-                          htmlFor="isOnChain"
-                          className="text-sm font-medium text-gray-700 dark:text-gray-300"
-                        >
-                          On-Chain Task
-                        </label>
-                      </div>
-
-                      {/* Price */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Price (RGAS)
-                        </label>
-                        <input
-                          type="number"
-                          value={taskForm.price}
-                          onChange={(e) =>
-                            setTaskForm((prev) => ({
-                              ...prev,
-                              price: Number(e.target.value),
-                            }))
-                          }
-                          className="w-full p-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 bg-transparent"
-                          placeholder="Enter price in RGAS"
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
-
-                      <div className="flex justify-end">
-                        <SessionKeyGuard onClick={handleSubmitTask}>
-                          <button
-                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                          >
-                            Add Task
-                          </button>
-                        </SessionKeyGuard>
-                      </div>
-                    </div>
-                  )}
+                  <button
+                    onClick={handleSubmmitTask}
+                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Save
+                  </button>
                 </div>
               )}
             </div>

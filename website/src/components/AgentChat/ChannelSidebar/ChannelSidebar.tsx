@@ -10,6 +10,8 @@ interface ChannelSidebarProps {
     agentId?: string;
     /** List of channel members */
     members: Member[];
+
+    memberCount?: number;
 }
 
 /**
@@ -19,13 +21,13 @@ interface ChannelSidebarProps {
  * - Channel statistics
  * - Member list with avatars and addresses
  */
-export function ChannelSidebar({ agentId, members }: ChannelSidebarProps) {
+export function ChannelSidebar({ agentId, members, memberCount }: ChannelSidebarProps) {
     return (
         <div className="w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
             {/* Agent profile section with stats */}
             <AgentInfo
                 agentId={agentId}
-                membersCount={members.length}
+                membersCount={memberCount || 0}
             />
             {/* List of channel members */}
             <MembersList members={members} agentId={agentId} />

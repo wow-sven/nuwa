@@ -3,6 +3,7 @@ import useAgentChannels from "../hooks/use-agent-channel";
 import useChannelMembers from "../hooks/use-channel-member";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
 import useAgent from "../hooks/use-agent";
+import useChannelMemberCount from "../hooks/use-channel-member-count";
 
 /**
  * AgentChat component - Main chat interface for interacting with an AI agent
@@ -22,6 +23,8 @@ export function AgentChat() {
   // Get channel information
   const { channel, isPending: isChannelPending } = useAgentChannels(id);
 
+  const { memberCount } = useChannelMemberCount(channel)
+  
   // Get list of channel members
   const { members } = useChannelMembers({
     channelId: channel,
@@ -78,6 +81,7 @@ export function AgentChat() {
         {/* Right sidebar showing channel info and members */}
         <ChannelSidebar
           agentId={id}
+          memberCount={memberCount}
           members={members}
         />
       </div>
