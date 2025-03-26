@@ -15,6 +15,7 @@ import useAgent from "../hooks/use-agent";
 import useAgentCaps from "../hooks/use-agent-caps";
 import { SEO } from "../components/layout/SEO";
 import { useUpdateAgent } from "../hooks/use-agent-update";
+import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
 
 export function AgentProfile() {
   const { id } = useParams<{ id: string }>();
@@ -369,8 +370,8 @@ export function AgentProfile() {
                   </div>
                 </div>
                 {isOwner && (
-                  <button
-                    onClick={handleEdit}
+                  <SessionKeyGuard onClick={handleEdit}>
+                    <button
                     className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
                     <PencilIcon className="w-4 h-4 mr-2" />
@@ -401,6 +402,7 @@ export function AgentProfile() {
                       "Edit"
                     )}
                   </button>
+                  </SessionKeyGuard>
                 )}
               </div>
 
@@ -550,8 +552,8 @@ export function AgentProfile() {
                   Prompt
                 </h2>
                 {isOwner ? (
-                  <button
-                    onClick={handlePromptEdit}
+                  <SessionKeyGuard onClick={handlePromptEdit}>
+                    <button
                     className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                   >
                     <PencilIcon className="w-4 h-4 mr-2" />
@@ -582,6 +584,7 @@ export function AgentProfile() {
                       "Edit"
                     )}
                   </button>
+                  </SessionKeyGuard>
                 ) : (
                   <div className="flex items-center text-gray-500 dark:text-gray-400">
                     <LockClosedIcon className="w-4 h-4 mr-2" />
@@ -922,12 +925,13 @@ export function AgentProfile() {
                       </div>
 
                       <div className="flex justify-end">
+                        <SessionKeyGuard onClick={handleSubmitTask}>
                         <button
-                          onClick={handleSubmitTask}
                           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                         >
                           Add Task
                         </button>
+                        </SessionKeyGuard>
                       </div>
                     </div>
                   )}
