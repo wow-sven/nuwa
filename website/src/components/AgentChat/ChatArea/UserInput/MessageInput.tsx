@@ -21,7 +21,7 @@ interface MessageInputProps {
     /** Ref to scroll to end of messages */
     messagesEndRef?: React.RefObject<HTMLDivElement>;
     /** List of channel members */
-    members?: Array<{ address: string, avatar: string }>;
+    members?: Array<{ address: string, avatar: string, name?: string, username?: string }>;
 }
 
 /**
@@ -172,6 +172,9 @@ export function MessageInput({
                                 )}
                                 {members.map((member) => (
                                     <option key={member.address} value={member.address}>
+                                        {member.name ? member.name : member.username ? `@${member.username}` : ''}
+                                        {member.name && member.username ? ` (@${member.username})` : ''}
+                                        {(member.name || member.username) ? ' - ' : ''}
                                         {member.address.substring(0, 8)}...{member.address.substring(member.address.length - 6)}
                                     </option>
                                 ))}
