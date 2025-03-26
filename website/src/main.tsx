@@ -23,12 +23,12 @@ createRoot(document.getElementById('root')!).render(
           sessionConf={{
             appName: "Nuwa AI Agents",
             appUrl: "https://nuwa.rooch.io/",
-            scopes: [`${PACKAGE_ID}::*::*`],
+            scopes: [`${PACKAGE_ID}::*::*`, `0x3::*::*`],
             maxInactiveInterval: 3600,
           }}
         >
           <WalletProvider preferredWallets={['UniSat']} chain="bitcoin" autoConnect>
-            <ErrorGuard/>
+            <ErrorGuard />
             <App />
           </WalletProvider>
         </RoochProvider>

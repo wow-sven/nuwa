@@ -8,6 +8,8 @@ import { SEO } from '../components/layout/SEO';
 import useUserInfo from '../hooks/use-user-info';
 import { useUserUpdate } from '../hooks/use-user-update';
 import { SessionKeyGuard, useCurrentAddress } from '@roochnetwork/rooch-sdk-kit';
+import { useTransfer } from '../hooks/use-transfer';
+import { TypeArgs } from '@roochnetwork/rooch-sdk';
 
 export const UserProfile = () => {
   const navigate = useNavigate()
@@ -18,8 +20,16 @@ export const UserProfile = () => {
   const { balance, isPending: isBalancePending, isError: isBalanceError, refetchBalance: refetchAllBalance } = useAllBalance(address)
   const { userInfo, isPending: isUserInfoPending, isError: isUserInfoError, refetch: refetchUserInfo } = useUserInfo(address)
   const { mutate: updateUser, isPending: isUpdating } = useUserUpdate()
+  const { mutate: transfer, isPending: isTransferring } = useTransfer()
   const [isEditingName, setIsEditingName] = useState(false)
   const [isEditingAvatar, setIsEditingAvatar] = useState(false)
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
+  const [transferForm, setTransferForm] = useState({
+    recipient: '',
+    amount: '',
+    coinType: ''
+  })
+  const [currentToken, setCurrentToken] = useState<{ name: string; symbol: string } | null>(null)
   const [editForm, setEditForm] = useState({
     name: '',
     avatar: ''
@@ -130,6 +140,34 @@ export const UserProfile = () => {
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1)
+    }
+  }
+
+  const handleTransfer = async (token: any) => {
+    setTransferForm(prev => ({
+      ...prev,
+      coinType: token.coin_type
+    }))
+    setCurrentToken({
+      name: token.name,
+      symbol: token.symbol
+    })
+    setIsTransferModalOpen(true)
+  }
+
+  const handleTransferSubmit = async () => {
+    try {
+      console.log(transferForm.coinType);
+      await transfer({
+        recipient: transferForm.recipient,
+        amount: BigInt(Number(transferForm.amount) * 100_000_000), // Convert to smallest unit
+        coinType: { target: transferForm.coinType }
+      })
+      setIsTransferModalOpen(false)
+      refetchAllBalance()
+      refetchBalance()
+    } catch (error) {
+      console.error('Transfer failed:', error)
     }
   }
 
@@ -265,11 +303,11 @@ export const UserProfile = () => {
                       {isOwnProfile && (
                         <SessionKeyGuard onClick={handleEditName}>
                           <button
-                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                          title="Edit Display Name"
-                        >
-                          <PencilIcon className="w-4 h-4" />
-                        </button>
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            title="Edit Display Name"
+                          >
+                            <PencilIcon className="w-4 h-4" />
+                          </button>
                         </SessionKeyGuard>
                       )}
                     </div>
@@ -351,11 +389,14 @@ export const UserProfile = () => {
                             {token.symbol}
                           </p>
                         </div>
-                        <button
-                          className="px-3 py-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-600 dark:border-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                        >
-                          Transfer
-                        </button>
+                        <SessionKeyGuard onClick={() => handleTransfer(token)}>
+                          <button
+                            className="px-3 py-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-600 dark:border-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                            disabled={isTransferring}
+                          >
+                            {isTransferring ? 'Transferring...' : 'Transfer'}
+                          </button>
+                        </SessionKeyGuard>
                       </div>
                     </div>
                   ))}
@@ -395,6 +436,62 @@ export const UserProfile = () => {
           </div>
         </div>
       </div>
+
+      {/* Transfer Modal */}
+      {isTransferModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+              Transfer {currentToken?.symbol || ''}
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Recipient Address
+                </label>
+                <input
+                  type="text"
+                  value={transferForm.recipient}
+                  onChange={(e) => setTransferForm(prev => ({ ...prev, recipient: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Enter recipient address"
+                  disabled={isTransferring}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Amount
+                </label>
+                <input
+                  type="number"
+                  value={transferForm.amount}
+                  onChange={(e) => setTransferForm(prev => ({ ...prev, amount: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="Enter amount"
+                  disabled={isTransferring}
+                />
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setIsTransferModalOpen(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+                  disabled={isTransferring}
+                >
+                  Cancel
+                </button>
+                <SessionKeyGuard onClick={handleTransferSubmit}>
+                  <button
+                    disabled={isTransferring || !transferForm.recipient || !transferForm.amount}
+                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isTransferring ? 'Transferring...' : 'Transfer'}
+                  </button></SessionKeyGuard>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 } 

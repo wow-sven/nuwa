@@ -93,13 +93,13 @@ export function Header({ isDarkMode }: HeaderProps) {
                         <Menu as="div" className="relative">
                             <Menu.Button className="flex items-center space-x-4 focus:outline-none">
                                 <img
-                                    src={user.avatar}
-                                    alt={user.name}
+                                    src={user?.avatar}
+                                    alt={user?.name}
                                     className="w-8 h-8 rounded-full"
                                 />
                                 <div className="flex flex-col text-left">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        {user.name || formatAddress(address?.genRoochAddress().toBech32Address())}
+                                        {user?.name || formatAddress(address?.genRoochAddress().toBech32Address())}
                                     </span>
                                     <span className="text-xs text-gray-600 dark:text-gray-400">
                                         {rGas?.toLocaleString()} RGAS

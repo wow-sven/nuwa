@@ -50,7 +50,7 @@ export function MessageInput({
 
     const packageId = useNetworkVariable("packageId");
     const session = useCurrentSession()
-    const {mutate: createSession } = useCreateSessionKey()
+    const { mutate: createSession } = useCreateSessionKey()
     // Check if current user has joined the channel
     const { isJoined = false, refetch: refetchJoinStatus } = useChannelJoinedStatus(channelId);
     // Message sending functionality
@@ -69,11 +69,11 @@ export function MessageInput({
 
     // TODO: remove this with sdk-kit export session config
     const sessionCfg = {
-                appName: "Nuwa AI Agents",
-                appUrl: "https://nuwa.rooch.io/",
-                scopes: [`${packageId}::*::*`],
-                maxInactiveInterval: 3600,
-              }
+        appName: "Nuwa AI Agents",
+        appUrl: "https://nuwa.rooch.io/",
+        scopes: [`${packageId}::*::*`, `0x3::*::*`],
+        maxInactiveInterval: 3600,
+    }
     /**
      * Handle message sending and channel joining
      * If user hasn't joined the channel, join first
@@ -131,7 +131,7 @@ export function MessageInput({
     const handleAction = () => {
         if (!session) {
             createSession(sessionCfg)
-            return 
+            return
         }
         if (inputMessage.trim() && isJoined) {
             handleSendMessage(inputMessage);
