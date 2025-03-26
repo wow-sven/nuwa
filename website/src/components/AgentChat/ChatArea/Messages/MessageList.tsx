@@ -79,6 +79,7 @@ export function MessageList({
                     isAI={isAI(message)}
                     agentName={agentName}
                     agentId={agentId}
+                    messages={messages}
                 />
             ))}
             {/* Scroll anchor for auto-scrolling */}

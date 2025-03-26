@@ -12,6 +12,7 @@ import { shortenAddress } from "../../../../utils/address";
 import { Link } from "react-router-dom";
 import { RoochAddress } from "@roochnetwork/rooch-sdk";
 import useAgent from "../../../../hooks/use-agent";
+import React from "react";
 
 // Add interface for parsed action event
 interface ActionEvent {
@@ -27,7 +28,8 @@ interface ChatMessageProps {
   isAI: boolean;
   agentName?: string;
   agentId?: string;
-  hasPaidContent?: boolean; // Add this prop to your ChatMessage component
+  hasPaidContent?: boolean;
+  messages?: Message[];
 }
 
 export function ChatMessage({
@@ -37,6 +39,7 @@ export function ChatMessage({
   agentName,
   agentId,
   hasPaidContent,
+  messages,
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
   const timestamp = message.timestamp;
@@ -47,6 +50,21 @@ export function ChatMessage({
   const roochscanBaseUrl = "https://test.roochscan.io";
 
   const senderAddress = new RoochAddress(message.sender).toBech32Address();
+
+  // 检查消息是否发送给 AI
+  const isToAI = React.useMemo(() => {
+    if (!agent?.address) return false;
+    return message.mentions.some(mention => {
+      try {
+        const mentionAddress = new RoochAddress(mention).toBech32Address();
+        console.log('Checking mention:', mentionAddress, 'against AI address:', agent.address);
+        return mentionAddress === agent.address;
+      } catch (error) {
+        console.error('Error parsing mention address:', error);
+        return false;
+      }
+    });
+  }, [message.mentions, agent?.address]);
 
   // Use the agent's actual name if provided, otherwise fallback to address
   const displayName = isAI
@@ -218,6 +236,14 @@ export function ChatMessage({
     );
   }
 
+  // 获取被回复的消息
+  const getReplyToMessage = () => {
+    if (!messages || message.reply_to === -1) return null;
+    return messages.find(m => m.index === message.reply_to);
+  };
+
+  const replyToMessage = getReplyToMessage();
+
   // For normal messages, use the existing format
   return (
     <div className="flex w-full">
@@ -271,20 +297,19 @@ export function ChatMessage({
             <span className="font-medium">
               {isCurrentUser ? (
                 "You"
-              ) : // Also add Roochscan link to the display name for non-AI users
-                isAI ? (
-                  displayName
-                ) : (
-                  <a
-                    href={`${roochscanBaseUrl}/account/${senderAddress}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-blue-600 hover:underline transition-colors"
-                    title={`View ${senderAddress} on Roochscan`}
-                  >
-                    {displayName}
-                  </a>
-                )}
+              ) : isAI ? (
+                displayName
+              ) : (
+                <a
+                  href={`${roochscanBaseUrl}/account/${senderAddress}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-blue-600 hover:underline transition-colors"
+                  title={`View ${senderAddress} on Roochscan`}
+                >
+                  {displayName}
+                </a>
+              )}
             </span>
             <span>•</span>
             <span>{formatTimestamp(timestamp)}</span>
@@ -293,16 +318,43 @@ export function ChatMessage({
                 Paid Message
               </span>
             )}
+            {isCurrentUser && isToAI && (
+              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                To Agent
+              </span>
+            )}
           </div>
+          {replyToMessage && (
+            <div className="mb-1 text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
+              <span className="font-medium">
+                Reply to
+              </span>
+              <span className="ml-1">
+                {replyToMessage.content.length > 50
+                  ? `${replyToMessage.content.substring(0, 50)}...`
+                  : replyToMessage.content}
+              </span>
+            </div>
+          )}
           <div className="relative group">
             <div
               className={`rounded-lg px-2 py-0.5 ${isCurrentUser
-                ? "bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-700 dark:text-white dark:border-blue-600"
+                ? isToAI
+                  ? "bg-green-100 text-green-900 border border-green-200 dark:bg-green-800 dark:text-white dark:border-green-700"
+                  : "bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-700 dark:text-white dark:border-blue-600"
                 : isAI
                   ? "bg-purple-100 text-purple-900 border border-purple-200 dark:bg-purple-700 dark:text-white dark:border-purple-600"
                   : "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 }`}
             >
+              {/* 添加调试信息 */}
+              {/* {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-gray-500 mb-1">
+                  isToAI: {isToAI ? 'true' : 'false'},
+                  mentions: {message.mentions.join(', ')},
+                  agent address: {agent?.address || 'not loaded'}
+                </div>
+              )} */}
               <div className="flex flex-col justify-between items-start">
                 <div className="text-sm leading-tight flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
                   <ReactMarkdown
