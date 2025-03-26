@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import useAllAgents from '../../hooks/use-all-agents'
@@ -17,6 +17,17 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
 
   // Get current agent ID from URL
   const currentAgentId = location.pathname.split('/agent/')[1]
+
+  // Filter agents based on search query
+  const filteredAgents = useMemo(() => {
+    if (!searchQuery.trim()) return agents || []
+
+    const query = searchQuery.toLowerCase().trim()
+    return (agents || []).filter(agent =>
+      agent.name.toLowerCase().includes(query) ||
+      agent.username.toLowerCase().includes(query)
+    )
+  }, [agents, searchQuery])
 
   // Use prop value or local state
   const isCollapsed = propIsCollapsed ?? localIsCollapsed
@@ -94,7 +105,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
               {/* AI Characters List */}
               <div
                 className="space-y-3 h-[calc(100vh-20rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
-                {agents?.map((agent) => (
+                {filteredAgents.map((agent) => (
                   <div
                     key={agent.username}
                     className={`flex items-start space-x-3 p-2 rounded-lg transition-colors cursor-pointer ${agent.id === currentAgentId
@@ -126,7 +137,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
           <div
             className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden'}`}>
             <div className="px-2 py-2 space-y-3">
-              {agents?.map((agent) => (
+              {filteredAgents.map((agent) => (
                 <div
                   key={agent.username}
                   className={`flex justify-center cursor-pointer rounded-lg p-2 transition-colors ${agent.id === currentAgentId
