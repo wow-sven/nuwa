@@ -23,7 +23,7 @@ function MemberItem({ member, agentId }: MemberItemProps) {
     return (
         <Link
             to={profileUrl}
-            className={`flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg ${member.isAgent ? 'bg-blue-50' : ''} cursor-pointer`}
+            className={`flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer`}
         >
             <img
                 src={avatar}

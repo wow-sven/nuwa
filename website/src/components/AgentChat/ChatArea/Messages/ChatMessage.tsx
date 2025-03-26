@@ -12,6 +12,7 @@ import { shortenAddress } from "../../../../utils/address";
 import { Link } from "react-router-dom";
 import { RoochAddress } from "@roochnetwork/rooch-sdk";
 import useAgent from "../../../../hooks/use-agent";
+import useUserInfo from "../../../../hooks/use-user-info";
 import React from "react";
 
 // Add interface for parsed action event
@@ -45,6 +46,7 @@ export function ChatMessage({
   const timestamp = message.timestamp;
   const isActionEvent = message.message_type === MESSAGE_TYPE.ACTION_EVENT;
   const { agent } = useAgent(agentId);
+  const { userInfo } = useUserInfo(message.sender);
 
   //TODO use the scanUrl via the network.
   const roochscanBaseUrl = "https://test.roochscan.io";
@@ -68,7 +70,7 @@ export function ChatMessage({
   // Use the agent's actual name if provided, otherwise fallback to address
   const displayName = isAI
     ? agentName || "AI Agent"
-    : shortenAddress(senderAddress);
+    : userInfo?.name || shortenAddress(senderAddress);
 
   const handleCopy = async () => {
     const shareText = `${message.content}\n\n${window.location.href}`;
@@ -284,7 +286,15 @@ export function ChatMessage({
                 className="block w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
                 title={`View ${shortenAddress(senderAddress)} on Roochscan`}
               >
-                <UserCircleIcon className="w-8 h-8 text-gray-400" />
+                {userInfo?.avatar ? (
+                  <img
+                    src={userInfo.avatar}
+                    alt={userInfo.name || shortenAddress(senderAddress)}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserCircleIcon className="w-8 h-8 text-gray-400" />
+                )}
               </a>
             )}
           </div>
@@ -310,6 +320,12 @@ export function ChatMessage({
                 </a>
               )}
             </span>
+            {!isCurrentUser && !isAI && userInfo?.username && (
+              <>
+                <span>•</span>
+                <span className="text-gray-400">@{userInfo.username}</span>
+              </>
+            )}
             <span>•</span>
             <span>{formatTimestamp(timestamp)}</span>
             {hasPaidContent && (
@@ -441,7 +457,15 @@ export function ChatMessage({
                 className="block w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
                 title={`View your account on Roochscan`}
               >
-                <UserCircleIcon className="w-8 h-8 text-blue-400" />
+                {userInfo?.avatar ? (
+                  <img
+                    src={userInfo.avatar}
+                    alt={userInfo.name || shortenAddress(senderAddress)}
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserCircleIcon className="w-8 h-8 text-blue-400" />
+                )}
               </a>
             )}
           </div>
