@@ -16,9 +16,20 @@ import useAgentCaps from "../hooks/use-agent-caps";
 import { SEO } from "../components/layout/SEO";
 import { useUpdateAgent } from "../hooks/use-agent-update";
 import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
+import { RoochAddress, Serializer } from "@roochnetwork/rooch-sdk";
+import { useNetworkVariable } from "../hooks/use-networks";
 
 export function AgentProfile() {
-  const { id } = useParams<{ id: string }>();
+  const { address } = useParams<{ address: string }>();
+  const packageId = useNetworkVariable("packageId");
+  console.log("address", address);
+  const agentId = Serializer.accountNamedObjectID(new RoochAddress(address || "").toHexAddress(), {
+    address: packageId,
+    module: "agent",
+    name: "Agent",
+  })
+
+  console.log("agentId", agentId);
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingPrompt, setIsEditingPrompt] = useState(false);
@@ -26,7 +37,7 @@ export function AgentProfile() {
   const [isSaveingPop, setIsSaveingPop] = useState(false);
 
   const { mutateAsync: updateAgent } = useUpdateAgent();
-  const { agent, refetch: refetchAgent } = useAgent(id);
+  const { agent, refetch: refetchAgent } = useAgent(agentId);
   const { caps } = useAgentCaps();
   const isOwner = useMemo(() => {
     if (agent?.id && caps.has(agent.id)) {
@@ -292,7 +303,7 @@ export function AgentProfile() {
           "View detailed information about this AI agent on Nuwa platform."
         }
         keywords={`${agent?.name}, AI Agent, Web3 AI, Autonomous Agent, Crypto Agent, Blockchain AI, Nuwa Agent`}
-        ogUrl={`https://nuwa.dev/agents/${id}`}
+        ogUrl={`https://nuwa.dev/agents/${address}`}
       />
       <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -372,36 +383,36 @@ export function AgentProfile() {
                 {isOwner && (
                   <SessionKeyGuard onClick={handleEdit}>
                     <button
-                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    <PencilIcon className="w-4 h-4 mr-2" />
-                    {isSaveing ? (
-                      <svg
-                        className="w-5 h-5 animate-spin mx-auto text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8H4z"
-                        ></path>
-                      </svg>
-                    ) : isEditing ? (
-                      "Save"
-                    ) : (
-                      "Edit"
-                    )}
-                  </button>
+                      className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      <PencilIcon className="w-4 h-4 mr-2" />
+                      {isSaveing ? (
+                        <svg
+                          className="w-5 h-5 animate-spin mx-auto text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                          ></path>
+                        </svg>
+                      ) : isEditing ? (
+                        "Save"
+                      ) : (
+                        "Edit"
+                      )}
+                    </button>
                   </SessionKeyGuard>
                 )}
               </div>
@@ -554,36 +565,36 @@ export function AgentProfile() {
                 {isOwner ? (
                   <SessionKeyGuard onClick={handlePromptEdit}>
                     <button
-                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    <PencilIcon className="w-4 h-4 mr-2" />
-                    {isSaveingPop ? (
-                      <svg
-                        className="w-5 h-5 animate-spin mx-auto text-white" // Center spinner
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8H4z"
-                        ></path>
-                      </svg>
-                    ) : isEditingPrompt ? (
-                      "Save"
-                    ) : (
-                      "Edit"
-                    )}
-                  </button>
+                      className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      <PencilIcon className="w-4 h-4 mr-2" />
+                      {isSaveingPop ? (
+                        <svg
+                          className="w-5 h-5 animate-spin mx-auto text-white" // Center spinner
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                          ></path>
+                        </svg>
+                      ) : isEditingPrompt ? (
+                        "Save"
+                      ) : (
+                        "Edit"
+                      )}
+                    </button>
                   </SessionKeyGuard>
                 ) : (
                   <div className="flex items-center text-gray-500 dark:text-gray-400">
@@ -926,11 +937,11 @@ export function AgentProfile() {
 
                       <div className="flex justify-end">
                         <SessionKeyGuard onClick={handleSubmitTask}>
-                        <button
-                          className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                        >
-                          Add Task
-                        </button>
+                          <button
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                          >
+                            Add Task
+                          </button>
                         </SessionKeyGuard>
                       </div>
                     </div>

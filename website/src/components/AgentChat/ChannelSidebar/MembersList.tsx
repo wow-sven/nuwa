@@ -18,7 +18,7 @@ function MemberItem({ member, agentId }: MemberItemProps) {
     const name = member.isAgent ? agent?.name : (userInfo?.name || toShortStr(member.address));
     const username = member.isAgent ? agent?.username : (userInfo?.username || toShortStr(member.address));
 
-    const profileUrl = member.isAgent ? `/agent/profile/${agentId}` : `/user/profile/${member.address}`;
+    const profileUrl = `/profile/${new RoochAddress(member.address).toBech32Address()}`;
 
     return (
         <Link

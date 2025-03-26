@@ -1,17 +1,26 @@
 import { useParams, Navigate } from 'react-router-dom'
 import { AgentProfile } from '../pages/AgentProfile'
 import { UserProfile } from '../pages/UserProfile'
+import useAgentWithAddress from '../hooks/use-agent-with-address'
 
 export function ProfileRouter() {
-    const { id } = useParams<{ id: string }>()
+    const { address } = useParams<{ address: string }>()
+    const { agent, isPending, isError } = useAgentWithAddress(address)
 
-    if (!id?.endsWith('0x')) {
+    if (!address) {
+        return <Navigate to="/" />
+    }
+
+    // If there is an error or the agent is not found, show the user profile
+    if (isError || (!isPending && !agent)) {
         return <UserProfile />
     }
 
-    if (id) {
+    // If the agent is found, show the agent profile
+    if (!isPending && agent) {
         return <div className="h-screen overflow-auto"><AgentProfile /></div>
     }
 
-    return <Navigate to="/" />
+    // If the agent is loading, show the loading state
+    return <div>Loading...</div>
 } 

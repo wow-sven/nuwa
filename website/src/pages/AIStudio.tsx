@@ -39,14 +39,14 @@ export const AIStudio = () => {
                             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">AI Studio</h1>
                             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Create, test, and manage your AI agents</p>
                         </div>
-                        {connectStatus ==='connected' && (
+                        {connectStatus === 'connected' && (
                             <SessionKeyGuard onClick={() => navigate('/studio/create')}>
                                 <button
-                                className="flex items-center space-x-2 bg-purple-600 text-white rounded-lg px-4 py-2 hover:bg-purple-700"
-                            >
-                                <PlusIcon className="w-5 h-5" />
-                                <span>New Agent</span>
-                            </button>
+                                    className="flex items-center space-x-2 bg-purple-600 text-white rounded-lg px-4 py-2 hover:bg-purple-700"
+                                >
+                                    <PlusIcon className="w-5 h-5" />
+                                    <span>New Agent</span>
+                                </button>
                             </SessionKeyGuard>
                         )}
                     </div>
@@ -55,7 +55,7 @@ export const AIStudio = () => {
                     <div>
                         <div className="bg-white dark:bg-gray-900 rounded-lg p-6 border border-gray-200 dark:border-gray-800">
                             {/* Wallet connection prompt */}
-                            {connectStatus !=='connected' ? (
+                            {connectStatus !== 'connected' ? (
                                 <div className="text-center py-12">
                                     <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900 mb-4">
                                         <PlusIcon className="w-8 h-8 text-purple-600 dark:text-purple-400" />
@@ -111,7 +111,7 @@ export const AIStudio = () => {
                                             {/* Profile edit button */}
                                             <div className="flex items-center space-x-3 mt-auto">
                                                 <button
-                                                    onClick={() => navigate(`/agent/profile/${agent.id}`)}
+                                                    onClick={() => navigate(`/profile/${agent.address}`)}
                                                     className="flex-1 flex items-center justify-center space-x-2 bg-purple-600 text-white rounded-lg px-4 py-2 hover:bg-purple-700"
                                                 >
                                                     <PencilIcon className="w-5 h-5" />

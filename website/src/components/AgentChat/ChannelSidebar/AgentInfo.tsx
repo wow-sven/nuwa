@@ -106,7 +106,7 @@ export function AgentInfo({ agentId, membersCount }: AgentInfoProps) {
 
                 {/* Profile Button */}
                 <button
-                    onClick={() => navigate(`/agent/profile/${agentId}`)}
+                    onClick={() => navigate(`/profile/${agent.agent_address}`)}
                     className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg transition-colors mt-2"
                 >
                     <UserCircleIcon className="w-5 h-5" />

@@ -132,7 +132,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                                         <Menu.Item>
                                             {({ active }) => (
                                                 <Link
-                                                    to={`/user/profile/${address?.genRoochAddress().toBech32Address()}`}
+                                                    to={`/profile/${address?.genRoochAddress().toBech32Address()}`}
                                                     className={`${active ? '!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400' : 'dark:!text-gray-300'
                                                         } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
                                                 >

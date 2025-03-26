@@ -11,8 +11,6 @@ import { useState, useEffect } from 'react'
 import { DocPage } from './pages/docs/DocPage'
 import { Header } from './components/layout/Header'
 import { HelmetProvider } from 'react-helmet-async'
-import { UserProfile } from './pages/UserProfile'
-import { AgentProfile } from './pages/AgentProfile'
 import { ThemeProvider, useTheme } from './providers/ThemeProvider'
 
 function AppContent() {
@@ -44,10 +42,8 @@ function AppContent() {
             <Route path="/studio" element={<AIStudio />} />
             <Route path="/studio/create" element={<CreateAgent />} />
             <Route path="/agent/:id" element={<AgentChat />} />
-            <Route path="/profile/:username" element={<ProfileRouter />} />
+            <Route path="/profile/:address" element={<ProfileRouter />} />
             <Route path="/allagents" element={<AllAgents />} />
-            <Route path="/user/profile/:id" element={<UserProfile />} />
-            <Route path="/agent/profile/:id" element={<AgentProfile />} />
             <Route path="/docs/:docId" element={<DocPage />} />
           </Routes>
         </div>

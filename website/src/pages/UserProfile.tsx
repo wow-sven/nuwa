@@ -11,12 +11,12 @@ import { useCurrentAddress } from '@roochnetwork/rooch-sdk-kit';
 
 export const UserProfile = () => {
   const navigate = useNavigate()
-  const { id } = useParams()
+  const { address } = useParams()
   const currentAddress = useCurrentAddress()
-  const isOwnProfile = currentAddress?.genRoochAddress().toBech32Address() === id
-  const { balance: rGas, isPending: isRgasPending, isError: isRgasError, refetchBalance } = useRgasBalance(id)
-  const { balance, isPending: isBalancePending, isError: isBalanceError, refetchBalance: refetchAllBalance } = useAllBalance(id)
-  const { userInfo, isPending: isUserInfoPending, isError: isUserInfoError, refetch: refetchUserInfo } = useUserInfo(id)
+  const isOwnProfile = currentAddress?.genRoochAddress().toBech32Address() === address
+  const { balance: rGas, isPending: isRgasPending, isError: isRgasError, refetchBalance } = useRgasBalance(address)
+  const { balance, isPending: isBalancePending, isError: isBalanceError, refetchBalance: refetchAllBalance } = useAllBalance(address)
+  const { userInfo, isPending: isUserInfoPending, isError: isUserInfoError, refetch: refetchUserInfo } = useUserInfo(address)
   const { mutate: updateUser, isPending: isUpdating } = useUserUpdate()
   const [isEditingName, setIsEditingName] = useState(false)
   const [isEditingAvatar, setIsEditingAvatar] = useState(false)
@@ -278,10 +278,10 @@ export const UserProfile = () => {
                   </div>
                   <div className="flex items-center space-x-2">
                     <code className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                      {userInfo.id}
+                      {address}
                     </code>
                     <button
-                      onClick={() => handleCopy(userInfo.id)}
+                      onClick={() => handleCopy(address?.toString() || '')}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       title="Copy Address"
                     >

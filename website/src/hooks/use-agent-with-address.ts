@@ -15,33 +15,50 @@ export default function useAgentWithAddress(address?: string) {
   } = useQuery({
     queryKey: ["useAgentWithAddress", address],
     queryFn: async () => {
-      const result = await client.executeViewFunction({
-        target: `${packageId}::agent::get_agent_info_by_address`,
-        args: [Args.address(address!)],
-      });
 
-      if (result.return_values && result.return_values.length > 0) {
-        const agentInfoValue = (
-          result.return_values[0].decoded_value as AnnotatedMoveStructView
-        ).value as any;
+      if (!client || !packageId) {
+        return null;
+      }
 
-        // Safely extract values with type checking
-        const extractValue = (value: any, defaultValue: string = "") => {
-          if (!value) return defaultValue;
-          return typeof value === "string" ? value : String(value);
-        };
+      try {
+        const result = await client.executeViewFunction({
+          target: `${packageId}::agent::get_agent_info_by_address`,
+          args: [Args.address(address!)],
+        });
 
-        return {
-          id: extractValue(agentInfoValue.id),
-          name: extractValue(agentInfoValue.name),
-          username: extractValue(agentInfoValue.username),
-          description: extractValue(agentInfoValue.description),
-          address: extractValue(agentInfoValue.agent_address),
-        };
+
+        if (result.return_values && result.return_values.length > 0) {
+          const agentInfoValue = (
+            result.return_values[0].decoded_value as AnnotatedMoveStructView
+          ).value as any;
+
+          // Safely extract values with type checking
+          const extractValue = (value: any, defaultValue: string = "") => {
+            if (!value) return defaultValue;
+            return typeof value === "string" ? value : String(value);
+          };
+
+          const agentData = {
+            id: extractValue(agentInfoValue.id),
+            name: extractValue(agentInfoValue.name),
+            username: extractValue(agentInfoValue.username),
+            description: extractValue(agentInfoValue.description),
+            address: extractValue(agentInfoValue.agent_address),
+
+          };
+
+          return agentData;
+        }
+        return null;
+      } catch (error) {
+        return null;
       }
     },
-    enabled: !!address
+    enabled: !!address && !!client && !!packageId,
+    retry: false,
+    staleTime: 0
   });
+
 
   return {
     agent,
