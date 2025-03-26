@@ -12,6 +12,7 @@ import { DocPage } from './pages/docs/DocPage'
 import { Header } from './components/layout/Header'
 import { HelmetProvider } from 'react-helmet-async'
 import { ThemeProvider, useTheme } from './providers/ThemeProvider'
+import { GetRGAS } from './pages/GetRGAS'
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -45,6 +46,7 @@ function AppContent() {
             <Route path="/profile/:address" element={<ProfileRouter />} />
             <Route path="/allagents" element={<AllAgents />} />
             <Route path="/docs/:docId" element={<DocPage />} />
+            <Route path="/getrgas" element={<GetRGAS />} />
           </Routes>
         </div>
       </div>
