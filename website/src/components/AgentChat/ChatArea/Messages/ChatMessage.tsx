@@ -57,7 +57,6 @@ export function ChatMessage({
     return message.mentions.some(mention => {
       try {
         const mentionAddress = new RoochAddress(mention).toBech32Address();
-        console.log('Checking mention:', mentionAddress, 'against AI address:', agent.address);
         return mentionAddress === agent.address;
       } catch (error) {
         console.error('Error parsing mention address:', error);
