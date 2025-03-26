@@ -9,6 +9,7 @@ import { Theme } from '@radix-ui/themes'
 import { networkConfig } from "./hooks/use-networks.ts";
 import { PACKAGE_ID } from "./constants.ts";
 import { RoochProvider, WalletProvider } from "@roochnetwork/rooch-sdk-kit";
+import { ErrorGuard } from './error-guard.tsx';
 
 const queryClient = new QueryClient()
 
@@ -27,6 +28,7 @@ createRoot(document.getElementById('root')!).render(
           }}
         >
           <WalletProvider preferredWallets={['UniSat']} chain="bitcoin" autoConnect>
+            <ErrorGuard/>
             <App />
           </WalletProvider>
         </RoochProvider>
