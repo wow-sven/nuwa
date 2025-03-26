@@ -23,6 +23,7 @@ export const UserProfile = () => {
   const { mutate: transfer, isPending: isTransferring } = useTransfer()
   const [isEditingName, setIsEditingName] = useState(false)
   const [isEditingAvatar, setIsEditingAvatar] = useState(false)
+  const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
   const [transferForm, setTransferForm] = useState({
     recipient: '',
@@ -32,7 +33,8 @@ export const UserProfile = () => {
   const [currentToken, setCurrentToken] = useState<{ name: string; symbol: string } | null>(null)
   const [editForm, setEditForm] = useState({
     name: '',
-    avatar: ''
+    avatar: '',
+    username: ''
   })
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
@@ -41,7 +43,8 @@ export const UserProfile = () => {
     if (userInfo) {
       setEditForm({
         name: userInfo.name,
-        avatar: userInfo.avatar
+        avatar: userInfo.avatar,
+        username: userInfo.username
       })
     }
   }, [userInfo])
@@ -124,6 +127,46 @@ export const UserProfile = () => {
       avatar: userInfo?.avatar || ''
     }))
     setIsEditingAvatar(false)
+  }
+
+  const handleEditUsername = async () => {
+    if (isEditingUsername) {
+      // Save changes
+      if (editForm.username !== userInfo?.username) {
+        try {
+          await updateUser({
+            objId: userInfo?.id || '',
+            username: editForm.username,
+          })
+          await refetchUserInfo()
+          setIsEditingUsername(false)
+        } catch (error) {
+          console.error('Failed to update username:', error)
+        }
+      } else {
+        setIsEditingUsername(false)
+      }
+    } else {
+      // Start editing
+      setEditForm(prev => ({
+        ...prev,
+        username: userInfo?.username || ''
+      }))
+      setIsEditingUsername(true)
+    }
+  }
+
+  const handleUsernameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newUsername = e.target.value
+    setEditForm(prev => ({ ...prev, username: newUsername }))
+  }
+
+  const handleCancelUsername = () => {
+    setEditForm(prev => ({
+      ...prev,
+      username: userInfo?.username || ''
+    }))
+    setIsEditingUsername(false)
   }
 
   const totalPages = balance ? Math.ceil(balance.length / itemsPerPage) : 0
@@ -298,7 +341,7 @@ export const UserProfile = () => {
                   ) : (
                     <div className="flex items-center space-x-2">
                       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {userInfo.name}
+                        {userInfo.name || 'Name Not Set'}
                       </h1>
                       {isOwnProfile && (
                         <SessionKeyGuard onClick={handleEditName}>
@@ -314,8 +357,50 @@ export const UserProfile = () => {
                   )}
                 </div>
                 <div className="mt-1 flex flex-col space-y-2">
-                  <div className="text-gray-500 dark:text-gray-400">
-                    @{userInfo.username}
+                  <div className="text-gray-500 dark:text-gray-400 flex items-center space-x-2">
+                    @
+                    {isEditingUsername && isOwnProfile ? (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={editForm.username}
+                          onChange={handleUsernameChange}
+                          className="text-sm bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                          placeholder="Enter username"
+                          disabled={isUpdating}
+                        />
+                        <button
+                          onClick={handleEditUsername}
+                          disabled={isUpdating}
+                          className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-50"
+                          title="Save"
+                        >
+                          <CheckIcon className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={handleCancelUsername}
+                          disabled={isUpdating}
+                          className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-50"
+                          title="Cancel"
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <span>{userInfo.username || 'Username Not Set'}</span>
+                        {isOwnProfile && (
+                          <SessionKeyGuard onClick={handleEditUsername}>
+                            <button
+                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                              title="Edit Username"
+                            >
+                              <PencilIcon className="w-4 h-4" />
+                            </button>
+                          </SessionKeyGuard>
+                        )}
+                      </>
+                    )}
                   </div>
                   <div className="flex items-center space-x-2">
                     <code className="text-sm text-gray-500 dark:text-gray-400 font-mono">
@@ -360,46 +445,54 @@ export const UserProfile = () => {
                   </button>
                 </div>
                 <div className="space-y-4">
-                  {currentPageTokens?.map((token) => (
-                    <div
-                      key={token.coin_type}
-                      className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <img
-                          src={token.icon_url ? normalizeCoinIconUrl(token.icon_url) : `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5"/><path d="M15 8.5C14.315 7.81501 13.1087 7.33003 12 7.33003C9.42267 7.33003 7.33333 9.41937 7.33333 12C7.33333 14.5807 9.42267 16.67 12 16.67C13.1087 16.67 14.315 16.185 15 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.3333 12H16.6667M16.6667 12L15.3333 10.5M16.6667 12L15.3333 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')}`}
-                          alt={token.name}
-                          className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 p-1.5"
-                        />
-                        <div>
-                          <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                            {token.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {token.symbol}
-                          </p>
+                  {currentPageTokens && currentPageTokens.length > 0 ? (
+                    currentPageTokens.map((token) => (
+                      <div
+                        key={token.coin_type}
+                        className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
+                      >
+                        <div className="flex items-center space-x-3">
+                          <img
+                            src={token.icon_url ? normalizeCoinIconUrl(token.icon_url) : `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5"/><path d="M15 8.5C14.315 7.81501 13.1087 7.33003 12 7.33003C9.42267 7.33003 7.33333 9.41937 7.33333 12C7.33333 14.5807 9.42267 16.67 12 16.67C13.1087 16.67 14.315 16.185 15 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.3333 12H16.6667M16.6667 12L15.3333 10.5M16.6667 12L15.3333 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')}`}
+                            alt={token.name}
+                            className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 p-1.5"
+                          />
+                          <div>
+                            <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                              {token.name}
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {token.symbol}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="text-right">
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {token.fixedBalance}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {token.symbol}
+                            </p>
+                          </div>
+                          <SessionKeyGuard onClick={() => handleTransfer(token)}>
+                            <button
+                              className="px-3 py-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-600 dark:border-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                              disabled={isTransferring}
+                            >
+                              {isTransferring ? 'Transferring...' : 'Transfer'}
+                            </button>
+                          </SessionKeyGuard>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="text-right">
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
-                            {token.fixedBalance}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {token.symbol}
-                          </p>
-                        </div>
-                        <SessionKeyGuard onClick={() => handleTransfer(token)}>
-                          <button
-                            className="px-3 py-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-600 dark:border-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                            disabled={isTransferring}
-                          >
-                            {isTransferring ? 'Transferring...' : 'Transfer'}
-                          </button>
-                        </SessionKeyGuard>
-                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 dark:text-gray-400">
+                        No Assets Available
+                      </p>
                     </div>
-                  ))}
+                  )}
                 </div>
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
