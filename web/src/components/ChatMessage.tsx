@@ -263,19 +263,19 @@ export function ChatMessage({
               {isCurrentUser ? (
                 "You"
               ) : // Also add Roochscan link to the display name for non-AI users
-              isAI ? (
-                displayName
-              ) : (
-                <a
-                  href={`${roochscanBaseUrl}/account/${senderAddress}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-blue-600 hover:underline transition-colors"
-                  title={`View ${senderAddress} on Roochscan`}
-                >
-                  {displayName}
-                </a>
-              )}
+                isAI ? (
+                  displayName
+                ) : (
+                  <a
+                    href={`${roochscanBaseUrl}/account/${senderAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-blue-600 hover:underline transition-colors"
+                    title={`View ${senderAddress} on Roochscan`}
+                  >
+                    {displayName}
+                  </a>
+                )}
             </span>
             <span>•</span>
             <span>{formatTimestamp(timestamp)}</span>
@@ -287,13 +287,12 @@ export function ChatMessage({
           </div>
           <div className="relative group">
             <div
-              className={`rounded-lg px-4 py-2 ${
-                isCurrentUser
+              className={`rounded-lg px-4 py-2 ${isCurrentUser
                   ? "bg-blue-50 text-gray-900 border border-blue-100"
                   : isAI
                     ? "bg-purple-50 border border-purple-100"
                     : "bg-gray-50 border border-gray-100"
-              }`}
+                }`}
             >
               <div className="flex flex-col justify-between items-start gap-4">
                 <div className="text-sm leading-relaxed flex-1">
@@ -329,11 +328,10 @@ export function ChatMessage({
                           </div>
                         ) : (
                           <code
-                            className={`px-1.5 py-0.5 rounded ${
-                              isCurrentUser
+                            className={`px-1.5 py-0.5 rounded ${isCurrentUser
                                 ? "bg-blue-100/50 text-blue-800"
                                 : "bg-slate-100 text-slate-800"
-                            }`}
+                              }`}
                             {...props}
                           >
                             {children}

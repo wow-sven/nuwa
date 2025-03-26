@@ -1,5 +1,18 @@
 import { bcs } from '@roochnetwork/rooch-sdk';
 
+export interface Member {
+  /** Member's wallet address */
+  address: string;
+  /** Member's avatar URL */
+  avatar: string;
+  /** Member's name */
+  name?: string;
+  /** Member's username */
+  username?: string;
+  /** Whether this member is the current agent */
+  isAgent?: boolean;
+}
+
 export interface Attachment {
   attachment_type: number;
   attachment_json: string;

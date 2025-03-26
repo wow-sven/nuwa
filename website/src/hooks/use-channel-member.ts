@@ -1,5 +1,6 @@
 import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
 import { useQuery } from "@tanstack/react-query";
+import { Member } from "../types/channel";
 
 export default function useChannelMembers(input: {
   channelId?: string;
@@ -13,11 +14,11 @@ export default function useChannelMembers(input: {
     isPending,
     isError,
     refetch,
-  } = useQuery({
+  } = useQuery<Member[]>({
     queryKey: ["useChannelMembers", input],
     queryFn: async () => {
       const result = await client.queryObjectStates({
-        filter:{
+        filter: {
           object_id: input.channelId!
         }
       });
@@ -35,7 +36,7 @@ export default function useChannelMembers(input: {
         const address = item.state.decoded_value.value.value.value.address
         return {
           address: address,
-          avatar:`https://api.dicebear.com/7.x/bottts/svg?seed=${address}`
+          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${address}`
         }
       });
     },
@@ -43,7 +44,7 @@ export default function useChannelMembers(input: {
   });
 
   return {
-    members:members||[],
+    members: members || [],
     isPending,
     isError,
     refetch,

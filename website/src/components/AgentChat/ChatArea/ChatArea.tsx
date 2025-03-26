@@ -2,14 +2,7 @@ import { MessageList } from "./Messages/MessageList";
 import { MessageInput } from "./UserInput/MessageInput";
 import useChannel from "../../../hooks/use-channel";
 import useAgentWithAddress from "../../../hooks/use-agent-with-address";
-
-/**
- * Member interface
- */
-interface Member {
-    address: string;
-    avatar: string;
-}
+import { Member } from "../../../types/channel";
 
 /**
  * Props for the Chat component

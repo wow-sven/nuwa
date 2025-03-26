@@ -1,13 +1,6 @@
 import { AgentInfo } from "./AgentInfo";
 import { MembersList } from "./MembersList";
-
-/**
- * Interface for channel member data
- */
-interface Member {
-    address: string;
-    avatar: string;
-}
+import { Member } from "../../../types/channel";
 
 /**
  * Props for the ChannelSidebar component
@@ -35,7 +28,7 @@ export function ChannelSidebar({ agentId, members }: ChannelSidebarProps) {
                 membersCount={members.length}
             />
             {/* List of channel members */}
-            <MembersList members={members} />
+            <MembersList members={members} agentId={agentId} />
         </div>
     );
 } 
