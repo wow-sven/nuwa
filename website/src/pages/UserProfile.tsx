@@ -7,7 +7,7 @@ import { normalizeCoinIconUrl } from "../utils/icon";
 import { SEO } from '../components/layout/SEO';
 import useUserInfo from '../hooks/use-user-info';
 import { useUserUpdate } from '../hooks/use-user-update';
-import { useCurrentAddress } from '@roochnetwork/rooch-sdk-kit';
+import { SessionKeyGuard, useCurrentAddress } from '@roochnetwork/rooch-sdk-kit';
 
 export const UserProfile = () => {
   const navigate = useNavigate()
@@ -43,6 +43,7 @@ export const UserProfile = () => {
   const handleEditName = async () => {
     if (isEditingName) {
       // Save changes
+      console.log(userInfo)
       if (editForm.name !== userInfo?.name) {
         try {
           await updateUser({
@@ -183,13 +184,14 @@ export const UserProfile = () => {
                 </div>
                 {isOwnProfile && (
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
-                    <button
-                      onClick={handleEditAvatar}
-                      className="p-1 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-gray-50 dark:hover:bg-gray-700"
-                      title="Edit Avatar URL"
-                    >
-                      <PencilIcon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                    </button>
+                    <SessionKeyGuard onClick={handleEditAvatar}>
+                      <button
+                        className="p-1 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-gray-50 dark:hover:bg-gray-700"
+                        title="Edit Avatar URL"
+                      >
+                        <PencilIcon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                      </button>
+                    </SessionKeyGuard>
                   </div>
                 )}
               </div>
@@ -261,13 +263,14 @@ export const UserProfile = () => {
                         {userInfo.name}
                       </h1>
                       {isOwnProfile && (
-                        <button
-                          onClick={handleEditName}
+                        <SessionKeyGuard onClick={handleEditName}>
+                          <button
                           className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                           title="Edit Display Name"
                         >
                           <PencilIcon className="w-4 h-4" />
                         </button>
+                        </SessionKeyGuard>
                       )}
                     </div>
                   )}
