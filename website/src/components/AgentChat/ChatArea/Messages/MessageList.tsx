@@ -77,7 +77,7 @@ export function MessageList({
         size: MESSAGES_PER_PAGE,
     });
 
-    // 优化1: 增加一个防抖函数来控制加载频率
+    // Optimization 1: Add a debounce function to control loading frequency
     const debounce = useCallback((fn: Function, ms = 300) => {
         let timeoutId: ReturnType<typeof setTimeout>;
         return function (this: any, ...args: any[]) {
@@ -86,75 +86,75 @@ export function MessageList({
         };
     }, []);
 
-    // 优化2: 使用一个更智能的加载触发函数
+    // Optimization 2: Use a smarter loading trigger function
     const triggerPageLoad = useCallback((page: number) => {
-        // 如果页面已经加载过，或者正在加载中，不再重复触发
+        // If page is already loaded or currently loading, don't trigger again
         if (loadedPages.includes(page) || currentQueryPage === page) {
-            console.log(`页面${page}已加载或正在加载中，跳过请求`);
+            // console.log(`Page ${page} already loaded or currently loading, skipping request`);
             return false;
         }
-        console.log(`触发页面${page}加载`);
+        // console.log(`Triggering page ${page} load`);
         setCurrentQueryPage(page);
         return true;
     }, [loadedPages, currentQueryPage]);
 
-    // 优化3: 更高效地检测需要加载的页面
+    // Optimization 3: More efficiently detect pages that need loading
     const loadLatestMessages = useCallback(() => {
         if (!validChannelId) return;
 
         if (messageCount <= 0) {
-            // 如果没有消息，且还没加载过页面0，才尝试加载
+            // If no messages and page 0 hasn't been loaded, try loading it
             if (!loadedPages.includes(0) && currentQueryPage !== 0) {
-                console.log('没有消息，尝试加载页面0');
+                // console.log('No messages, trying to load page 0');
                 triggerPageLoad(0);
             }
             return;
         }
 
-        // 有消息，计算最新页面并加载
+        // Has messages, calculate and load latest page
         if (currentQueryPage === null) {
-            console.log(`加载最新页面：${latestPage}`);
+            // console.log(`Loading latest page: ${latestPage}`);
             triggerPageLoad(latestPage);
 
-            // 添加：检查是否应该加载更早的页面
+            // Add: Check if earlier pages should be loaded
             setTimeout(() => {
-                // 如果有多页消息，确保加载完整历史
+                // If there are multiple pages, ensure complete history is loaded
                 if (latestPage > 0 && allMessages.length < Math.min(messageCount, 20)) {
-                    console.log(`检测到需要加载更早的页面，当前仅加载了 ${allMessages.length} 条消息`);
-                    // 从最新页的前一页开始向前加载
+                    // console.log(`Detected need to load earlier pages, currently only loaded ${allMessages.length} messages`);
+                    // Load pages from previous to latest, going backwards
                     for (let page = latestPage - 1; page >= Math.max(0, latestPage - 3); page--) {
                         if (!loadedPages.includes(page)) {
-                            console.log(`计划加载更早的页面: ${page}`);
+                            // console.log(`Planning to load earlier page: ${page}`);
                             setTimeout(() => triggerPageLoad(page), (latestPage - page) * 200);
                         }
                     }
                 }
-            }, 1000); // 等待1秒确保最新页已加载完成
+            }, 1000); // Wait 1 second to ensure latest page is loaded
         }
     }, [validChannelId, messageCount, loadedPages, currentQueryPage, latestPage, triggerPageLoad, allMessages.length]);
 
-    // 优化4: 替换自动加载的效果，移除setTimeout
+    // Optimization 4: Replace auto-loading effect, remove setTimeout
     useEffect(() => {
         if (validChannelId && autoRefreshTrigger > 0 && currentQueryPage === null) {
-            console.log(`准备加载消息：频道=${validChannelId}, 最新页=${latestPage}, 总消息数=${messageCount}`);
+            // console.log(`Preparing to load messages: channel=${validChannelId}, latest page=${latestPage}, total messages=${messageCount}`);
             loadLatestMessages();
         }
     }, [validChannelId, autoRefreshTrigger, currentQueryPage, loadLatestMessages]);
 
-    // 优化5: 更有效的错误处理和重试
+    // Optimization 5: More effective error handling and retry
     useEffect(() => {
         if (isError && validChannelId) {
-            console.error("查询消息时发生错误，将在1秒后重试");
+            // console.error("Error occurred while querying messages, will retry in 1 second");
 
-            // 使用防抖处理错误重试，避免频繁触发
+            // Use debounce for error retry to avoid frequent triggers
             const retryTimer = setTimeout(() => {
                 if (currentQueryPage !== null) {
-                    console.log("自动重试加载页面:", currentQueryPage);
-                    // 重置页面查询以触发新请求
+                    // console.log("Auto-retrying to load page:", currentQueryPage);
+                    // Reset page query to trigger new request
                     setCurrentQueryPage(null);
                     setTimeout(() => triggerPageLoad(currentQueryPage), 100);
                 } else if (messageCount > 0) {
-                    console.log("自动重试加载最新页面:", latestPage);
+                    // console.log("Auto-retrying to load latest page:", latestPage);
                     triggerPageLoad(latestPage);
                 }
             }, 1000);
@@ -163,37 +163,37 @@ export function MessageList({
         }
     }, [isError, validChannelId, currentQueryPage, messageCount, latestPage, triggerPageLoad]);
 
-    // 优化6: 改进新消息检测和加载逻辑
+    // Optimization 6: Improve new message detection and loading logic
     useEffect(() => {
-        // 首次加载不计数
+        // First load doesn't count
         if (lastMessageCount === 0) {
             setLastMessageCount(messageCount);
             return;
         }
 
-        // 检测新消息
+        // Detect new messages
         if (messageCount > lastMessageCount) {
             const newCount = messageCount - lastMessageCount;
 
-            // 用户不在底部时，只更新计数器
+            // When user is not at bottom, only update counter
             if (!isAtBottom) {
                 setNewMessageCount(prev => prev + newCount);
 
-                // 只在新消息可能在新页面时触发页面加载
+                // Only trigger page load when new messages might be on new page
                 const newLatestPage = Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
                 if (newLatestPage > Math.max(...loadedPages, 0)) {
-                    console.log(`检测到新页面消息，加载页面${newLatestPage}`);
+                    // console.log(`Detected messages on new page, loading page ${newLatestPage}`);
                     triggerPageLoad(newLatestPage);
                 } else {
-                    // 否则只刷新当前页
-                    console.log("刷新当前最新页面的消息");
+                    // Otherwise just refresh current page
+                    // console.log("Refreshing messages on current latest page");
                     refetchMessages();
                 }
             } else {
-                // 用户在底部，直接加载最新消息并保持滚动
-                console.log("用户在底部，加载最新消息");
+                // User is at bottom, directly load latest messages and maintain scroll
+                // console.log("User is at bottom, loading latest messages");
 
-                // 检查是否需要加载新页面
+                // Check if new page needs to be loaded
                 const newLatestPage = Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
                 if (newLatestPage > Math.max(...loadedPages, 0)) {
                     triggerPageLoad(newLatestPage);
@@ -206,48 +206,48 @@ export function MessageList({
         setLastMessageCount(messageCount);
     }, [messageCount, isAtBottom, lastMessageCount, loadedPages, refetchMessages, triggerPageLoad]);
 
-    // 优化7: 改进滚动加载历史消息的逻辑
+    // Optimization 7: Improve scroll loading history messages logic
     useEffect(() => {
         const container = messagesContainerRef.current;
         if (!container) return;
 
-        // 使用防抖处理滚动事件，避免过于频繁的判断
+        // Use debounce for scroll events to avoid too frequent checks
         const debouncedScrollHandler = debounce(() => {
-            // 判断是否接近底部
+            // Check if near bottom
             const isNearBottom =
                 container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
             setIsAtBottom(isNearBottom);
             setShowScrollToBottom(!isNearBottom);
 
-            // 加载更早的消息逻辑
+            // Load earlier messages logic
             if (container.scrollTop < 50 && !isLoadingMoreUp && !reachedTop && loadedPages.length > 0) {
                 const oldestLoadedPage = Math.min(...loadedPages);
 
-                // 只在有更早页面时加载
+                // Only load if there are earlier pages
                 if (oldestLoadedPage > 0) {
                     const nextPageToLoad = oldestLoadedPage - 1;
 
-                    // 触发加载
+                    // Trigger loading
                     if (triggerPageLoad(nextPageToLoad)) {
                         setIsLoadingMoreUp(true);
                         setLastScrollHeight(container.scrollHeight);
                     }
                 } else if (oldestLoadedPage === 0) {
-                    // 已经到第一页，标记为到达顶部
+                    // Already at first page, mark as reached top
                     setReachedTop(true);
                 }
             }
-        }, 150); // 150ms的防抖时间
+        }, 150); // 150ms debounce time
 
         const handleScroll = () => debouncedScrollHandler();
         container.addEventListener('scroll', handleScroll);
         return () => container.removeEventListener('scroll', handleScroll);
     }, [loadedPages, isLoadingMoreUp, reachedTop, debounce, triggerPageLoad]);
 
-    // 添加：初始化加载检查 - 确保足够的消息被加载出来
+    // Add: Initial load check - ensure enough messages are loaded
     useEffect(() => {
-        // 仅当消息已加载且数量明显少于预期时执行
+        // Only execute when messages are loaded and count is significantly less than expected
         if (
             validChannelId &&
             !currentQueryPage &&
@@ -256,9 +256,9 @@ export function MessageList({
             allMessages.length < 20 &&
             !isMessagesLoading
         ) {
-            console.log(`初始化加载检查: 已加载 ${allMessages.length} 条消息，总共 ${messageCount} 条，尝试加载更多页面`);
+            // console.log(`Initial load check: loaded ${allMessages.length} messages, total ${messageCount}, trying to load more pages`);
 
-            // 检查哪些页面没有加载
+            // Check which pages are missing
             const missingPages = [];
             for (let i = Math.max(0, latestPage - 2); i <= latestPage; i++) {
                 if (!loadedPages.includes(i)) {
@@ -266,17 +266,17 @@ export function MessageList({
                 }
             }
 
-            // 加载缺失的页面
+            // Load missing pages
             if (missingPages.length > 0) {
-                console.log(`发现缺失的页面: ${missingPages.join(', ')}`);
+                // console.log(`Found missing pages: ${missingPages.join(', ')}`);
                 missingPages.forEach((page, index) => {
                     setTimeout(() => triggerPageLoad(page), index * 300);
                 });
             } else {
-                // 如果最新的几页已经加载但消息数量仍不足，尝试加载更早的页面
+                // If latest pages are loaded but message count is still insufficient, try loading earlier pages
                 const earliestPage = Math.max(0, Math.min(...loadedPages) - 1);
                 if (earliestPage >= 0 && !loadedPages.includes(earliestPage)) {
-                    console.log(`尝试加载更早的页面: ${earliestPage}`);
+                    // console.log(`Trying to load earlier page: ${earliestPage}`);
                     triggerPageLoad(earliestPage);
                 }
             }
@@ -287,7 +287,7 @@ export function MessageList({
     useEffect(() => {
         if (!channelId) return;
 
-        console.log(`Channel ID changed to: ${channelId}`);
+        // console.log(`Channel ID changed to: ${channelId}`);
 
         // Reset all states
         setAllMessages([]);
@@ -309,15 +309,15 @@ export function MessageList({
     useEffect(() => {
         // Only execute when channel ID changes or message count changes and no query is in progress
         if (validChannelId && autoRefreshTrigger > 0 && currentQueryPage === null) {
-            console.log(`Ready to load messages: channel=${validChannelId}, latest page=${latestPage}, total messages=${messageCount}`);
+            // console.log(`Ready to load messages: channel=${validChannelId}, latest page=${latestPage}, total messages=${messageCount}`);
 
             // Use setTimeout to ensure state updates are complete
             const timer = setTimeout(() => {
                 if (messageCount > 0) {
-                    console.log(`Loading latest page messages: page=${latestPage}`);
+                    // console.log(`Loading latest page messages: page=${latestPage}`);
                     setCurrentQueryPage(latestPage);
                 } else {
-                    console.log("No messages or message data not loaded yet, trying to load page 0");
+                    // console.log("No messages or message data not loaded yet, trying to load page 0");
                     setCurrentQueryPage(0);
                 }
             }, 100);
@@ -331,11 +331,11 @@ export function MessageList({
         if (!pageMessages) return;
 
         if (currentQueryPage !== null) {
-            console.log(`收到页面 ${currentQueryPage} 的查询结果: ${pageMessages.length} 条消息`);
+            // console.log(`Received query results for page ${currentQueryPage}: ${pageMessages.length} messages`);
         }
 
         if (pageMessages && pageMessages.length > 0 && currentQueryPage !== null) {
-            console.log(`加载了 ${pageMessages.length} 条消息, 页面=${currentQueryPage}`);
+            // console.log(`Loaded ${pageMessages.length} messages, page=${currentQueryPage}`);
 
             // Add current page to loaded pages list
             if (!loadedPages.includes(currentQueryPage)) {
@@ -348,23 +348,23 @@ export function MessageList({
                 const newMessages = pageMessages.filter(msg => !existingIndices.has(msg.index));
 
                 if (newMessages.length === 0) {
-                    console.log("没有新消息需要添加");
+                    // console.log("No new messages to add");
                     return prev;
                 }
 
-                console.log(`添加 ${newMessages.length} 条新消息`);
+                // console.log(`Adding ${newMessages.length} new messages`);
 
                 // Merge and sort
                 const merged = [...prev, ...newMessages].sort((a, b) => a.index - b.index);
                 return merged;
             });
 
-            // 添加: 检查是否需要继续加载更多页面
-            // 如果当前页消息数量少于预期，可能需要加载更多页面
+            // Add: Check if more pages need to be loaded
+            // If current page has fewer messages than expected, might need to load more pages
             if (pageMessages.length < MESSAGES_PER_PAGE && currentQueryPage === latestPage && messageCount > MESSAGES_PER_PAGE) {
-                console.log(`最新页 ${currentQueryPage} 消息数量(${pageMessages.length})少于预期(${MESSAGES_PER_PAGE})，尝试加载前一页`);
+                // console.log(`Latest page ${currentQueryPage} has fewer messages(${pageMessages.length}) than expected(${MESSAGES_PER_PAGE}), trying to load previous page`);
 
-                // 设置延时以避免立即触发
+                // Set delay to avoid immediate trigger
                 setTimeout(() => {
                     if (currentQueryPage > 0 && !loadedPages.includes(currentQueryPage - 1)) {
                         triggerPageLoad(currentQueryPage - 1);
@@ -376,11 +376,11 @@ export function MessageList({
             setCurrentQueryPage(null);
             setIsLoadingMoreUp(false);
         } else if (pageMessages && pageMessages.length === 0 && currentQueryPage !== null) {
-            console.log(`页面 ${currentQueryPage} 没有返回任何消息`);
+            // console.log(`Page ${currentQueryPage} returned no messages`);
 
             // Mark as reached top (if it's page 0)
             if (currentQueryPage === 0) {
-                console.log("Reached page 0, marking as beginning of conversation");
+                // console.log("Reached page 0, marking as beginning of conversation");
                 setReachedTop(true);
             }
 
@@ -395,13 +395,13 @@ export function MessageList({
 
             // If latest page has no messages but total message count is greater than 0
             if (currentQueryPage === latestPage && messageCount > 0 && latestPage > 0) {
-                console.log(`Latest page (${latestPage}) has no messages, but total count is ${messageCount}, trying to load previous page`);
+                // console.log(`Latest page (${latestPage}) has no messages, but total count is ${messageCount}, trying to load previous page`);
                 setCurrentQueryPage(latestPage - 1);
             }
 
             // If all attempts have no messages but total count is greater than 0, try loading from the beginning
             if (loadedPages.length === 0 && messageCount > 0) {
-                console.log("No messages loaded yet, trying to load from page 0");
+                // console.log("No messages loaded yet, trying to load from page 0");
                 setCurrentQueryPage(0);
             }
         }
@@ -448,7 +448,7 @@ export function MessageList({
 
                     // Prevent loading the same page repeatedly
                     if (!loadedPages.includes(nextPageToLoad)) {
-                        console.log(`Loading earlier messages: page ${nextPageToLoad}`);
+                        // console.log(`Loading earlier messages: page ${nextPageToLoad}`);
                         setIsLoadingMoreUp(true);
                         setLastScrollHeight(container.scrollHeight);
                         setCurrentQueryPage(nextPageToLoad);
