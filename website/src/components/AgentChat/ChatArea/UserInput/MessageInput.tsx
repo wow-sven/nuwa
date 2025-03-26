@@ -1,6 +1,6 @@
 import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { CurrencyDollarIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
+import { SessionKeyGuard, useCreateSessionKey, useCurrentSession } from "@roochnetwork/rooch-sdk-kit";
 import { LoadingButton } from "./LoadingButton";
 import { useState } from "react";
 import { useChannelMessageSend } from "../../../../hooks/use-channel-message-send";
@@ -8,6 +8,7 @@ import { useChannelJoin } from "../../../../hooks/use-channel-join";
 import useChannelMessageCount from "../../../../hooks/use-channel-message-count";
 import useChannelJoinedStatus from "../../../../hooks/use-channel-joined-status";
 import useChannelMessages from "../../../../hooks/use-channel-messages";
+import { useNetworkVariable } from "../../../../hooks/use-networks";
 
 /**
  * Props for the MessageInput component
@@ -46,6 +47,10 @@ export function MessageInput({
     const [tokenType, setTokenType] = useState("RGAS");
     const [autoMentionAI, setAutoMentionAI] = useState(false);
 
+
+    const packageId = useNetworkVariable("packageId");
+    const session = useCurrentSession()
+    const {mutate: createSession } = useCreateSessionKey()
     // Check if current user has joined the channel
     const { isJoined = false, refetch: refetchJoinStatus } = useChannelJoinedStatus(channelId);
     // Message sending functionality
@@ -54,12 +59,21 @@ export function MessageInput({
     const { mutateAsync: joinChannel, isPending: joiningChannel } = useChannelJoin();
     // Get total message count and refetch function
     const { refetch: refetchMessageCount } = useChannelMessageCount(channelId);
+    // TODO:
     // Fetch messages and provide refetch function
     const { refetch: refetchMsg } = useChannelMessages({
         channelId,
         page: 0,
         size: 100,
     });
+
+    // TODO: remove this with sdk-kit export session config
+    const sessionCfg = {
+                appName: "Nuwa AI Agents",
+                appUrl: "https://nuwa.rooch.io/",
+                scopes: [`${packageId}::*::*`],
+                maxInactiveInterval: 3600,
+              }
     /**
      * Handle message sending and channel joining
      * If user hasn't joined the channel, join first
@@ -99,7 +113,7 @@ export function MessageInput({
         if (!selectedReceiver || parseFloat(tokenAmount) <= 0) {
             return;
         }
-
+        // TODO: imp this
         // Build transfer message content
         const transferMessage = `transfer::coin ${tokenAmount} ${tokenType} to ${selectedReceiver}`;
 
@@ -115,6 +129,10 @@ export function MessageInput({
     };
 
     const handleAction = () => {
+        if (!session) {
+            createSession(sessionCfg)
+            return 
+        }
         if (inputMessage.trim() && isJoined) {
             handleSendMessage(inputMessage);
             setInputMessage("");
