@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import useAllAgents from '../../hooks/use-all-agents'
 
@@ -12,7 +12,11 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   const [localIsCollapsed, setLocalIsCollapsed] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
+  const location = useLocation()
   const { agents } = useAllAgents()
+
+  // Get current agent ID from URL
+  const currentAgentId = location.pathname.split('/agent/')[1]
 
   // Use prop value or local state
   const isCollapsed = propIsCollapsed ?? localIsCollapsed
@@ -93,7 +97,10 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                 {agents?.map((agent) => (
                   <div
                     key={agent.username}
-                    className="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                    className={`flex items-start space-x-3 p-2 rounded-lg transition-colors cursor-pointer ${agent.id === currentAgentId
+                      ? 'bg-purple-200 dark:bg-purple-500/50'
+                      : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}
                     onClick={() => navigate(`/agent/${agent.id}`)}
                   >
                     <img
@@ -122,7 +129,10 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
               {agents?.map((agent) => (
                 <div
                   key={agent.username}
-                  className="flex justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg p-2 transition-colors"
+                  className={`flex justify-center cursor-pointer rounded-lg p-2 transition-colors ${agent.id === currentAgentId
+                    ? 'bg-purple-200 dark:bg-purple-500/50'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}
                   onClick={() => navigate(`/agent/${agent.id}`)}
                 >
                   <img

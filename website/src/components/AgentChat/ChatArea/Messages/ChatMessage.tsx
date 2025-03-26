@@ -11,6 +11,7 @@ import { CheckIcon } from "@heroicons/react/24/solid";
 import { shortenAddress } from "../../../../utils/address";
 import { Link } from "react-router-dom";
 import { RoochAddress } from "@roochnetwork/rooch-sdk";
+import useAgent from "../../../../hooks/use-agent";
 
 // Add interface for parsed action event
 interface ActionEvent {
@@ -40,6 +41,7 @@ export function ChatMessage({
   const [copied, setCopied] = useState(false);
   const timestamp = message.timestamp;
   const isActionEvent = message.message_type === MESSAGE_TYPE.ACTION_EVENT;
+  const { agent } = useAgent(agentId);
 
   //TODO use the scanUrl via the network.
   const roochscanBaseUrl = "https://test.roochscan.io";
@@ -230,9 +232,17 @@ export function ChatMessage({
                   className="block w-8 h-8 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all"
                   title={`View ${agentName || "AI Agent"}'s profile`}
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
-                    {agentName ? agentName.substring(0, 2).toUpperCase() : "AI"}
-                  </div>
+                  {agent?.avatar ? (
+                    <img
+                      src={agent.avatar}
+                      alt={agentName || "AI Agent"}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                      {agentName ? agentName.substring(0, 2).toUpperCase() : "AI"}
+                    </div>
+                  )}
                 </Link>
               ) : (
                 // Original div if no agentId provided

@@ -73,15 +73,22 @@ export default function useChannelMessages(input: ChannelMessagesInput): UseChan
             if (!value) return null;
             return {
               id: obj.id,
+              index: Number(value.index),
               channel_id: String(value.channel_id),
               sender: String(value.sender),
               content: String(value.content),
-              created_at: Number(value.timestamp),
+              timestamp: Number(value.timestamp),
               message_type: Number(value.message_type),
               mentions: Array.isArray(value.mentions)
                 ? value.mentions.map(String)
                 : [],
               reply_to: Number(value.reply_to) || undefined,
+              attachments: Array.isArray(value.attachments?.value)
+                ? value.attachments.value.map((att: any) => ({
+                  attachment_type: Number(att[0]),
+                  attachment_json: String(att[1])
+                }))
+                : []
             } as Message;
           })
           .filter((msg): msg is Message => msg !== null);

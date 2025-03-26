@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Agent } from "../types/agent";
 import { Task, TaskArgument, TaskFormData } from "../types/task";
@@ -70,7 +70,52 @@ export function AgentProfile() {
     name: agentData.name || "",
     description: agentData.description || "",
     prompt: agentData.prompt || "",
+    avatar: agentData.avatar || "",
   });
+  const [avatarError, setAvatarError] = useState<string>("");
+  const [previewAvatar, setPreviewAvatar] = useState<string>("");
+
+  useEffect(() => {
+    if (isEditing) {
+      setPreviewAvatar(editForm.avatar);
+    }
+  }, [isEditing]);
+
+  const validateImageUrl = (url: string) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+  };
+
+  const handleAvatarChange = async (url: string) => {
+    setEditForm((prev) => ({
+      ...prev,
+      avatar: url,
+    }));
+    setAvatarError("");
+
+    if (!url) {
+      setPreviewAvatar(agent?.avatar || "");
+      return;
+    }
+
+    try {
+      const isValid = await validateImageUrl(url);
+      if (isValid) {
+        setPreviewAvatar(url);
+        setAvatarError("");
+      } else {
+        setPreviewAvatar(agent?.avatar || "");
+        setAvatarError("无效的图片URL");
+      }
+    } catch (error) {
+      setPreviewAvatar(agent?.avatar || "");
+      setAvatarError("无效的图片URL");
+    }
+  };
 
   // Task form handlers
   const handleAddArgument = () => {
@@ -156,7 +201,8 @@ export function AgentProfile() {
       // Save changes
       if (
         editForm.name === agent?.name &&
-        editForm.description === agent?.description
+        editForm.description === agent?.description &&
+        editForm.avatar === agent?.avatar
       ) {
         setIsEditing(false);
         return;
@@ -177,6 +223,13 @@ export function AgentProfile() {
             description: editForm.description,
           });
         }
+
+        if (editForm.avatar !== agent?.avatar) {
+          await updateAgent({
+            cap: caps.get(agent?.id!)!.id,
+            avatar: editForm.avatar,
+          });
+        }
       } finally {
         refetchAgent();
         setIsSaveing(false);
@@ -187,6 +240,7 @@ export function AgentProfile() {
         ...editForm,
         name: agent?.name || "",
         description: agent?.description || "",
+        avatar: agent?.avatar || "",
       });
     }
     setIsEditing(!isEditing);
@@ -260,7 +314,7 @@ export function AgentProfile() {
               {/* Avatar */}
               <div className="relative -mt-16 mb-4">
                 <img
-                  src={agent?.avatar}
+                  src={isEditing ? previewAvatar || agent?.avatar : agent?.avatar}
                   alt={agent?.username}
                   className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-white dark:bg-gray-800"
                 />
@@ -270,18 +324,41 @@ export function AgentProfile() {
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
                   {isEditing ? (
-                    <input
-                      type="text"
-                      value={editForm.name}
-                      onChange={(e) =>
-                        setEditForm((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      className="block w-full text-2xl font-bold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                      placeholder="Enter name"
-                    />
+                    <>
+                      <div className="mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Avatar URL
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.avatar}
+                          onChange={(e) => handleAvatarChange(e.target.value)}
+                          className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${avatarError ? 'border-red-500' : ''
+                            }`}
+                          placeholder="Enter avatar URL"
+                        />
+                        {avatarError && (
+                          <p className="mt-1 text-sm text-red-500">{avatarError}</p>
+                        )}
+                      </div>
+                      <div className="mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Name
+                        </label>
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) =>
+                            setEditForm((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          className="block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                          placeholder="Enter name"
+                        />
+                      </div>
+                    </>
                   ) : (
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {agent?.name}
@@ -299,7 +376,7 @@ export function AgentProfile() {
                     <PencilIcon className="w-4 h-4 mr-2" />
                     {isSaveing ? (
                       <svg
-                        className="w-5 h-5 animate-spin mx-auto text-white" // Center spinner
+                        className="w-5 h-5 animate-spin mx-auto text-white"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -330,18 +407,23 @@ export function AgentProfile() {
               {/* Description */}
               <div className="max-w-2xl">
                 {isEditing ? (
-                  <textarea
-                    value={editForm.description}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    className="block w-full text-gray-600 dark:text-gray-300 bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                    placeholder="Enter description"
-                    rows={2}
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={editForm.description}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                      className="block w-full text-sm text-gray-600 dark:text-gray-300 bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                      placeholder="Enter description"
+                      rows={2}
+                    />
+                  </div>
                 ) : (
                   <p className="text-gray-600 dark:text-gray-300">
                     {agent?.description}

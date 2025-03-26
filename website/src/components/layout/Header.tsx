@@ -116,14 +116,14 @@ export function Header({ isDarkMode }: HeaderProps) {
                                 leaveFrom="transform opacity-100 scale-100"
                                 leaveTo="transform opacity-0 scale-95"
                             >
-                                <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white dark:!bg-black/95 shadow-lg ring-1 ring-black/5 dark:ring-white/10 focus:outline-none">
                                     <div className="py-1">
                                         <Menu.Item>
                                             {({ active }) => (
                                                 <Link
                                                     to="/studio"
-                                                    className={`${active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                                        } block px-4 py-2 text-sm text-gray-700 dark:text-gray-300`}
+                                                    className={`${active ? '!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400' : 'dark:!text-gray-300'
+                                                        } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
                                                 >
                                                     AI Studio
                                                 </Link>
@@ -133,8 +133,8 @@ export function Header({ isDarkMode }: HeaderProps) {
                                             {({ active }) => (
                                                 <Link
                                                     to={`/user/profile/${user.address}`}
-                                                    className={`${active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                                        } block px-4 py-2 text-sm text-gray-700 dark:text-gray-300`}
+                                                    className={`${active ? '!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400' : 'dark:!text-gray-300'
+                                                        } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
                                                 >
                                                     Profile
                                                 </Link>
@@ -144,8 +144,8 @@ export function Header({ isDarkMode }: HeaderProps) {
                                             {({ active }) => (
                                                 <button
                                                     onClick={handleLogout}
-                                                    className={`${active ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                                        } block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300`}
+                                                    className={`${active ? '!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400' : 'dark:!text-gray-300'
+                                                        } block w-full text-left px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
                                                 >
                                                     Log Out
                                                 </button>
