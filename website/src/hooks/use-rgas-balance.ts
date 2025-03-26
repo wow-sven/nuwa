@@ -1,9 +1,10 @@
-import {useCurrentAddress, useRoochClient} from "@roochnetwork/rooch-sdk-kit";
-import {useQuery} from "@tanstack/react-query";
+import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
+import { useQuery } from "@tanstack/react-query";
+import { RgasBalance } from "../types/user";
+import { RoochAddress } from "@roochnetwork/rooch-sdk";
 
-export default function useRgasBalance() {
+export default function useRgasBalance(address: string | undefined): RgasBalance {
   const client = useRoochClient()
-  const address = useCurrentAddress()
 
   const {
     data: rGas,
@@ -15,7 +16,7 @@ export default function useRgasBalance() {
     queryFn: async () => {
       return await client
         .getBalance({
-          owner: address!.toStr(),
+          owner: new RoochAddress(address!).toBech32Address(),
           coinType: '0x3::gas_coin::RGas',
         })
     },
@@ -23,6 +24,9 @@ export default function useRgasBalance() {
   })
 
   return {
-    rGas, isPending, isError, refetchBalance
+    balance: rGas?.fixedBalance || 0,
+    isPending,
+    isError,
+    refetchBalance
   }
 }

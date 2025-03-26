@@ -1,91 +1,144 @@
-import { ArrowLeftIcon, ClipboardIcon, PencilIcon, CheckIcon, XMarkIcon, PhotoIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { ArrowLeftIcon, ClipboardIcon, PencilIcon, CheckIcon, XMarkIcon, PhotoIcon, ArrowPathIcon, ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { useState, useRef, useEffect } from 'react'
-import { User } from '../types/user'
-import { mockUser } from '../mocks/user'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import useRgasBalance from "../hooks/use-rgas-balance";
-import { useCurrentAddress } from "@roochnetwork/rooch-sdk-kit";
 import useAllBalance from "../hooks/use-all-balance";
 import { normalizeCoinIconUrl } from "../utils/icon";
 import { SEO } from '../components/layout/SEO';
+import useUserInfo from '../hooks/use-user-info';
+import { useUserUpdate } from '../hooks/use-user-update';
+import { useCurrentAddress } from '@roochnetwork/rooch-sdk-kit';
 
 export const UserProfile = () => {
   const navigate = useNavigate()
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const { rGas } = useRgasBalance()
-  const { balance } = useAllBalance()
-  const address = useCurrentAddress()
-
-  // Use unified mock data
-  const [user, setUser] = useState<User>({
-    ...mockUser,
-    // If there's an address parameter in URL, use it
-    name: mockUser.name
-  })
-
+  const { id } = useParams()
+  const currentAddress = useCurrentAddress()
+  const isOwnProfile = currentAddress?.genRoochAddress().toBech32Address() === id
+  const { balance: rGas, isPending: isRgasPending, isError: isRgasError, refetchBalance } = useRgasBalance(id)
+  const { balance, isPending: isBalancePending, isError: isBalanceError, refetchBalance: refetchAllBalance } = useAllBalance(id)
+  const { userInfo, isPending: isUserInfoPending, isError: isUserInfoError, refetch: refetchUserInfo } = useUserInfo(id)
+  const { mutate: updateUser, isPending: isUpdating } = useUserUpdate()
   const [isEditingName, setIsEditingName] = useState(false)
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false)
   const [editForm, setEditForm] = useState({
-    name: user.name,
-    avatar: user.avatar
+    name: '',
+    avatar: ''
   })
-  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 5
+
+  useEffect(() => {
+    if (userInfo) {
+      setEditForm({
+        name: userInfo.name,
+        avatar: userInfo.avatar
+      })
+    }
+  }, [userInfo])
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
   }
 
-  const handleEditName = () => {
+  const handleEditName = async () => {
     if (isEditingName) {
       // Save changes
-      setUser(prev => ({
-        ...prev,
-        name: editForm.name
-      }))
+      if (editForm.name !== userInfo?.name) {
+        try {
+          await updateUser({
+            objId: userInfo?.id || '',
+            name: editForm.name,
+          })
+          await refetchUserInfo()
+          setIsEditingName(false)
+        } catch (error) {
+          console.error('Failed to update user name:', error)
+        }
+      } else {
+        setIsEditingName(false)
+      }
     } else {
       // Start editing
       setEditForm(prev => ({
         ...prev,
-        name: user.name
+        name: userInfo?.name || ''
       }))
+      setIsEditingName(true)
     }
-    setIsEditingName(!isEditingName)
+  }
+
+  const handleNameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value
+    setEditForm(prev => ({ ...prev, name: newName }))
   }
 
   const handleCancelName = () => {
     setEditForm(prev => ({
       ...prev,
-      name: user.name
+      name: userInfo?.name || ''
     }))
     setIsEditingName(false)
   }
 
-  const handleEditAvatar = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const result = reader.result as string
-        setPreviewAvatar(null) // Clear preview and update directly
-        setUser(prev => ({
-          ...prev,
-          avatar: result
-        }))
+  const handleEditAvatar = async () => {
+    if (isEditingAvatar) {
+      // Save changes
+      if (editForm.avatar !== userInfo?.avatar) {
+        try {
+          await updateUser({
+            objId: userInfo?.id || '',
+            avatar: editForm.avatar
+          })
+          await refetchUserInfo()
+          setIsEditingAvatar(false)
+        } catch (error) {
+          console.error('Failed to update user avatar:', error)
+        }
+      } else {
+        setIsEditingAvatar(false)
       }
-      reader.readAsDataURL(file)
+    } else {
+      // Start editing
+      setEditForm(prev => ({
+        ...prev,
+        avatar: userInfo?.avatar || ''
+      }))
+      setIsEditingAvatar(true)
     }
   }
 
-  useEffect(() => {
-    setUser({
-      ...mockUser,
-      rgasBalance: rGas?.fixedBalance || 0,
-      address: address?.toStr() || ''
-    })
-  }, [rGas, address]);
+  const handleCancelAvatar = () => {
+    setEditForm(prev => ({
+      ...prev,
+      avatar: userInfo?.avatar || ''
+    }))
+    setIsEditingAvatar(false)
+  }
+
+  const totalPages = balance ? Math.ceil(balance.length / itemsPerPage) : 0
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentPageTokens = balance?.slice(startIndex, endIndex)
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  if (isRgasPending || isBalancePending || isUserInfoPending) {
+    return <div>Loading...</div>
+  }
+
+  if (isRgasError || isBalanceError || isUserInfoError || !userInfo) {
+    return <div>Error loading user profile</div>
+  }
 
   return (
     <>
@@ -116,81 +169,119 @@ export const UserProfile = () => {
             <div className="px-6 pb-6">
               {/* Avatar */}
               <div className="relative -mt-16 mb-4 group w-32 h-32">
-                <button
-                  onClick={handleEditAvatar}
-                  className="w-full h-full relative rounded-full overflow-hidden"
-                  title="Upload Avatar"
-                >
+                <div className="w-full h-full relative rounded-full overflow-hidden">
                   <img
-                    src={previewAvatar || user.avatar}
-                    alt={user.name}
+                    src={editForm.avatar}
+                    alt={userInfo.name}
                     className="w-full h-full rounded-full border-0 border-white dark:border-gray-800 bg-white dark:bg-gray-800 object-cover"
                   />
-                  <div className="absolute inset-0 flex items-center justify-center bg-black opacity-0 group-hover:opacity-50 transition-opacity">
-                    <PhotoIcon className="w-5 h-5 text-white" />
+                  {isOwnProfile && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black opacity-0 group-hover:opacity-50 transition-opacity">
+                      <PhotoIcon className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                </div>
+                {isOwnProfile && (
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+                    <button
+                      onClick={handleEditAvatar}
+                      className="p-1 bg-white dark:bg-gray-800 rounded-full shadow-md hover:bg-gray-50 dark:hover:bg-gray-700"
+                      title="Edit Avatar URL"
+                    >
+                      <PencilIcon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                    </button>
                   </div>
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                />
+                )}
               </div>
+
+              {isEditingAvatar && isOwnProfile && (
+                <div className="mb-4 flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={editForm.avatar}
+                    onChange={e => setEditForm(prev => ({ ...prev, avatar: e.target.value }))}
+                    className="flex-1 text-sm bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                    placeholder="Enter avatar URL"
+                    disabled={isUpdating}
+                  />
+                  <button
+                    onClick={handleEditAvatar}
+                    disabled={isUpdating}
+                    className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-50"
+                    title="Save"
+                  >
+                    <CheckIcon className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleCancelAvatar}
+                    disabled={isUpdating}
+                    className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-50"
+                    title="Cancel"
+                  >
+                    <XMarkIcon className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
 
               {/* Name and Edit Button */}
               <div className="mb-4">
                 <div className="flex items-center space-x-2">
-                  {isEditingName ? (
-                    <div className="flex-1 flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={editForm.name}
-                        onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                        className="block flex-1 text-2xl font-bold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                        placeholder="Enter display name"
-                      />
-                      <button
-                        onClick={handleEditName}
-                        className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400"
-                        title="Save"
-                      >
-                        <CheckIcon className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={handleCancelName}
-                        className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400"
-                        title="Cancel"
-                      >
-                        <XMarkIcon className="w-5 h-5" />
-                      </button>
+                  {isEditingName && isOwnProfile ? (
+                    <div className="flex-1 flex flex-col">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={handleNameChange}
+                          className="block flex-1 text-2xl font-bold bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                          placeholder="Enter display name"
+                          disabled={isUpdating}
+                        />
+                        <button
+                          onClick={handleEditName}
+                          disabled={isUpdating}
+                          className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-50"
+                          title="Save"
+                        >
+                          <CheckIcon className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={handleCancelName}
+                          disabled={isUpdating}
+                          className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-50"
+                          title="Cancel"
+                        >
+                          <XMarkIcon className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex items-center space-x-2">
                       <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                        {user.name}
+                        {userInfo.name}
                       </h1>
-                      <button
-                        onClick={handleEditName}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                        title="Edit Display Name"
-                      >
-                        <PencilIcon className="w-4 h-4" />
-                      </button>
+                      {isOwnProfile && (
+                        <button
+                          onClick={handleEditName}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          title="Edit Display Name"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
                 <div className="mt-1 flex flex-col space-y-2">
                   <div className="text-gray-500 dark:text-gray-400">
-                    @{user.username}
+                    @{userInfo.username}
                   </div>
                   <div className="flex items-center space-x-2">
                     <code className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                      {user.address.slice(0, 6)}...{user.address.slice(-4)}
+                      {userInfo.id}
                     </code>
                     <button
-                      onClick={() => handleCopy(user.address)}
+                      onClick={() => handleCopy(userInfo.id)}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       title="Copy Address"
                     >
@@ -208,7 +299,7 @@ export const UserProfile = () => {
                     RGAS Balance
                   </h3>
                   <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {user.rgasBalance.toLocaleString()} RGAS
+                    {rGas?.toLocaleString()} RGAS
                   </p>
                 </div>
               </div>
@@ -222,21 +313,22 @@ export const UserProfile = () => {
                   <button
                     className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                     title="Refresh"
+                    onClick={() => refetchAllBalance()}
                   >
                     <ArrowPathIcon className="w-5 h-5" />
                   </button>
                 </div>
                 <div className="space-y-4">
-                  {balance?.data.map((token) => (
+                  {currentPageTokens?.map((token) => (
                     <div
                       key={token.coin_type}
                       className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
                     >
                       <div className="flex items-center space-x-3">
                         <img
-                          src={token.icon_url ? normalizeCoinIconUrl(token.icon_url) : ''}
+                          src={token.icon_url ? normalizeCoinIconUrl(token.icon_url) : `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5"/><path d="M15 8.5C14.315 7.81501 13.1087 7.33003 12 7.33003C9.42267 7.33003 7.33333 9.41937 7.33333 12C7.33333 14.5807 9.42267 16.67 12 16.67C13.1087 16.67 14.315 16.185 15 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.3333 12H16.6667M16.6667 12L15.3333 10.5M16.6667 12L15.3333 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')}`}
                           alt={token.name}
-                          className="w-8 h-8 rounded-full"
+                          className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 p-1.5"
                         />
                         <div>
                           <h3 className="font-medium text-gray-900 dark:text-gray-100">
@@ -265,6 +357,36 @@ export const UserProfile = () => {
                     </div>
                   ))}
                 </div>
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="mt-6 flex items-center justify-between">
+                    <button
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                      className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${currentPage === 1
+                        ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
+                        }`}
+                    >
+                      <ChevronLeftIcon className="w-5 h-5 mr-1" />
+                      Previous
+                    </button>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${currentPage === totalPages
+                        ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : 'text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300'
+                        }`}
+                    >
+                      Next
+                      <ChevronRightIcon className="w-5 h-5 ml-1" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>

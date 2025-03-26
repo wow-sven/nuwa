@@ -68,4 +68,25 @@ export interface UserSession {
     os: string;
     ip: string;
   };
+}
+
+export interface UserInfo {
+  id: string;
+  username: string;
+  name: string;
+  avatar: string;
+}
+
+export interface RgasBalance {
+  balance: number;
+  isPending: boolean;
+  isError: boolean;
+  refetchBalance: () => void;
+}
+
+export interface AllBalance {
+  balance: any[]; // 这里使用 any[] 因为具体类型需要根据 Rooch 的返回类型来确定
+  isPending: boolean;
+  isError: boolean;
+  refetchBalance: () => void;
 } 

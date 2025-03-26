@@ -1,9 +1,10 @@
-import {useCurrentAddress, useRoochClient} from "@roochnetwork/rooch-sdk-kit";
-import {useQuery} from "@tanstack/react-query";
+import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
+import { useQuery } from "@tanstack/react-query";
+import { AllBalance } from "../types/user";
+import { RoochAddress } from "@roochnetwork/rooch-sdk";
 
-export default function useAllBalance() {
+export default function useAllBalance(address: string | undefined): AllBalance {
   const client = useRoochClient()
-  const address = useCurrentAddress()
 
   const {
     data: balance,
@@ -15,7 +16,7 @@ export default function useAllBalance() {
     queryFn: async () => {
       const balance = await client
         .getBalances({
-          owner: address!.toStr(),
+          owner: new RoochAddress(address!).toBech32Address(),
         })
       return balance
     },
@@ -23,6 +24,9 @@ export default function useAllBalance() {
   })
 
   return {
-    balance, isPending, isError, refetchBalance
+    balance: balance?.data || [],
+    isPending,
+    isError,
+    refetchBalance
   }
 }

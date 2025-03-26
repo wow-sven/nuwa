@@ -1,24 +1,25 @@
 import { Link } from 'react-router-dom'
 import { ConnectButton, useCurrentAddress, useConnectionStatus } from '@roochnetwork/rooch-sdk-kit'
 import { ThemeToggle } from './ThemeToggle'
-import { User } from '../../types/user'
+import { UserInfo } from '../../types/user'
 import useRgasBalance from '../../hooks/use-rgas-balance'
 import { useEffect, useState } from 'react'
-import { mockUser } from '../../mocks/user'
 import { useSubscribeOnRequest } from '@roochnetwork/rooch-sdk-kit'
 import { Menu, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
+import useUserInfo from '../../hooks/use-user-info'
 
 interface HeaderProps {
     isDarkMode: boolean
 }
 
 export function Header({ isDarkMode }: HeaderProps) {
-    const [user, setUser] = useState<User | null>(null)
+    const [user, setUser] = useState<UserInfo | null>(null)
     const address = useCurrentAddress()
     const connectionStatus = useConnectionStatus()
-    const { rGas, refetchBalance } = useRgasBalance()
+    const { balance: rGas, refetchBalance } = useRgasBalance(address?.genRoochAddress().toHexAddress())
     const subscribeOnRequest = useSubscribeOnRequest()
+    const { userInfo } = useUserInfo(address?.genRoochAddress().toHexAddress())
 
     useEffect(() => {
         const unsubscribe = subscribeOnRequest((status) => {
@@ -35,13 +36,12 @@ export function Header({ isDarkMode }: HeaderProps) {
     }, [subscribeOnRequest, address, refetchBalance])
 
     useEffect(() => {
-        if (connectionStatus === 'connected') {
+        if (connectionStatus === 'connected' && userInfo) {
             setUser({
-                ...mockUser,
-                rgasBalance: rGas?.fixedBalance || 0
+                ...userInfo,
             })
         }
-    }, [rGas])
+    }, [rGas, userInfo, connectionStatus, address])
 
     const handleLogout = () => {
         setUser(null)
@@ -99,10 +99,10 @@ export function Header({ isDarkMode }: HeaderProps) {
                                 />
                                 <div className="flex flex-col text-left">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        {user.name || formatAddress(user.address)}
+                                        {user.name || formatAddress(address?.genRoochAddress().toBech32Address())}
                                     </span>
                                     <span className="text-xs text-gray-600 dark:text-gray-400">
-                                        {user.rgasBalance.toLocaleString()} RGAS
+                                        {rGas?.toLocaleString()} RGAS
                                     </span>
                                 </div>
                             </Menu.Button>
@@ -132,7 +132,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                                         <Menu.Item>
                                             {({ active }) => (
                                                 <Link
-                                                    to={`/user/profile/${user.address}`}
+                                                    to={`/user/profile/${address?.genRoochAddress().toBech32Address()}`}
                                                     className={`${active ? '!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400' : 'dark:!text-gray-300'
                                                         } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
                                                 >
