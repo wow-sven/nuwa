@@ -8,11 +8,12 @@ function formMutationKeyFn(baseEntity: string) {
 
 export const mutationKeys = {
   all: { baseScope: 'nuwa' },
-  initUser: formMutationKeyFn('initUser'),
   transfer: formMutationKeyFn('transfer'),
+  initUser: formMutationKeyFn('initUser'),
   updateUser: formMutationKeyFn('updateUser'),
   updateAgent: formMutationKeyFn('updateAgent'),
   createAgent: formMutationKeyFn('create_agent'),
+  updateAgentTask: formMutationKeyFn('update_gent_task'),
   joinChannel: formMutationKeyFn('join_channel'),
   snedChannelMessage: formMutationKeyFn('send_channel_message'),
 }

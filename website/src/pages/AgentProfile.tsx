@@ -1,14 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Agent } from "../types/agent";
-import { Task, TaskArgument, TaskFormData } from "../types/task";
 import {
   PencilIcon,
   ArrowLeftIcon,
   ClipboardIcon,
   LockClosedIcon,
   PlusIcon,
-  TrashIcon,
   InboxIcon,
 } from "@heroicons/react/24/outline";
 import useAgent from "../hooks/use-agent";
@@ -22,15 +19,19 @@ import useAgentTask from "../hooks/use-agent-task";
 import { TaskSpecificationEditor } from "../components/TaskSpecificationEditor";
 import { TaskSpecification } from "../types/taska";
 import { createEmptyTaskSpec } from "../utils/task";
+import { useUpdateAgentTaskTask } from "../hooks/use-agent-task-update";
 
 export function AgentProfile() {
   const { address } = useParams<{ address: string }>();
   const packageId = useNetworkVariable("packageId");
-  const agentId = Serializer.accountNamedObjectID(new RoochAddress(address || "").toHexAddress(), {
-    address: packageId,
-    module: "agent",
-    name: "Agent",
-  })
+  const agentId = Serializer.accountNamedObjectID(
+    new RoochAddress(address || "").toHexAddress(),
+    {
+      address: packageId,
+      module: "agent",
+      name: "Agent",
+    }
+  );
 
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
@@ -38,15 +39,16 @@ export function AgentProfile() {
   const [isSaveing, setIsSaveing] = useState(false);
   const [isSaveingPop, setIsSaveingPop] = useState(false);
 
-  const {agentTask} = useAgentTask()
   const [jsonMode, setJsonMode] = useState(false);
   const [taskSpecs, setTaskSpecs] = useState<TaskSpecification[]>([]);
 
-  console.log(taskSpecs)
+  console.log(taskSpecs);
 
   const { mutateAsync: updateAgent } = useUpdateAgent();
   const { agent, refetch: refetchAgent } = useAgent(agentId);
   const { caps } = useAgentCaps();
+  const { agentTask, refetch: refetchAgentTask } = useAgentTask(agent?.id);
+  const { mutateAsync: updateAgentTaskTask } = useUpdateAgentTaskTask();
   const isOwner = useMemo(() => {
     if (agent?.id && caps.has(agent.id)) {
       return true;
@@ -55,57 +57,37 @@ export function AgentProfile() {
   }, [agent, caps]);
 
   // Task related states
-  const [tasks, setTasks] = useState<Task[]>([]);
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isJsonMode, setIsJsonMode] = useState(false);
-  const [jsonInput, setJsonInput] = useState("");
-  const [taskForm, setTaskForm] = useState<TaskFormData>({
-    name: "",
-    description: "",
-    arguments: [],
-    resolverAddress: "",
-    isOnChain: false,
-    price: 0,
-  });
-  const [taskError, setTaskError] = useState<string>("");
-
-  // Mock whether user is the agent owner
-  // const isOwner = true
-
-  // Using the first mock agent as an example
-  const [agentData, setAgentData] = useState<Partial<Agent>>({
-    name: "",
-    description: "",
-    prompt: "",
-    username: "",
-    instructions: "",
-    agent_address: "",
-    avatar: "",
-    modelProvider: "",
-    lastActive: "",
-    createdAt: "",
-  });
 
   const [editForm, setEditForm] = useState({
-    name: agentData.name || "",
-    description: agentData.description || "",
-    prompt: agentData.prompt || "",
-    avatar: agentData.avatar || "",
+    name: agent?.name,
+    description: agent?.description,
+    prompt: agent?.instructions,
+    avatar: agent?.avatar,
   });
   const [avatarError, setAvatarError] = useState<string>("");
   const [previewAvatar, setPreviewAvatar] = useState<string>("");
 
   useEffect(() => {
     if (isEditing) {
-      setPreviewAvatar(editForm.avatar);
+      setPreviewAvatar(editForm.avatar || "");
     }
   }, [isEditing]);
 
   useEffect(() => {
     if (agentTask) {
-    setTaskSpecs(agentTask)
-  }
-  }, [agentTask])
+      setTaskSpecs(agentTask);
+    }
+  }, [agentTask]);
+
+  useEffect(() => {
+    if (JSON.stringify(taskSpecs) === JSON.stringify(agentTask || [])) {
+      setIsAddingTask(false);
+    } else {
+      setIsAddingTask(true);
+    }
+  }, [taskSpecs]);
 
   const validateImageUrl = (url: string) => {
     return new Promise((resolve) => {
@@ -143,76 +125,14 @@ export function AgentProfile() {
     }
   };
 
-  // Task form handlers
-  const handleAddArgument = () => {
-    setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
-  };
-
-  const handleRemoveArgument = (index: number) => {
-    setTaskForm((prev) => ({
-      ...prev,
-      arguments: prev.arguments.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleArgumentChange = (
-    index: number,
-    field: keyof TaskArgument,
-    value: string
-  ) => {
-    setTaskForm((prev) => ({
-      ...prev,
-      arguments: prev.arguments.map((arg, i) =>
-        i === index ? { ...arg, [field]: value } : arg
-      ),
-    }));
-  };
-
-  const handleSubmitTask = () => {
+  const handleSubmmitTask = async () => {
     try {
-      if (!taskForm.name.trim()) {
-        setTaskError("Task name is required");
-        return;
-      }
-
-      if (isJsonMode) {
-        try {
-          const jsonData = JSON.parse(jsonInput);
-          if (!jsonData.name) {
-            setTaskError("Task name is required in JSON");
-            return;
-          }
-          const newTask: Task = {
-            id: Date.now().toString(),
-            ...jsonData,
-          };
-          setTasks((prev) => [...prev, newTask]);
-        } catch (e) {
-          setTaskError("Invalid JSON format");
-          return;
-        }
-      } else {
-        const newTask: Task = {
-          id: Date.now().toString(),
-          ...taskForm,
-        };
-        setTasks((prev) => [...prev, newTask]);
-      }
-
-      // Reset form
-      setTaskForm({
-        name: "",
-        description: "",
-        arguments: [],
-        resolverAddress: "",
-        isOnChain: false,
-        price: 0,
+      await updateAgentTaskTask({
+        cap: caps.get(agent?.id!)!.id,
+        taskSpecs: taskSpecs,
       });
-      setJsonInput("");
-      setIsAddingTask(false);
-      setTaskError("");
-    } catch (error) {
-      setTaskError("Failed to add task");
+    } finally {
+      refetchAgentTask();
     }
   };
 
@@ -334,7 +254,9 @@ export function AgentProfile() {
               {/* Avatar */}
               <div className="relative -mt-16 mb-4">
                 <img
-                  src={isEditing ? previewAvatar || agent?.avatar : agent?.avatar}
+                  src={
+                    isEditing ? previewAvatar || agent?.avatar : agent?.avatar
+                  }
                   alt={agent?.username}
                   className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-white dark:bg-gray-800"
                 />
@@ -353,12 +275,15 @@ export function AgentProfile() {
                           type="text"
                           value={editForm.avatar}
                           onChange={(e) => handleAvatarChange(e.target.value)}
-                          className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${avatarError ? 'border-red-500' : ''
-                            }`}
+                          className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${
+                            avatarError ? "border-red-500" : ""
+                          }`}
                           placeholder="Enter avatar URL"
                         />
                         {avatarError && (
-                          <p className="mt-1 text-sm text-red-500">{avatarError}</p>
+                          <p className="mt-1 text-sm text-red-500">
+                            {avatarError}
+                          </p>
                         )}
                       </div>
                       <div className="mb-2">
@@ -390,9 +315,7 @@ export function AgentProfile() {
                 </div>
                 {isOwner && (
                   <SessionKeyGuard onClick={handleEdit}>
-                    <button
-                      className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
+                    <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                       <PencilIcon className="w-4 h-4 mr-2" />
                       {isSaveing ? (
                         <svg
@@ -572,9 +495,7 @@ export function AgentProfile() {
                 </h2>
                 {isOwner ? (
                   <SessionKeyGuard onClick={handlePromptEdit}>
-                    <button
-                      className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    >
+                    <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
                       <PencilIcon className="w-4 h-4 mr-2" />
                       {isSaveingPop ? (
                         <svg
@@ -642,9 +563,68 @@ export function AgentProfile() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   Tasks
                 </h2>
+                <button
+                  onClick={() => {
+                    if (!isAddingTask) {
+                      setIsAddingTask(true);
+                      setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
+                    } else {
+                      setIsJsonMode(!isJsonMode);
+                    }
+                  }}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  {!isAddingTask ? (
+                    <>
+                      <PlusIcon className="w-4 h-4 mr-2" />
+                      Add Task
+                    </>
+                  ) : isJsonMode ? (
+                    "Edit Mode"
+                  ) : (
+                    "JSON Mode"
+                  )}
+                </button>
+              </div>
+
+              {taskSpecs.length === 0 && (
+                <div className="text-center py-8 px-4">
+                  <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
+                    <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                    No Tasks Yet
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                    This AI agent doesn't have any tasks yet. Click the "Add
+                    Task" button to create the first task.
+                  </p>
+                </div>
+              )}
+
+              {/* Task List */}
+              <TaskSpecificationEditor
+                taskSpecs={taskSpecs}
+                jsonMode={isJsonMode}
+                onChange={(newTask) => {
+                  setTaskSpecs(newTask);
+                }}
+                onCancel={() => () => {}}
+              />
+
+              {isAddingTask && (
+                <div className="flex justify-end mt-6 gap-4">
                   <button
                     onClick={() => {
-                      console.log('aaa')
+                      setIsAddingTask(false);
+                      setTaskSpecs(agentTask || []);
+                    }}
+                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
                       setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
                     }}
                     className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
@@ -652,17 +632,16 @@ export function AgentProfile() {
                     <PlusIcon className="w-4 h-4 mr-2" />
                     Add Task
                   </button>
-              </div>
 
-              {/* Task List */}
-              <TaskSpecificationEditor
-                    taskSpecs={taskSpecs}
-                    onChange={(newTask) =>{
-                      setTaskSpecs(newTask)
-                    }}
-                    onCancel={() => () => {}}
-                  />
-                  </div>
+                  <button
+                    onClick={handleSubmmitTask}
+                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
