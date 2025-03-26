@@ -44,6 +44,7 @@ export function MessageInput({
     const [selectedReceiver, setSelectedReceiver] = useState("");
     const [tokenAmount, setTokenAmount] = useState("0.1");
     const [tokenType, setTokenType] = useState("RGAS");
+    const [autoMentionAI, setAutoMentionAI] = useState(false);
 
     // Check if current user has joined the channel
     const { isJoined = false, refetch: refetchJoinStatus } = useChannelJoinedStatus(channelId);
@@ -79,7 +80,7 @@ export function MessageInput({
                 await sendMessage({
                     channelId,
                     content: message,
-                    mentions: [],
+                    mentions: autoMentionAI && agentAddress ? [agentAddress] : [],
                     aiAddress: agentAddress,
                 });
                 await refetchMessageCount();
@@ -146,6 +147,11 @@ export function MessageInput({
                                 onKeyPress={(e) => e.key === "Enter" && handleTokenTransfer()}
                             >
                                 <option value="">Select receiver</option>
+                                {agentAddress && (
+                                    <option value={agentAddress}>
+                                        Agent ({agentAddress.substring(0, 8)}...{agentAddress.substring(agentAddress.length - 6)})
+                                    </option>
+                                )}
                                 {members.map((member) => (
                                     <option key={member.address} value={member.address}>
                                         {member.address.substring(0, 8)}...{member.address.substring(member.address.length - 6)}
@@ -216,14 +222,30 @@ export function MessageInput({
 
                 {/* Message input field - only shown when joined */}
                 {isJoined && (
-                    <input
-                        type="text"
-                        value={inputMessage}
-                        onChange={(e) => setInputMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && handleAction()}
-                        placeholder="Type a message..."
-                        className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    />
+                    <div className="flex-1 relative">
+                        <input
+                            type="text"
+                            value={inputMessage}
+                            onChange={(e) => setInputMessage(e.target.value)}
+                            onKeyPress={(e) => e.key === "Enter" && handleAction()}
+                            placeholder="Type a message..."
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 pr-24"
+                        />
+                        {agentAddress && (
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md">
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={autoMentionAI}
+                                        onChange={(e) => setAutoMentionAI(e.target.checked)}
+                                        className="sr-only peer"
+                                    />
+                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
+                                </label>
+                                <span>Talk to Agent</span>
+                            </div>
+                        )}
+                    </div>
                 )}
 
                 {/* Send/Join button with session key guard */}
