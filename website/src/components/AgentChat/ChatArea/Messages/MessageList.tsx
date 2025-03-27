@@ -1,9 +1,9 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { Message } from "../../../../types/channel";
-import { useCurrentAddress } from "@roochnetwork/rooch-sdk-kit";
 import useChannelMessageCount from "../../../../hooks/use-channel-message-count";
 import useChannelMessages from "../../../../hooks/use-channel-messages";
+import { useAgentChat } from "../../../../contexts/AgentChatContext";
 
 /**
  * Props for the MessageList component
@@ -37,7 +37,7 @@ export function MessageList({
     agentId,
     agentAddress
 }: MessageListProps) {
-    const address = useCurrentAddress();
+    const { currentAddress } = useAgentChat();
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -503,8 +503,8 @@ export function MessageList({
 
     // Determine message sender type
     const isCurrentUser = useCallback((message: Message) => {
-        return message.sender === address?.genRoochAddress().toHexAddress();
-    }, [address]);
+        return message.sender === currentAddress;
+    }, [currentAddress]);
 
     const isAI = useCallback((message: Message) => {
         return message.sender === agentAddress;

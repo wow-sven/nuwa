@@ -1,9 +1,6 @@
 import { useParams } from "react-router-dom";
-import useAgentChannels from "../hooks/use-agent-channel";
-import useChannelMembers from "../hooks/use-channel-member";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
-import useAgent from "../hooks/use-agent";
-import useChannelMemberCount from "../hooks/use-channel-member-count";
+import { AgentChatProvider, useAgentChat } from "../contexts/AgentChatContext";
 
 /**
  * AgentChat component - Main chat interface for interacting with an AI agent
@@ -14,22 +11,21 @@ import useChannelMemberCount from "../hooks/use-channel-member-count";
  * - Message history
  */
 export function AgentChat() {
-  // Get agent ID from URL parameters
   const { id } = useParams<{ id: string }>();
 
-  // Get agent information
-  const { agent, isPending: isAgentPending } = useAgent(id);
+  if (!id) {
+    return null;
+  }
 
-  // Get channel information
-  const { channel, isPending: isChannelPending } = useAgentChannels(id);
+  return (
+    <AgentChatProvider agentId={id}>
+      <AgentChatContent />
+    </AgentChatProvider>
+  );
+}
 
-  const { memberCount } = useChannelMemberCount(channel)
-  
-  // Get list of channel members
-  const { members } = useChannelMembers({
-    channelId: channel,
-    limit: '100',  // Increase member limit to match ChatArea
-  })
+function AgentChatContent() {
+  const { agent, isAgentPending, channel, isChannelPending } = useAgentChat();
 
   // Show loading state
   if (isAgentPending || isChannelPending || !channel) {
@@ -72,19 +68,10 @@ export function AgentChat() {
         <DialogSidebar channel={channel} />
 
         {/* Main chat area with messages and input */}
-        <ChatArea
-          agentId={id}
-          channel={channel}
-          members={members}
-        />
+        <ChatArea />
 
         {/* Right sidebar showing channel info and members */}
-        <ChannelSidebar
-          agentId={id}
-          channelId={channel}
-          memberCount={memberCount}
-          members={members}
-        />
+        <ChannelSidebar />
       </div>
     </div>
   );

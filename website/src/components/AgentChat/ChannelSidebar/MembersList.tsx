@@ -1,18 +1,17 @@
 import { UserGroupIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { RoochAddress, toShortStr } from "@roochnetwork/rooch-sdk";
 import useUserInfo from "../../../hooks/use-user-info";
-import useAgent from "../../../hooks/use-agent";
 import { Member } from "../../../types/channel";
 import { Link } from "react-router-dom";
+import { useAgentChat } from "../../../contexts/AgentChatContext";
 
 interface MemberItemProps {
     member: Member;
-    agentId?: string;
 }
 
-function MemberItem({ member, agentId }: MemberItemProps) {
+function MemberItem({ member }: MemberItemProps) {
     const { userInfo } = useUserInfo(member.address);
-    const { agent } = useAgent(agentId);
+    const { agent } = useAgentChat();
 
     const avatar = member.isAgent ? agent?.avatar : (userInfo?.avatar || member.avatar);
     const name = member.isAgent ? agent?.name : (userInfo?.name || toShortStr(member.address));
@@ -50,24 +49,14 @@ function MemberItem({ member, agentId }: MemberItemProps) {
 }
 
 /**
- * Props for the MembersList component
- */
-interface MembersListProps {
-    /** List of channel members */
-    members: Member[];
-    /** Current agent ID */
-    agentId?: string;
-}
-
-/**
  * MembersList component - Displays the list of channel members
  * Features:
  * - Member avatars and addresses
  * - RGAS balance display
  * - Add member functionality (TODO)
  */
-export function MembersList({ members, agentId }: MembersListProps) {
-    const { agent } = useAgent(agentId);
+export function MembersList() {
+    const { agent, members } = useAgentChat();
     const agentAddress = agent?.address ? new RoochAddress(agent.address) : null;
 
     // 对成员列表进行排序，将当前 agent 放在最前面
@@ -110,7 +99,6 @@ export function MembersList({ members, agentId }: MembersListProps) {
                                 ...member,
                                 isAgent
                             }}
-                            agentId={agentId}
                         />
                     );
                 })}
