@@ -136,9 +136,13 @@ export function MessageInput({
 
         if (message.trim() || mentions.length > 0) {
             try {
+                // 构建包含 mentions 的消息内容
+                const mentionText = mentions.map(m => `@${m.text}`).join(' ');
+                const fullMessage = `${mentionText} ${message}`.trim();
+
                 await sendMessage({
                     channelId,
-                    content: message,
+                    content: fullMessage,
                     mentions: [...mentions.map(m => m.id), ...(autoMentionAI && agent.address ? [agent.address] : [])],
                     aiAddress: agent.address,
                 });
@@ -216,7 +220,6 @@ export function MessageInput({
                 tempSpan.textContent = textBeforeCursor;
                 document.body.appendChild(tempSpan);
 
-                const { offsetWidth } = tempSpan;
                 document.body.removeChild(tempSpan);
 
                 // Calculate dropdown list position
