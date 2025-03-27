@@ -23,12 +23,16 @@ export default function useUserInfo(address?: string) {
           },
         },
       })
+      const id = String(resultA.data[0]?.id || '')
+      const username = String(resultA.data[0]?.decoded_value?.value?.username || '')
+      const name = String(resultA.data[0]?.decoded_value?.value?.name || '')
+      const avatar = String(resultA.data[0]?.decoded_value?.value?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=+${username}`)
 
       return {
-        id: String(resultA.data[0]?.id || ''),
-        username: String(resultA.data[0]?.decoded_value?.value?.username || ''),
-        name: String(resultA.data[0]?.decoded_value?.value?.name || ''),
-        avatar: String(resultA.data[0]?.decoded_value?.value?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${String(resultA.data[0]?.decoded_value?.value?.username || '')}`),
+        id,
+        username,
+        name,
+        avatar,
       }
     },
     enabled: !!address,
