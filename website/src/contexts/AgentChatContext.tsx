@@ -1,4 +1,4 @@
-import { createContext, useContext, ReactNode, useState } from 'react';
+import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import useAgent from '../hooks/use-agent';
 import useAgentChannel from '../hooks/use-agent-channel';
 import useChannelMembers from '../hooks/use-channel-member';
@@ -36,6 +36,18 @@ export function AgentChatProvider({
         size: 100,
     });
     const currentAddress = useCurrentAddress();
+
+    // Reset selectedChannel when agentId changes
+    useEffect(() => {
+        setSelectedChannel(undefined);
+    }, [agentId]);
+
+    // 单独处理 channel 选择
+    useEffect(() => {
+        if (!selectedChannel && channels && channels.length > 0) {
+            setSelectedChannel(channels[0].id);
+        }
+    }, [channels, selectedChannel]);
 
     const value: AgentChatContextType = {
         agent,

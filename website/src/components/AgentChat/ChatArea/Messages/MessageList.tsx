@@ -287,8 +287,6 @@ export function MessageList({
     useEffect(() => {
         if (!channelId) return;
 
-        // console.log(`Channel ID changed to: ${channelId}`);
-
         // Reset all states
         setAllMessages([]);
         setLoadedPages([]);
@@ -301,42 +299,46 @@ export function MessageList({
         setLastScrollHeight(0);
         setCurrentQueryPage(null);
 
-        // Increase auto-refresh trigger
+        // 触发初始加载
         setAutoRefreshTrigger(prev => prev + 1);
     }, [channelId]);
 
-    // Automatically trigger loading when message count is available
+    // 添加初始加载效果
     useEffect(() => {
-        // Only execute when channel ID changes or message count changes and no query is in progress
-        if (validChannelId && autoRefreshTrigger > 0 && currentQueryPage === null) {
-            // console.log(`Ready to load messages: channel=${validChannelId}, latest page=${latestPage}, total messages=${messageCount}`);
+        if (validChannelId) {
+            // 立即触发一次加载
+            setAutoRefreshTrigger(prev => prev + 1);
 
-            // Use setTimeout to ensure state updates are complete
+            // 设置一个定时器，确保在 messageCount 更新后再次触发
             const timer = setTimeout(() => {
                 if (messageCount > 0) {
-                    // console.log(`Loading latest page messages: page=${latestPage}`);
+                    const latestPage = Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
                     setCurrentQueryPage(latestPage);
                 } else {
-                    // console.log("No messages or message data not loaded yet, trying to load page 0");
                     setCurrentQueryPage(0);
                 }
             }, 100);
 
             return () => clearTimeout(timer);
         }
-    }, [validChannelId, autoRefreshTrigger, currentQueryPage, latestPage, messageCount]);
+    }, [validChannelId, messageCount]);
 
-    // Handle newly loaded message pages
+    // 修改自动加载逻辑
     useEffect(() => {
-        if (!pageMessages) return;
-
-        if (currentQueryPage !== null) {
-            // console.log(`Received query results for page ${currentQueryPage}: ${pageMessages.length} messages`);
+        if (validChannelId && autoRefreshTrigger > 0) {
+            // 确保在 messageCount 更新后再设置页面
+            if (messageCount > 0) {
+                const latestPage = Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
+                setCurrentQueryPage(latestPage);
+            } else {
+                setCurrentQueryPage(0);
+            }
         }
+    }, [validChannelId, autoRefreshTrigger, messageCount]);
 
+    // 优化消息加载状态显示
+    useEffect(() => {
         if (pageMessages && pageMessages.length > 0 && currentQueryPage !== null) {
-            // console.log(`Loaded ${pageMessages.length} messages, page=${currentQueryPage}`);
-
             // Add current page to loaded pages list
             if (!loadedPages.includes(currentQueryPage)) {
                 setLoadedPages(prev => [...prev, currentQueryPage]);
@@ -346,45 +348,19 @@ export function MessageList({
             setAllMessages(prev => {
                 const existingIndices = new Set(prev.map(m => m.index));
                 const newMessages = pageMessages.filter(msg => !existingIndices.has(msg.index));
-
-                if (newMessages.length === 0) {
-                    // console.log("No new messages to add");
-                    return prev;
-                }
-
-                // console.log(`Adding ${newMessages.length} new messages`);
-
-                // Merge and sort
-                const merged = [...prev, ...newMessages].sort((a, b) => a.index - b.index);
-                return merged;
+                return [...prev, ...newMessages].sort((a, b) => a.index - b.index);
             });
-
-            // Add: Check if more pages need to be loaded
-            // If current page has fewer messages than expected, might need to load more pages
-            if (pageMessages.length < MESSAGES_PER_PAGE && currentQueryPage === latestPage && messageCount > MESSAGES_PER_PAGE) {
-                // console.log(`Latest page ${currentQueryPage} has fewer messages(${pageMessages.length}) than expected(${MESSAGES_PER_PAGE}), trying to load previous page`);
-
-                // Set delay to avoid immediate trigger
-                setTimeout(() => {
-                    if (currentQueryPage > 0 && !loadedPages.includes(currentQueryPage - 1)) {
-                        triggerPageLoad(currentQueryPage - 1);
-                    }
-                }, 500);
-            }
 
             // Reset query page after loading is complete
             setCurrentQueryPage(null);
             setIsLoadingMoreUp(false);
         } else if (pageMessages && pageMessages.length === 0 && currentQueryPage !== null) {
-            // console.log(`Page ${currentQueryPage} returned no messages`);
-
             // Mark as reached top (if it's page 0)
             if (currentQueryPage === 0) {
-                // console.log("Reached page 0, marking as beginning of conversation");
                 setReachedTop(true);
             }
 
-            // Add current page to loaded pages list to avoid repeated requests
+            // Add current page to loaded pages list
             if (!loadedPages.includes(currentQueryPage)) {
                 setLoadedPages(prev => [...prev, currentQueryPage]);
             }
@@ -392,20 +368,8 @@ export function MessageList({
             // Reset query page
             setCurrentQueryPage(null);
             setIsLoadingMoreUp(false);
-
-            // If latest page has no messages but total message count is greater than 0
-            if (currentQueryPage === latestPage && messageCount > 0 && latestPage > 0) {
-                // console.log(`Latest page (${latestPage}) has no messages, but total count is ${messageCount}, trying to load previous page`);
-                setCurrentQueryPage(latestPage - 1);
-            }
-
-            // If all attempts have no messages but total count is greater than 0, try loading from the beginning
-            if (loadedPages.length === 0 && messageCount > 0) {
-                // console.log("No messages loaded yet, trying to load from page 0");
-                setCurrentQueryPage(0);
-            }
         }
-    }, [pageMessages, currentQueryPage, loadedPages, latestPage, messageCount]);
+    }, [pageMessages, currentQueryPage, loadedPages]);
 
     // Scroll to bottom (when receiving new messages)
     useEffect(() => {

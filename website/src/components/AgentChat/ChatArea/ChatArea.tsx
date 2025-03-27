@@ -11,11 +11,13 @@ import { useAgentChat } from "../../../contexts/AgentChatContext";
  * - Token transfer functionality
  */
 export function ChatArea() {
-    const { agent, selectedChannel } = useAgentChat();
+    const { agent, selectedChannel, channels } = useAgentChat();
 
     if (!agent || !selectedChannel) {
         return null;
     }
+
+    const currentChannel = channels?.find(channel => channel.id === selectedChannel);
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-gray-800">
@@ -23,7 +25,7 @@ export function ChatArea() {
             <div className="flex-none border-b border-gray-200 dark:border-gray-700">
                 <div className="p-4">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        {agent.name || 'Agent'} Home
+                        {currentChannel?.title || 'Unnamed Channel'}
                     </h2>
                 </div>
             </div>

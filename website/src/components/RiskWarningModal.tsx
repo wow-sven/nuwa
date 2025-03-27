@@ -7,7 +7,7 @@ interface RiskWarningModalProps {
 }
 
 export function RiskWarningModal({ isOpen, onClose }: RiskWarningModalProps) {
-    const [isChecked, setIsChecked] = useState(false)
+    const [isChecked, setIsChecked] = useState(true)
 
     if (!isOpen) return null
 

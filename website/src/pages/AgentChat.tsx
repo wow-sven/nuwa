@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { AgentChatProvider, useAgentChat } from "../contexts/AgentChatContext";
 
 /**
