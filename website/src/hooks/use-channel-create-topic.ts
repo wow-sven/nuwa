@@ -10,7 +10,6 @@ import {
   import { useNetworkVariable } from "./use-networks";
   
   type UseChannelCreateTopicArgs = {
-    agentId: string;
     channelId: string;
     topic: string,
     joinPolicy: 0 | 1, // 0 public 1 private
@@ -41,9 +40,8 @@ import {
       mutationFn: async (args) => {
         const agentTx = new Transaction();
         agentTx.callFunction({
-          target: `${packageId}::channel::create_topic_channel`,
+          target: `${packageId}::channel_entry::create_topic_channel_v2`,
           args: [
-            Args.objectId(args.agentId),
             Args.objectId(args.channelId),
             Args.string(args.topic),
             Args.u8(args.joinPolicy)

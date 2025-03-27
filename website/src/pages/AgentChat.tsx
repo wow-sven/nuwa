@@ -4,6 +4,7 @@ import useChannelMembers from "../hooks/use-channel-member";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
 import useAgent from "../hooks/use-agent";
 import useChannelMemberCount from "../hooks/use-channel-member-count";
+import { useEffect, useState } from "react";
 
 /**
  * AgentChat component - Main chat interface for interacting with an AI agent
@@ -16,23 +17,31 @@ import useChannelMemberCount from "../hooks/use-channel-member-count";
 export function AgentChat() {
   // Get agent ID from URL parameters
   const { id } = useParams<{ id: string }>();
+  
+  const [selectedChannel, setSelectedChannel] = useState<string>()
 
   // Get agent information
   const { agent, isPending: isAgentPending } = useAgent(id);
 
   // Get channel information
-  const { channel, isPending: isChannelPending } = useAgentChannels(id);
+  const { channels, isPending: isChannelPending } = useAgentChannels(id);
 
-  const { memberCount } = useChannelMemberCount(channel)
-  
+  const { memberCount } = useChannelMemberCount(selectedChannel)
+
   // Get list of channel members
   const { members } = useChannelMembers({
-    channelId: channel,
+    channelId: selectedChannel,
     limit: '100',  // Increase member limit to match ChatArea
   })
 
+  useEffect(() => {
+    if (!selectedChannel && channels) {
+      setSelectedChannel(channels[0].id)
+    }
+  }, [channels])
+
   // Show loading state
-  if (isAgentPending || isChannelPending || !channel) {
+  if (isAgentPending || isChannelPending || !channels) {
     return (
       <div className="flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center justify-center h-full space-y-6">
@@ -69,19 +78,19 @@ export function AgentChat() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar showing dialog list */}
-        <DialogSidebar channel={channel} />
+        <DialogSidebar channels={channels} onChannelSelect={(id) => setSelectedChannel(id)}/>
 
         {/* Main chat area with messages and input */}
         <ChatArea
           agentId={id}
-          channel={channel}
+          channel={selectedChannel}
           members={members}
         />
 
         {/* Right sidebar showing channel info and members */}
         <ChannelSidebar
           agentId={id}
-          channelId={channel}
+          channelId={selectedChannel}
           memberCount={memberCount}
           members={members}
         />

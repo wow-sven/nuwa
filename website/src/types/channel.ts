@@ -38,33 +38,23 @@ export interface MessageSendParams {
 }
 
 export interface Channel {
-  parent_channel: string | null;
+  parentChannel: string | null;
   title: string;
   creator: string;
-  members: Record<string, {
-    address: string;
-    joined_at: number;
-    last_active: number;
-  }>;
-  messages: Record<number, string>;
-  topics: Record<string, string>;
+  membersTable: string;
+  // topicsTable: string;
+  messageTable: string;
   message_counter: number;
-  created_at: number;
-  last_active: number;
+  joinPolicy: number;
+  createdAt: number;
+  lastActive: number;
   status: number;
-  channel_type: number;
 }
 
 export const CHANNEL_STATUS = {
   ACTIVE: 0,
   CLOSED: 1,
   BANNED: 2,
-} as const;
-
-export const CHANNEL_TYPE = {
-  AI_HOME: 0,
-  AI_PEER: 1,
-  TOPIC: 2,
 } as const;
 
 export const MESSAGE_TYPE = {
