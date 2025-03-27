@@ -2,7 +2,7 @@ import { PaperAirplaneIcon } from "@heroicons/react/24/outline";
 import { CurrencyDollarIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { SessionKeyGuard, useCreateSessionKey, useCurrentSession } from "@roochnetwork/rooch-sdk-kit";
 import { LoadingButton } from "./LoadingButton";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useChannelMessageSend } from "../../../../hooks/use-channel-message-send";
 import { useChannelJoin } from "../../../../hooks/use-channel-join";
 import useChannelMessageCount from "../../../../hooks/use-channel-message-count";
@@ -17,11 +17,11 @@ interface MessageInputProps {
     /** Channel ID */
     channelId: string;
     /** Agent address for AI communication */
-    agentAddress?: string;
+    agent?: any;
     /** Ref to scroll to end of messages */
     messagesEndRef?: React.RefObject<HTMLDivElement>;
     /** List of channel members */
-    members?: Array<{ address: string, avatar: string, name?: string, username?: string }>;
+    members?: Array<{ address: string, avatar: string, name?: string, username?: string, isAgent?: boolean }>;
 }
 
 /**
@@ -36,7 +36,7 @@ interface MessageInputProps {
  */
 export function MessageInput({
     channelId,
-    agentAddress = "",
+    agent = "",
     messagesEndRef,
     members = []
 }: MessageInputProps) {
@@ -46,7 +46,14 @@ export function MessageInput({
     const [tokenAmount, setTokenAmount] = useState("0.1");
     const [tokenType, setTokenType] = useState("RGAS");
     const [autoMentionAI, setAutoMentionAI] = useState(false);
-
+    const [showMentionList, setShowMentionList] = useState(false);
+    const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
+    const [mentionSearchText, setMentionSearchText] = useState("");
+    const [mentionListDirection, setMentionListDirection] = useState<'up' | 'down'>('down');
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [mentions, setMentions] = useState<Array<{ id: string, text: string, type: 'user' | 'agent' }>>([]);
+    const inputRef = useRef<HTMLInputElement>(null);
+    const mentionListRef = useRef<HTMLDivElement>(null);
 
     const packageId = useNetworkVariable("packageId");
     const session = useCurrentSession()
@@ -74,6 +81,45 @@ export function MessageInput({
         scopes: [`${packageId}::*::*`, `0x3::*::*`],
         maxInactiveInterval: 3600,
     }
+
+    // Add auto-scroll effect
+    useEffect(() => {
+        if (showMentionList && mentionListRef.current) {
+            const selectedElement = mentionListRef.current.children[selectedIndex] as HTMLElement;
+            if (selectedElement) {
+                const container = mentionListRef.current;
+                const containerRect = container.getBoundingClientRect();
+                const elementRect = selectedElement.getBoundingClientRect();
+
+                // If the selected element is below the container bottom
+                if (elementRect.bottom > containerRect.bottom) {
+                    container.scrollTop += elementRect.bottom - containerRect.bottom;
+                }
+                // If the selected element is above the container top
+                else if (elementRect.top < containerRect.top) {
+                    container.scrollTop -= containerRect.top - elementRect.top;
+                }
+            }
+        }
+    }, [selectedIndex, showMentionList]);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                mentionListRef.current &&
+                !mentionListRef.current.contains(event.target as Node) &&
+                !inputRef.current?.contains(event.target as Node)
+            ) {
+                setShowMentionList(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     /**
      * Handle message sending and channel joining
      * If user hasn't joined the channel, join first
@@ -89,17 +135,19 @@ export function MessageInput({
             }
         }
 
-        if (message.trim()) {
+        if (message.trim() || mentions.length > 0) {
             try {
                 await sendMessage({
                     channelId,
                     content: message,
-                    mentions: autoMentionAI && agentAddress ? [agentAddress] : [],
-                    aiAddress: agentAddress,
+                    mentions: [...mentions.map(m => m.id), ...(autoMentionAI && agent.address ? [agent.address] : [])],
+                    aiAddress: agent.address,
                 });
                 await refetchMessageCount();
                 await refetchMsg();
                 messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
+                // Clear mentions
+                setMentions([]);
             } catch (e) {
                 console.log(e);
             }
@@ -149,6 +197,153 @@ export function MessageInput({
         }
     };
 
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        const cursorPosition = e.target.selectionStart || 0;
+        const lastAtSymbol = value.lastIndexOf("@", cursorPosition);
+
+        if (lastAtSymbol !== -1) {
+            const searchText = value.slice(lastAtSymbol + 1, cursorPosition);
+            setMentionSearchText(searchText);
+
+            if (inputRef.current) {
+                const rect = inputRef.current.getBoundingClientRect();
+                const textBeforeCursor = value.slice(0, cursorPosition);
+                const tempSpan = document.createElement('span');
+                tempSpan.style.visibility = 'hidden';
+                tempSpan.style.position = 'absolute';
+                tempSpan.style.whiteSpace = 'pre-wrap';
+                tempSpan.style.font = window.getComputedStyle(inputRef.current).font;
+                tempSpan.textContent = textBeforeCursor;
+                document.body.appendChild(tempSpan);
+
+                const { offsetWidth } = tempSpan;
+                document.body.removeChild(tempSpan);
+
+                // Calculate dropdown list position
+                const itemHeight = 48; // Estimated height for each list item
+                const maxVisibleItems = 4; // Maximum number of visible items
+                const padding = 16; // List padding
+                const searchLower = searchText.toLowerCase();
+                const filteredCount = allMembers.filter(member =>
+                    member.name?.toLowerCase().includes(searchLower) ||
+                    member.username?.toLowerCase().includes(searchLower) ||
+                    member.address.toLowerCase().includes(searchLower)
+                ).length;
+
+                const listHeight = Math.min(filteredCount * itemHeight + padding, maxVisibleItems * itemHeight + padding);
+                const spaceBelow = window.innerHeight - rect.bottom;
+                const spaceAbove = rect.top;
+                const shouldShowUp = spaceBelow < listHeight && spaceAbove > spaceBelow;
+
+                setMentionListDirection(shouldShowUp ? 'up' : 'down');
+                setMentionPosition({
+                    top: shouldShowUp
+                        ? rect.top - listHeight
+                        : rect.bottom,
+                    left: rect.left
+                });
+            }
+
+            setShowMentionList(true);
+        } else {
+            setShowMentionList(false);
+        }
+
+        setInputMessage(value);
+    };
+
+    const handleMentionSelect = (member: { address: string, name?: string, username?: string, isAgent?: boolean }) => {
+        const displayName = member.username || member.name || member.address;
+
+        // Add new mention
+        setMentions(prev => [...prev, {
+            id: member.address,
+            text: displayName,
+            type: member.isAgent ? 'agent' : 'user'
+        }]);
+
+        // Clear the @ part in the input
+        const lastAtSymbol = inputMessage.lastIndexOf("@");
+        const newMessage = inputMessage.slice(0, lastAtSymbol) + " ";
+        setInputMessage(newMessage);
+        setShowMentionList(false);
+
+        if (inputRef.current) {
+            inputRef.current.focus();
+        }
+    };
+
+    const handleRemoveMention = (mentionId: string) => {
+        setMentions(prev => prev.filter(m => m.id !== mentionId));
+    };
+
+    // Add agent to the member list
+    const allMembers = members.map(member => {
+        if (member.address === agent.address) {
+            return {
+                ...member,
+                name: agent.name,
+                username: agent.username,
+                avatar: agent.avatar || member.avatar,
+                isAgent: true
+            };
+        }
+        return member;
+    });
+
+    // Move agent to the top of the list
+    const sortedMembers = [...allMembers].sort((a, b) => {
+        if (a.isAgent) return -1;
+        if (b.isAgent) return 1;
+        return 0;
+    });
+
+    // Filter member list based on search text
+    const filteredMembers = sortedMembers.filter(member => {
+        const searchLower = mentionSearchText.toLowerCase();
+        return (
+            (member.name?.toLowerCase().includes(searchLower) ||
+                member.username?.toLowerCase().includes(searchLower) ||
+                member.address.toLowerCase().includes(searchLower))
+        );
+    });
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (showMentionList && filteredMembers.length > 0) {
+            switch (e.key) {
+                case "ArrowDown":
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                        prev < filteredMembers.length - 1 ? prev + 1 : 0
+                    );
+                    break;
+                case "ArrowUp":
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                        prev > 0 ? prev - 1 : filteredMembers.length - 1
+                    );
+                    break;
+                case "Enter":
+                    e.preventDefault();
+                    if (filteredMembers[selectedIndex]) {
+                        handleMentionSelect(filteredMembers[selectedIndex]);
+                    }
+                    break;
+                case "Escape":
+                    e.preventDefault();
+                    setShowMentionList(false);
+                    setSelectedIndex(0);
+                    break;
+            }
+        } else if (e.key === "Backspace" && inputMessage === "" && mentions.length > 0) {
+            // When input is empty and there are tags, delete the last tag
+            e.preventDefault();
+            const lastMention = mentions[mentions.length - 1];
+            handleRemoveMention(lastMention.id);
+        }
+    };
+
     return (
         <div className="shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
             {/* Token Transfer Form */}
@@ -165,9 +360,9 @@ export function MessageInput({
                                 onKeyPress={(e) => e.key === "Enter" && handleTokenTransfer()}
                             >
                                 <option value="">Select receiver</option>
-                                {agentAddress && (
-                                    <option value={agentAddress}>
-                                        Agent ({agentAddress.substring(0, 8)}...{agentAddress.substring(agentAddress.length - 6)})
+                                {agent.address && (
+                                    <option value={agent.address}>
+                                        Agent ({agent.address.substring(0, 8)}...{agent.address.substring(agent.address.length - 6)})
                                     </option>
                                 )}
                                 {members.map((member) => (
@@ -244,15 +439,73 @@ export function MessageInput({
                 {/* Message input field - only shown when joined */}
                 {isJoined && (
                     <div className="flex-1 relative">
-                        <input
-                            type="text"
-                            value={inputMessage}
-                            onChange={(e) => setInputMessage(e.target.value)}
-                            onKeyPress={(e) => e.key === "Enter" && handleAction()}
-                            placeholder="Type a message..."
-                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 pr-24"
-                        />
-                        {agentAddress && (
+                        <div className="flex flex-wrap gap-1 items-center w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 focus-within:ring-2 focus-within:ring-purple-500">
+                            {mentions.map((mention) => (
+                                <div
+                                    key={mention.id}
+                                    className={`inline-flex items-center text-xs px-2 py-1 rounded-full group relative cursor-pointer ${mention.type === 'agent'
+                                        ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                                        }`}
+                                    onClick={() => handleRemoveMention(mention.id)}
+                                >
+                                    <span className="leading-none group-hover:invisible">@{mention.text}</span>
+                                    <XMarkIcon className="w-3.5 h-3.5 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden group-hover:block" />
+                                </div>
+                            ))}
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                value={inputMessage}
+                                onChange={handleInputChange}
+                                onKeyPress={(e) => e.key === "Enter" && handleAction()}
+                                onKeyDown={handleKeyDown}
+                                placeholder={mentions.length > 0 ? "" : "Type a message..."}
+                                className="flex-1 bg-transparent outline-none text-sm ml-1"
+                            />
+                        </div>
+
+                        {/* Mention List */}
+                        {showMentionList && filteredMembers.length > 0 && (
+                            <div
+                                ref={mentionListRef}
+                                className="fixed z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg overflow-y-auto"
+                                style={{
+                                    top: mentionPosition.top,
+                                    left: mentionPosition.left,
+                                    minWidth: "200px",
+                                    maxHeight: `${Math.min(filteredMembers.length * 48 + 16, 4 * 48 + 16)}px`
+                                }}
+                            >
+                                {filteredMembers.map((member, index) => (
+                                    <div
+                                        key={member.address}
+                                        className={`px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ${index === selectedIndex ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                            }`}
+                                        onClick={() => {
+                                            setSelectedIndex(index);
+                                            handleMentionSelect(member);
+                                        }}
+                                    >
+                                        <div className="font-medium flex items-center">
+                                            {member.isAgent && (
+                                                <span className="mr-2 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded">
+                                                    AI
+                                                </span>
+                                            )}
+                                            {member.name || member.username || member.address}
+                                        </div>
+                                        {member.name && member.username && (
+                                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                @{member.username}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {agent.address && (
                             <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md">
                                 <label className="relative inline-flex items-center cursor-pointer">
                                     <input

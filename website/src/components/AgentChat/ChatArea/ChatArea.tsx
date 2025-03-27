@@ -59,7 +59,7 @@ export function ChatArea({
             <div className="flex-none border-t border-gray-200 dark:border-gray-700">
                 <MessageInput
                     channelId={channel || ""}
-                    agentAddress={agent?.address}
+                    agent={agent}
                     members={members}
                 />
             </div>
