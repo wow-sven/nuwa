@@ -405,7 +405,7 @@ export function ChatMessage({
                 }`}
             >
               {hasTransferAttachment && transferAttachment && (
-                <div className="mb-2 p-2 bg-white/50 dark:bg-black/20 rounded border border-yellow-200 dark:border-yellow-700">
+                <div className="mb-2 p-2 bg-white/50 dark:bg-black/20 rounded-xl border border-yellow-200 dark:border-yellow-700">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-yellow-600 dark:text-yellow-400">💸</span>
                     <span>Transfer</span>
