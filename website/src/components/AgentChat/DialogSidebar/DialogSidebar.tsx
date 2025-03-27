@@ -29,7 +29,6 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
   const { mutateAsync, isPending } = useChannelCreateTopic();
   const [showInput, setShowInput] = useState(false);
   const [topicName, setTopicName] = useState("");
-  const [joinPolicy, setJoinPolicy] = useState<0 | 1>(0); // 0 for public, 1 for private
   const { selectedChannel } = useAgentChat();
 
   const handleCreateTopic = async () => {
@@ -42,12 +41,11 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
       await mutateAsync({
         channelId: channels[0].id,
         topic: finalTopicName,
-        joinPolicy,
+        joinPolicy: 0, // 所有 topic 都设置为 public
       });
       console.log("Topic created successfully");
       setShowInput(false);
       setTopicName("");
-      setJoinPolicy(0); // 重置为默认值
       onRefresh?.(); // 刷新对话列表
     } catch (error) {
       console.error("Error creating topic:", error);
@@ -83,36 +81,6 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
               placeholder="Enter topic name"
               className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="public"
-                  name="access"
-                  value={0}
-                  checked={joinPolicy === 0}
-                  onChange={(e) => setJoinPolicy(Number(e.target.value) as 0 | 1)}
-                  className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800"
-                />
-                <label htmlFor="public" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                  Public
-                </label>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  id="private"
-                  name="access"
-                  value={1}
-                  checked={joinPolicy === 1}
-                  onChange={(e) => setJoinPolicy(Number(e.target.value) as 0 | 1)}
-                  className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800"
-                />
-                <label htmlFor="private" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                  Private
-                </label>
-              </div>
-            </div>
             <div className="flex gap-2">
               <button
                 onClick={handleCreateTopic}
@@ -125,7 +93,6 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
                 onClick={() => {
                   setShowInput(false);
                   setTopicName("");
-                  setJoinPolicy(0); // 重置为默认值
                 }}
                 className="flex-1 px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
               >
