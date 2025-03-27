@@ -44,8 +44,8 @@ export function useCreateAgent({
       agentTx.callFunction({
         target: `${packageId}::agent_entry::create_agent`,
         args: [
-          Args.string(args.username),
           Args.string(args.name),
+          Args.string(args.username),
           Args.string(args.avatar),
           Args.string(args.description),
           Args.string(args.instructions),
