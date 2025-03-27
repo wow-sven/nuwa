@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
 import useAllAgents from '../../hooks/use-all-agents'
+import useAgentJoined from '../../hooks/use-agent-joined'
 
 interface SidebarProps {
   onCollapse: (isCollapsed: boolean) => void
@@ -13,21 +14,22 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
   const location = useLocation()
-  const { agents } = useAllAgents()
+
+  const { joinedAgents } = useAgentJoined()
 
   // Get current agent ID from URL
   const currentAgentId = location.pathname.split('/agent/')[1]
 
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
-    if (!searchQuery.trim()) return agents || []
+    if (!searchQuery.trim()) return joinedAgents || []
 
     const query = searchQuery.toLowerCase().trim()
-    return (agents || []).filter(agent =>
+    return (joinedAgents || []).filter(agent =>
       agent.name.toLowerCase().includes(query) ||
       agent.username.toLowerCase().includes(query)
     )
-  }, [agents, searchQuery])
+  }, [joinedAgents, searchQuery])
 
   // Use prop value or local state
   const isCollapsed = propIsCollapsed ?? localIsCollapsed

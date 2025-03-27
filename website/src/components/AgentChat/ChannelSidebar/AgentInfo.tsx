@@ -6,6 +6,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import useAgent from "../../../hooks/use-agent";
 import useAgentBalance from "../../../hooks/use-agent-balance";
+import { useChannelLeave } from "../../../hooks/use-channel-leave";
+import useChannelJoinedStatus from "../../../hooks/use-channel-joined-status";
+import useAgentJoined from "../../../hooks/use-agent-joined";
+import useChannelMembers from "../../../hooks/use-channel-member";
 
 /**
  * Props for the AgentProfile component
@@ -13,6 +17,7 @@ import useAgentBalance from "../../../hooks/use-agent-balance";
 interface AgentInfoProps {
     /** ID of the current agent */
     agentId?: string;
+    channelId?: string;
     /** Number of members in the channel */
     membersCount: number;
 }
@@ -25,10 +30,30 @@ interface AgentInfoProps {
  * - Agent balance
  * - Profile navigation button
  */
-export function AgentInfo({ agentId, membersCount }: AgentInfoProps) {
+export function AgentInfo({ agentId, channelId, membersCount }: AgentInfoProps) {
     const navigate = useNavigate();
     const { agent, isPending, isError } = useAgent(agentId);
     const { balance, isPending: isBalancePending } = useAgentBalance(agent?.agent_address);
+    const {isJoined, refetch: refetchIsjoined} = useChannelJoinedStatus(channelId)
+    const {refetch: refetchJoinedAgent} = useAgentJoined()
+    const {refetch: refetchChannelMembers} = useChannelMembers({
+        channelId,
+        limit: '100'
+    })
+    const {mutateAsync: leaveChannel, isPending: leaveIsPending} = useChannelLeave()
+
+    const handleLeaveChannel = async () => {
+        if (!channelId) {
+            return
+        }
+        leaveChannel({
+            id: channelId,
+        }).finally(() => {
+            refetchIsjoined()
+            refetchJoinedAgent()
+            refetchChannelMembers()
+        })
+    }
 
     if (isPending) {
         return (
@@ -112,6 +137,15 @@ export function AgentInfo({ agentId, membersCount }: AgentInfoProps) {
                     <UserCircleIcon className="w-5 h-5" />
                     <span className="font-medium">View Profile</span>
                 </button>
+
+                {
+                    isJoined && (<button
+                        onClick={handleLeaveChannel}
+                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg transition-colors mt-2"
+                    >
+                        <span className="font-medium">{leaveIsPending ?'Exit...': 'Exit'}</span>
+                    </button>)
+                }
             </div>
         </div>
     );
