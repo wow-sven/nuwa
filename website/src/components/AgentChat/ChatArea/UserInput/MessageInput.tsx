@@ -161,18 +161,23 @@ export function MessageInput({
      * Handle token transfer
      */
     const handleTokenTransfer = async () => {
-        if (!selectedReceiver || parseFloat(tokenAmount) <= 0) {
+        if (parseFloat(tokenAmount) <= 0) {
             return;
         }
-        // TODO: imp this
-        // Build transfer message content
-        const transferMessage = `transfer::coin ${tokenAmount} ${tokenType} to ${selectedReceiver}`;
+        // Convert the decimal amount to the correct integer representation
+        // RGas has 8 decimal places, so multiply by 10^8
+        const rawAmount = (parseFloat(tokenAmount) * 100000000).toFixed(0);
 
         try {
-            await handleSendMessage(transferMessage);
+            await sendMessage({
+                channelId,
+                content: `transfer::coin ${tokenAmount} RGAS to ${agent.address}`,
+                mentions: [...mentions.map(m => m.id), ...(autoMentionAI && agent.address ? [agent.address] : [])],
+                aiAddress: agent.address,
+                payment: parseInt(rawAmount)
+            });
             // Reset form and hide
             setShowTokenForm(false);
-            setSelectedReceiver("");
             setTokenAmount("0.1");
         } catch (e) {
             console.log("Transfer failed:", e);
@@ -194,10 +199,6 @@ export function MessageInput({
 
     const toggleTokenForm = () => {
         setShowTokenForm(!showTokenForm);
-        // If there are members, select the first one by default
-        if (members.length > 0 && !selectedReceiver) {
-            setSelectedReceiver(members[0].address);
-        }
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -356,53 +357,14 @@ export function MessageInput({
             {/* Token Transfer Form */}
             {showTokenForm && isJoined && (
                 <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        Send RGAS to Agent ({agent.name || agent.username || agent.address.substring(0, 8) + '...' + agent.address.substring(agent.address.length - 6)})
+                    </div>
                     <div className="flex space-x-3 items-end">
-                        {/* Receiver Selection */}
-                        <div className="flex-1">
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Receiver</label>
-                            <select
-                                value={selectedReceiver}
-                                onChange={(e) => setSelectedReceiver(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                onKeyPress={(e) => e.key === "Enter" && handleTokenTransfer()}
-                            >
-                                <option value="">Select receiver</option>
-                                {agent.address && (
-                                    <option value={agent.address}>
-                                        Agent ({agent.address.substring(0, 8)}...{agent.address.substring(agent.address.length - 6)})
-                                    </option>
-                                )}
-                                {members.map((member) => (
-                                    <option key={member.address} value={member.address}>
-                                        {member.name ? member.name : member.username ? `@${member.username}` : ''}
-                                        {member.name && member.username ? ` (@${member.username})` : ''}
-                                        {(member.name || member.username) ? ' - ' : ''}
-                                        {member.address.substring(0, 8)}...{member.address.substring(member.address.length - 6)}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Token Type Selection */}
-                        <div className="w-1/5">
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Token</label>
-                            <select
-                                value={tokenType}
-                                onChange={(e) => setTokenType(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                onKeyPress={(e) => e.key === "Enter" && handleTokenTransfer()}
-                            >
-                                <option value="RGAS">RGAS</option>
-                            </select>
-                        </div>
-
                         {/* Amount Input */}
-                        <div className="w-1/5">
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Amount</label>
+                        <div className="flex-1">
                             <input
                                 type="number"
-                                min="0.000001"
-                                step="0.000001"
                                 value={tokenAmount}
                                 onChange={(e) => setTokenAmount(e.target.value)}
                                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -414,7 +376,7 @@ export function MessageInput({
                         <SessionKeyGuard onClick={handleTokenTransfer}>
                             <button
                                 className="h-10 px-4 rounded-lg bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                disabled={!selectedReceiver || parseFloat(tokenAmount) <= 0}
+                                disabled={parseFloat(tokenAmount) <= 0}
                             >
                                 <PaperAirplaneIcon className="w-5 h-5" />
                             </button>

@@ -23,6 +23,14 @@ interface ActionEvent {
   error?: string;
 }
 
+// 添加转账附件的类型定义
+interface TransferAttachment {
+  amount: string;
+  coin_type: string;
+  to: string;
+  memo?: string;
+}
+
 interface ChatMessageProps {
   message: Message;
   isCurrentUser: boolean;
@@ -47,6 +55,32 @@ export function ChatMessage({
   const isActionEvent = message.message_type === MESSAGE_TYPE.ACTION_EVENT;
   const { agent } = useAgent(agentId);
   const { userInfo } = useUserInfo(message.sender);
+
+  // 检查消息是否包含转账附件
+  const hasTransferAttachment = React.useMemo(() => {
+    return message.attachments.some(attachment => {
+      try {
+        const data = JSON.parse(attachment.attachment_json) as TransferAttachment;
+        return data.amount && data.coin_type && data.to;
+      } catch (error) {
+        return false;
+      }
+    });
+  }, [message.attachments]);
+
+  // 获取转账附件信息
+  const transferAttachment = React.useMemo(() => {
+    if (!hasTransferAttachment) return null;
+    const attachment = message.attachments.find(attachment => {
+      try {
+        const data = JSON.parse(attachment.attachment_json) as TransferAttachment;
+        return data.amount && data.coin_type && data.to;
+      } catch (error) {
+        return false;
+      }
+    });
+    return attachment ? JSON.parse(attachment.attachment_json) as TransferAttachment : null;
+  }, [message.attachments, hasTransferAttachment]);
 
   //TODO use the scanUrl via the network.
   const roochscanBaseUrl = "https://test.roochscan.io";
@@ -96,6 +130,7 @@ export function ChatMessage({
       return null;
     }
   };
+
 
   // Format action arguments for display
   const formatActionArgs = (argsJson: string): any => {
@@ -244,6 +279,7 @@ export function ChatMessage({
   };
 
   const replyToMessage = getReplyToMessage();
+  const { userInfo: replyToUserInfo } = useUserInfo(replyToMessage?.sender);
 
   // For normal messages, use the existing format
   return (
@@ -341,14 +377,16 @@ export function ChatMessage({
           </div>
           {replyToMessage && (
             <div className="mb-1 text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
-              <span className="font-medium">
-                Reply to
-              </span>
-              <span className="ml-1">
-                {replyToMessage.content.length > 50
-                  ? `${replyToMessage.content.substring(0, 50)}...`
-                  : replyToMessage.content}
-              </span>
+              <div className="flex flex-col gap-1">
+                <span className="font-medium">
+                  Reply to {`@` + replyToUserInfo?.username || replyToUserInfo?.name || shortenAddress(new RoochAddress(replyToMessage.sender).toBech32Address())}
+                </span>
+                <span>
+                  {replyToMessage.content.length > 50
+                    ? `${replyToMessage.content.substring(0, 50)}...`
+                    : replyToMessage.content}
+                </span>
+              </div>
             </div>
           )}
           <div className="relative group">
@@ -356,71 +394,84 @@ export function ChatMessage({
               className={`rounded-lg px-2 py-0.5 ${isCurrentUser
                 ? isToAI
                   ? "bg-green-100 text-green-900 border border-green-200 dark:bg-green-800 dark:text-white dark:border-green-700"
-                  : "bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-700 dark:text-white dark:border-blue-600"
+                  : hasTransferAttachment
+                    ? "bg-yellow-100 text-yellow-900 border border-yellow-200 dark:bg-yellow-800 dark:text-white dark:border-yellow-700"
+                    : "bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-700 dark:text-white dark:border-blue-600"
                 : isAI
                   ? "bg-purple-100 text-purple-900 border border-purple-200 dark:bg-purple-700 dark:text-white dark:border-purple-600"
-                  : "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  : hasTransferAttachment
+                    ? "bg-yellow-100 text-yellow-900 border border-yellow-200 dark:bg-yellow-800 dark:text-white dark:border-yellow-700"
+                    : "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 }`}
             >
-              {/* 添加调试信息 */}
-              {/* {process.env.NODE_ENV === 'development' && (
-                <div className="text-xs text-gray-500 mb-1">
-                  isToAI: {isToAI ? 'true' : 'false'},
-                  mentions: {message.mentions.join(', ')},
-                  agent address: {agent?.address || 'not loaded'}
-                </div>
-              )} */}
-              <div className="flex flex-col justify-between items-start">
-                <div className="text-sm leading-tight flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    className="prose prose-sm max-w-none dark:prose-invert prose-p:m-0 prose-ul:m-0 prose-ol:m-0 prose-li:m-0 prose-pre:m-0 prose-headings:m-0 prose-hr:m-0 prose-blockquote:m-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:mb-0"
-                    components={{
-                      pre: ({ children }) => children,
-                      code: ({
-                        inline,
-                        className,
-                        children,
-                        ...props
-                      }: ComponentPropsWithoutRef<'code'> & { inline?: boolean }) => {
-                        const match = /language-(\w+)/.exec(className || "");
-                        const language = match ? match[1] : "";
+              {hasTransferAttachment && transferAttachment && (
+                <div className="mb-2 p-2 bg-white/50 dark:bg-black/20 rounded border border-yellow-200 dark:border-yellow-700">
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-yellow-600 dark:text-yellow-400">💸</span>
+                    <span>Transfer</span>
+                    <span className="font-medium">{transferAttachment.amount}</span>
+                    <span>{transferAttachment.coin_type.split("::").pop()}</span>
+                    <span>to Agent ({`@` + agent?.username || agent?.name || agent?.address.substring(0, 8) + '...' + agent?.address.substring(agent.address.length - 6)})</span>
 
-                        return !inline ? (
-                          <div className="my-1">
-                            <SyntaxHighlighter
-                              language={language}
-                              style={oneLight}
-                              customStyle={{
-                                backgroundColor: "var(--tw-prose-pre-bg, #f8fafc)",
-                                padding: "0.75rem",
-                                margin: 0,
-                                borderRadius: "0.375rem",
-                                border: "1px solid var(--tw-prose-pre-border, #e2e8f0)",
-                              }}
-                              className="dark:!bg-gray-800 dark:border-gray-700"
-                            >
-                              {String(children).replace(/\n$/, "")}
-                            </SyntaxHighlighter>
-                          </div>
-                        ) : (
-                          <code
-                            className={`px-1.5 py-0.5 rounded ${isCurrentUser
-                              ? "bg-blue-200/70 text-blue-800 dark:bg-blue-500/30 dark:text-white"
-                              : "bg-gray-200/70 text-gray-800 dark:bg-gray-500/30 dark:text-white"
-                              }`}
-                            {...props}
-                          >
-                            {children}
-                          </code>
-                        );
-                      },
-                    }}
-                  >
-                    {message.content}
-                  </ReactMarkdown>
+                    {transferAttachment.memo && (
+                      <span className="italic"> — "{transferAttachment.memo}"</span>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+              {!hasTransferAttachment && (
+                <div className="flex flex-col justify-between items-start">
+                  <div className="text-sm leading-tight flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      className="prose prose-sm max-w-none dark:prose-invert prose-p:m-0 prose-ul:m-0 prose-ol:m-0 prose-li:m-0 prose-pre:m-0 prose-headings:m-0 prose-hr:m-0 prose-blockquote:m-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:mb-0"
+                      components={{
+                        pre: ({ children }) => children,
+                        code: ({
+                          inline,
+                          className,
+                          children,
+                          ...props
+                        }: ComponentPropsWithoutRef<'code'> & { inline?: boolean }) => {
+                          const match = /language-(\w+)/.exec(className || "");
+                          const language = match ? match[1] : "";
+
+                          return !inline ? (
+                            <div className="my-1">
+                              <SyntaxHighlighter
+                                language={language}
+                                style={oneLight}
+                                customStyle={{
+                                  backgroundColor: "var(--tw-prose-pre-bg, #f8fafc)",
+                                  padding: "0.75rem",
+                                  margin: 0,
+                                  borderRadius: "0.375rem",
+                                  border: "1px solid var(--tw-prose-pre-border, #e2e8f0)",
+                                }}
+                                className="dark:!bg-gray-800 dark:border-gray-700"
+                              >
+                                {String(children).replace(/\n$/, "")}
+                              </SyntaxHighlighter>
+                            </div>
+                          ) : (
+                            <code
+                              className={`px-1.5 py-0.5 rounded ${isCurrentUser
+                                ? "bg-blue-200/70 text-blue-800 dark:bg-blue-500/30 dark:text-white"
+                                : "bg-gray-200/70 text-gray-800 dark:bg-gray-500/30 dark:text-white"
+                                }`}
+                              {...props}
+                            >
+                              {children}
+                            </code>
+                          );
+                        },
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )}
 
               {/* 按钮移到气泡外部 */}
               <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
