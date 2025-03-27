@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom'
+
 export function Hero() {
   return (
     <div className="relative min-h-[600px]">
@@ -38,12 +40,15 @@ export function Hero() {
             Nuwa is an On-Chain AI with its own assets, on-chain operations, and continuous learning.
           </p>
 
-          {/* Talk to Nuwa Button */}
-          <button className="group relative px-8 py-3 text-lg font-semibold rounded-full border-2 border-purple-600 hover:border-transparent transition-all duration-500 ease-in-out overflow-hidden bg-white dark:bg-gray-900">
-            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 group-hover:text-white transition-colors duration-500">Talk to Nuwa</span>
+          {/* Explore Agents Button */}
+          <Link
+            to="/allagents"
+            className="group relative px-8 py-3 text-lg font-semibold rounded-full border-2 border-purple-600 hover:border-transparent transition-all duration-500 ease-in-out overflow-hidden bg-white dark:bg-gray-900 inline-block"
+          >
+            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 group-hover:text-white transition-colors duration-500">Explore Agents</span>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-in-out origin-left"></div>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-in-out origin-right delay-100"></div>
-          </button>
+          </Link>
         </div>
       </div>
     </div>
