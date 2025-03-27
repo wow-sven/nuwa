@@ -9,6 +9,7 @@ import useChannelMessageCount from "../../../../hooks/use-channel-message-count"
 import useChannelJoinedStatus from "../../../../hooks/use-channel-joined-status";
 import useChannelMessages from "../../../../hooks/use-channel-messages";
 import { useNetworkVariable } from "../../../../hooks/use-networks";
+import useAgentJoined from "../../../../hooks/use-agent-joined";
 
 /**
  * Props for the MessageInput component
@@ -57,6 +58,7 @@ export function MessageInput({
     const packageId = useNetworkVariable("packageId");
     const session = useCurrentSession()
     const { mutate: createSession } = useCreateSessionKey()
+    const {refetch: refetchJoinedAgent} = useAgentJoined()
     // Check if current user has joined the channel
     const { isJoined = false, refetch: refetchJoinStatus } = useChannelJoinedStatus(channelId);
     // Message sending functionality
@@ -129,6 +131,7 @@ export function MessageInput({
             try {
                 await joinChannel({ id: channelId });
                 await refetchJoinStatus();
+                await refetchJoinedAgent();
             } catch (e) {
                 console.log(e);
             }
