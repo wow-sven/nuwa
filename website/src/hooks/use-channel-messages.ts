@@ -97,7 +97,7 @@ export default function useChannelMessages(input: ChannelMessagesInput): UseChan
       return [];
     },
     refetchInterval: 5000,
-    enabled: !!input && input.size > 0,
+    enabled: !!input.channelId && input.size > 0,
   });
 
   return {

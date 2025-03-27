@@ -52,6 +52,7 @@ export function MessageList({
     const [isLoadingMoreUp, setIsLoadingMoreUp] = useState(false);
     const [lastScrollHeight, setLastScrollHeight] = useState(0);
     const [autoRefreshTrigger, setAutoRefreshTrigger] = useState(0);
+    const [currentQueryPage, setCurrentQueryPage] = useState<number | null>(null);
 
     // Ensure valid channel ID
     const validChannelId = channelId && channelId.length > 0 ? channelId : undefined;
@@ -61,9 +62,6 @@ export function MessageList({
 
     // Calculate latest page - correct calculation method
     const latestPage = messageCount <= 0 ? 0 : Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
-
-    // State: Current querying page
-    const [currentQueryPage, setCurrentQueryPage] = useState<number | null>(null);
 
     // Use custom hook to get messages for specific page
     const {
@@ -90,10 +88,8 @@ export function MessageList({
     const triggerPageLoad = useCallback((page: number) => {
         // If page is already loaded or currently loading, don't trigger again
         if (loadedPages.includes(page) || currentQueryPage === page) {
-            // console.log(`Page ${page} already loaded or currently loading, skipping request`);
             return false;
         }
-        // console.log(`Triggering page ${page} load`);
         setCurrentQueryPage(page);
         return true;
     }, [loadedPages, currentQueryPage]);
@@ -105,7 +101,6 @@ export function MessageList({
         if (messageCount <= 0) {
             // If no messages and page 0 hasn't been loaded, try loading it
             if (!loadedPages.includes(0) && currentQueryPage !== 0) {
-                // console.log('No messages, trying to load page 0');
                 triggerPageLoad(0);
             }
             return;
@@ -113,18 +108,15 @@ export function MessageList({
 
         // Has messages, calculate and load latest page
         if (currentQueryPage === null) {
-            // console.log(`Loading latest page: ${latestPage}`);
             triggerPageLoad(latestPage);
 
             // Add: Check if earlier pages should be loaded
             setTimeout(() => {
                 // If there are multiple pages, ensure complete history is loaded
                 if (latestPage > 0 && allMessages.length < Math.min(messageCount, 20)) {
-                    // console.log(`Detected need to load earlier pages, currently only loaded ${allMessages.length} messages`);
                     // Load pages from previous to latest, going backwards
                     for (let page = latestPage - 1; page >= Math.max(0, latestPage - 3); page--) {
                         if (!loadedPages.includes(page)) {
-                            // console.log(`Planning to load earlier page: ${page}`);
                             setTimeout(() => triggerPageLoad(page), (latestPage - page) * 200);
                         }
                     }
@@ -136,7 +128,6 @@ export function MessageList({
     // Optimization 4: Replace auto-loading effect, remove setTimeout
     useEffect(() => {
         if (validChannelId && autoRefreshTrigger > 0 && currentQueryPage === null) {
-            // console.log(`Preparing to load messages: channel=${validChannelId}, latest page=${latestPage}, total messages=${messageCount}`);
             loadLatestMessages();
         }
     }, [validChannelId, autoRefreshTrigger, currentQueryPage, loadLatestMessages]);
@@ -144,17 +135,13 @@ export function MessageList({
     // Optimization 5: More effective error handling and retry
     useEffect(() => {
         if (isError && validChannelId) {
-            // console.error("Error occurred while querying messages, will retry in 1 second");
-
             // Use debounce for error retry to avoid frequent triggers
             const retryTimer = setTimeout(() => {
                 if (currentQueryPage !== null) {
-                    // console.log("Auto-retrying to load page:", currentQueryPage);
                     // Reset page query to trigger new request
                     setCurrentQueryPage(null);
                     setTimeout(() => triggerPageLoad(currentQueryPage), 100);
                 } else if (messageCount > 0) {
-                    // console.log("Auto-retrying to load latest page:", latestPage);
                     triggerPageLoad(latestPage);
                 }
             }, 1000);
@@ -182,17 +169,13 @@ export function MessageList({
                 // Only trigger page load when new messages might be on new page
                 const newLatestPage = Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
                 if (newLatestPage > Math.max(...loadedPages, 0)) {
-                    // console.log(`Detected messages on new page, loading page ${newLatestPage}`);
                     triggerPageLoad(newLatestPage);
                 } else {
                     // Otherwise just refresh current page
-                    // console.log("Refreshing messages on current latest page");
                     refetchMessages();
                 }
             } else {
                 // User is at bottom, directly load latest messages and maintain scroll
-                // console.log("User is at bottom, loading latest messages");
-
                 // Check if new page needs to be loaded
                 const newLatestPage = Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
                 if (newLatestPage > Math.max(...loadedPages, 0)) {
@@ -256,8 +239,6 @@ export function MessageList({
             allMessages.length < 20 &&
             !isMessagesLoading
         ) {
-            // console.log(`Initial load check: loaded ${allMessages.length} messages, total ${messageCount}, trying to load more pages`);
-
             // Check which pages are missing
             const missingPages = [];
             for (let i = Math.max(0, latestPage - 2); i <= latestPage; i++) {
@@ -268,7 +249,6 @@ export function MessageList({
 
             // Load missing pages
             if (missingPages.length > 0) {
-                // console.log(`Found missing pages: ${missingPages.join(', ')}`);
                 missingPages.forEach((page, index) => {
                     setTimeout(() => triggerPageLoad(page), index * 300);
                 });
@@ -276,7 +256,6 @@ export function MessageList({
                 // If latest pages are loaded but message count is still insufficient, try loading earlier pages
                 const earliestPage = Math.max(0, Math.min(...loadedPages) - 1);
                 if (earliestPage >= 0 && !loadedPages.includes(earliestPage)) {
-                    // console.log(`Trying to load earlier page: ${earliestPage}`);
                     triggerPageLoad(earliestPage);
                 }
             }
@@ -338,10 +317,10 @@ export function MessageList({
 
     // 优化消息加载状态显示
     useEffect(() => {
-        if (pageMessages && pageMessages.length > 0 && currentQueryPage !== null) {
+        if (pageMessages && pageMessages.length > 0) {
             // Add current page to loaded pages list
-            if (!loadedPages.includes(currentQueryPage)) {
-                setLoadedPages(prev => [...prev, currentQueryPage]);
+            if (!loadedPages.includes(currentQueryPage || 0)) {
+                setLoadedPages(prev => [...prev, currentQueryPage || 0]);
             }
 
             // Update message list, avoid duplicates
@@ -354,15 +333,15 @@ export function MessageList({
             // Reset query page after loading is complete
             setCurrentQueryPage(null);
             setIsLoadingMoreUp(false);
-        } else if (pageMessages && pageMessages.length === 0 && currentQueryPage !== null) {
+        } else if (pageMessages && pageMessages.length === 0) {
             // Mark as reached top (if it's page 0)
             if (currentQueryPage === 0) {
                 setReachedTop(true);
             }
 
             // Add current page to loaded pages list
-            if (!loadedPages.includes(currentQueryPage)) {
-                setLoadedPages(prev => [...prev, currentQueryPage]);
+            if (!loadedPages.includes(currentQueryPage || 0)) {
+                setLoadedPages(prev => [...prev, currentQueryPage || 0]);
             }
 
             // Reset query page
@@ -412,7 +391,6 @@ export function MessageList({
 
                     // Prevent loading the same page repeatedly
                     if (!loadedPages.includes(nextPageToLoad)) {
-                        // console.log(`Loading earlier messages: page ${nextPageToLoad}`);
                         setIsLoadingMoreUp(true);
                         setLastScrollHeight(container.scrollHeight);
                         setCurrentQueryPage(nextPageToLoad);

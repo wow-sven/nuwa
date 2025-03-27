@@ -22,22 +22,23 @@ import { useAgentChat } from "../../../contexts/AgentChatContext";
  */
 export function AgentInfo() {
     const navigate = useNavigate();
-    const { agent, channel, memberCount } = useAgentChat();
+    const { agent, channels, memberCount } = useAgentChat();
     const { balance, isPending: isBalancePending } = useAgentBalance(agent?.agent_address);
-    const { isJoined, refetch: refetchIsjoined } = useChannelJoinedStatus(channel)
+    const currentChannel = channels?.[0];
+    const { isJoined, refetch: refetchIsjoined } = useChannelJoinedStatus(currentChannel?.id || "")
     const { refetch: refetchJoinedAgent } = useAgentJoined()
     const { refetch: refetchChannelMembers } = useChannelMembers({
-        channelId: channel,
+        channelId: currentChannel?.id || "",
         limit: '100'
     })
     const { mutateAsync: leaveChannel, isPending: leaveIsPending } = useChannelLeave()
 
     const handleLeaveChannel = async () => {
-        if (!channel) {
+        if (!currentChannel?.id) {
             return
         }
         leaveChannel({
-            id: channel,
+            id: currentChannel.id,
         }).finally(() => {
             refetchIsjoined()
             refetchJoinedAgent()
@@ -101,6 +102,7 @@ export function AgentInfo() {
                             <span>{(Number(balance?.balance || 0) / 1e8).toFixed(0)} RGAS</span>
                         )}
                     </div>
+
                 </div>
 
                 {/* Action Buttons */}

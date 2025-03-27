@@ -104,6 +104,7 @@ export function MessageInput({
      */
     const handleSendMessage = async (message: string) => {
         if (!isJoined && selectedChannel) {
+            console.log("joinChannel", selectedChannel)
             try {
                 await joinChannel({ id: selectedChannel });
                 await refetchJoinStatus();
