@@ -9,6 +9,7 @@ import useAgentBalance from "../../../hooks/use-agent-balance";
 import { useChannelLeave } from "../../../hooks/use-channel-leave";
 import useChannelJoinedStatus from "../../../hooks/use-channel-joined-status";
 import useAgentJoined from "../../../hooks/use-agent-joined";
+import useChannelMembers from "../../../hooks/use-channel-member";
 
 /**
  * Props for the AgentProfile component
@@ -35,6 +36,10 @@ export function AgentInfo({ agentId, channelId, membersCount }: AgentInfoProps) 
     const { balance, isPending: isBalancePending } = useAgentBalance(agent?.agent_address);
     const {isJoined, refetch: refetchIsjoined} = useChannelJoinedStatus(channelId)
     const {refetch: refetchJoinedAgent} = useAgentJoined()
+    const {refetch: refetchChannelMembers} = useChannelMembers({
+        channelId,
+        limit: '100'
+    })
     const {mutateAsync: leaveChannel, isPending: leaveIsPending} = useChannelLeave()
 
     const handleLeaveChannel = async () => {
@@ -46,6 +51,7 @@ export function AgentInfo({ agentId, channelId, membersCount }: AgentInfoProps) 
         }).finally(() => {
             refetchIsjoined()
             refetchJoinedAgent()
+            refetchChannelMembers()
         })
     }
 
