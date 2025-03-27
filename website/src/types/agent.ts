@@ -42,3 +42,10 @@ export interface AgentCreateParams {
   model_provider: string;
   prompt?: string;
 }
+
+export interface Memory {
+  index: number;
+  content: string;
+  context: string;
+  timestamp: number;
+}

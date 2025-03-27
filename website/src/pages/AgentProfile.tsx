@@ -7,12 +7,14 @@ import {
   LockClosedIcon,
   PlusIcon,
   InboxIcon,
+  ClockIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import useAgent from "../hooks/use-agent";
 import useAgentCaps from "../hooks/use-agent-caps";
 import { SEO } from "../components/layout/SEO";
 import { useUpdateAgent } from "../hooks/use-agent-update";
-import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
+import { SessionKeyGuard, useCurrentAddress } from "@roochnetwork/rooch-sdk-kit";
 import { RoochAddress, Serializer } from "@roochnetwork/rooch-sdk";
 import { useNetworkVariable } from "../hooks/use-networks";
 import useAgentTask from "../hooks/use-agent-task";
@@ -20,12 +22,14 @@ import { TaskSpecificationEditor } from "../components/TaskSpecificationEditor";
 import { TaskSpecification } from "../types/taska";
 import { createEmptyTaskSpec } from "../utils/task";
 import { useUpdateAgentTaskTask } from "../hooks/use-agent-task-update";
+import { useAgentMemories } from "../hooks/use-agent-memories";
 
 export function AgentProfile() {
-  const { address } = useParams<{ address: string }>();
+  const { address: agentAddress } = useParams<{ address: string }>();
+  const currentAddress = useCurrentAddress()?.genRoochAddress().toHexAddress();
   const packageId = useNetworkVariable("packageId");
   const agentId = Serializer.accountNamedObjectID(
-    new RoochAddress(address || "").toHexAddress(),
+    new RoochAddress(agentAddress || "").toHexAddress(),
     {
       address: packageId,
       module: "agent",
@@ -39,10 +43,7 @@ export function AgentProfile() {
   const [isSaveing, setIsSaveing] = useState(false);
   const [isSaveingPop, setIsSaveingPop] = useState(false);
 
-  const [jsonMode, setJsonMode] = useState(false);
   const [taskSpecs, setTaskSpecs] = useState<TaskSpecification[]>([]);
-
-  console.log(taskSpecs);
 
   const { mutateAsync: updateAgent } = useUpdateAgent();
   const { agent, refetch: refetchAgent } = useAgent(agentId);
@@ -59,6 +60,7 @@ export function AgentProfile() {
   // Task related states
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [isJsonMode, setIsJsonMode] = useState(false);
+  const [activeMemoryTab, setActiveMemoryTab] = useState<'all' | 'user'>('all');
 
   const [editForm, setEditForm] = useState({
     name: agent?.name,
@@ -69,6 +71,15 @@ export function AgentProfile() {
   const [avatarError, setAvatarError] = useState<string>("");
   const [previewAvatar, setPreviewAvatar] = useState<string>("");
 
+  const { memories: allMemories, isLoading: isLoadingMemories, error: memoriesError, refetch: refetchMemories } = useAgentMemories({
+    agentId: agent?.id || "",
+  });
+
+  const { memories: userMemories, isLoading: isLoadingUserMemories, error: userMemoriesError, refetch: refetchUserMemories } = useAgentMemories({
+    agentId: agent?.id || "",
+    targetAddress: currentAddress || undefined,
+  });
+  console.log(userMemories)
   useEffect(() => {
     if (isEditing) {
       setPreviewAvatar(editForm.avatar || "");
@@ -231,7 +242,7 @@ export function AgentProfile() {
           "View detailed information about this AI agent on Nuwa platform."
         }
         keywords={`${agent?.name}, AI Agent, Web3 AI, Autonomous Agent, Crypto Agent, Blockchain AI, Nuwa Agent`}
-        ogUrl={`https://nuwa.dev/agents/${address}`}
+        ogUrl={`https://nuwa.dev/agents/${agentAddress}`}
       />
       <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -275,9 +286,8 @@ export function AgentProfile() {
                           type="text"
                           value={editForm.avatar}
                           onChange={(e) => handleAvatarChange(e.target.value)}
-                          className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${
-                            avatarError ? "border-red-500" : ""
-                          }`}
+                          className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${avatarError ? "border-red-500" : ""
+                            }`}
                           placeholder="Enter avatar URL"
                         />
                         {avatarError && (
@@ -609,7 +619,7 @@ export function AgentProfile() {
                 onChange={(newTask) => {
                   setTaskSpecs(newTask);
                 }}
-                onCancel={() => () => {}}
+                onCancel={() => () => { }}
               />
 
               {isAddingTask && (
@@ -640,6 +650,246 @@ export function AgentProfile() {
                     Save
                   </button>
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Memories Section */}
+          <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center space-x-4">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    Memories
+                  </h2>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={() => setActiveMemoryTab('all')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${activeMemoryTab === 'all'
+                        ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                        : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                        }`}
+                    >
+                      Agent Self Memories
+                    </button>
+                    {currentAddress && (
+                      <button
+                        onClick={() => setActiveMemoryTab('user')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${activeMemoryTab === 'user'
+                          ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                          }`}
+                      >
+                        Memories About You
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={activeMemoryTab === 'all' ? refetchMemories : refetchUserMemories}
+                  className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <ArrowPathIcon className="w-4 h-4 mr-1.5" />
+                  Refresh
+                </button>
+              </div>
+
+              {activeMemoryTab === 'all' ? (
+                isLoadingMemories ? (
+                  <div className="flex justify-center items-center py-8">
+                    <svg
+                      className="w-8 h-8 animate-spin text-purple-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      ></path>
+                    </svg>
+                  </div>
+                ) : memoriesError ? (
+                  <div className="text-center py-8 px-4">
+                    <div className="mx-auto w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center mb-4">
+                      <svg
+                        className="w-16 h-16 text-red-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      Failed to Load
+                    </h3>
+                    <p className="text-sm text-red-500 dark:text-red-400 max-w-sm mx-auto mb-4">
+                      {memoriesError || 'Failed to load memories'}
+                    </p>
+                    <button
+                      onClick={refetchMemories}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : allMemories.length === 0 ? (
+                  <div className="text-center py-8 px-4">
+                    <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
+                      <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      No Memories Yet
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                      This AI agent doesn't have any memories yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {allMemories.map((memory, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center mb-2">
+                              <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
+                                Memory #{index + 1}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                              {memory.content}
+                            </p>
+                            {memory.context && (
+                              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                {memory.context}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                            <ClockIcon className="w-4 h-4 mr-1" />
+                            {new Date(memory.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
+              ) : (
+                isLoadingUserMemories ? (
+                  <div className="flex justify-center items-center py-8">
+                    <svg
+                      className="w-8 h-8 animate-spin text-purple-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      ></path>
+                    </svg>
+                  </div>
+                ) : userMemoriesError ? (
+                  <div className="text-center py-8 px-4">
+                    <div className="mx-auto w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center mb-4">
+                      <svg
+                        className="w-16 h-16 text-red-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      Failed to Load
+                    </h3>
+                    <p className="text-sm text-red-500 dark:text-red-400 max-w-sm mx-auto mb-4">
+                      {userMemoriesError || 'Failed to load memories about you'}
+                    </p>
+                    <button
+                      onClick={refetchUserMemories}
+                      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : userMemories.length === 0 ? (
+                  <div className="text-center py-8 px-4">
+                    <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
+                      <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      No Memories About You Yet
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                      This AI agent doesn't have any memories about you yet.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {userMemories.map((memory, index) => (
+                      <div
+                        key={index}
+                        className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center mb-2">
+                              <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
+                                Memory #{index + 1}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-900 dark:text-gray-100">
+                              {memory.content}
+                            </p>
+                            {memory.context && (
+                              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                {memory.context}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                            <ClockIcon className="w-4 h-4 mr-1" />
+                            {new Date(memory.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           </div>
