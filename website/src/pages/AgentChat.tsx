@@ -28,7 +28,7 @@ export function AgentChat() {
   // Get list of channel members
   const { members } = useChannelMembers({
     channelId: channel,
-    limit: '50',  // Increase member limit to match ChatArea
+    limit: '100',  // Increase member limit to match ChatArea
   })
 
   // Show loading state
@@ -81,6 +81,7 @@ export function AgentChat() {
         {/* Right sidebar showing channel info and members */}
         <ChannelSidebar
           agentId={id}
+          channelId={channel}
           memberCount={memberCount}
           members={members}
         />
