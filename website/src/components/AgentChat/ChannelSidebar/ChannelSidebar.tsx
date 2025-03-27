@@ -29,7 +29,7 @@ export function ChannelSidebar({
   memberCount,
 }: ChannelSidebarProps) {
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700">
+    <div className="w-64 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col h-full">
       {/* Agent profile section with stats */}
       <AgentInfo
         agentId={agentId}
@@ -37,7 +37,9 @@ export function ChannelSidebar({
         membersCount={memberCount || 0}
       />
       {/* List of channel members */}
-      <MembersList members={members} agentId={agentId} />
+      <div className="flex-1 overflow-hidden">
+        <MembersList members={members} agentId={agentId} />
+      </div>
     </div>
   );
 }

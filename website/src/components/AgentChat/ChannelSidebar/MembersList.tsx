@@ -88,17 +88,19 @@ export function MembersList({ members, agentId }: MembersListProps) {
     });
 
     return (
-        <div className="p-4">
+        <div className="p-4 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
                     <UserGroupIcon className="w-5 h-5 text-gray-500" />
-                    <h3 className="text-sm font-medium text-gray-700">Members</h3>
+                    <h3 className="text-sm font-medium text-gray-700">
+                        Members ({members.length})
+                    </h3>
                 </div>
                 <button className="p-1 hover:bg-gray-100 rounded-full">
                     <PlusIcon className="w-4 h-4 text-gray-500" />
                 </button>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-y-auto flex-1">
                 {sortedMembers.map((member) => {
                     const isAgent = Boolean(agentAddress && new RoochAddress(member.address).toBech32Address() === agentAddress.toBech32Address());
                     return (

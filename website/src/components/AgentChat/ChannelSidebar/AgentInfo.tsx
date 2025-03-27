@@ -1,7 +1,8 @@
 import {
     UserCircleIcon,
     UserGroupIcon,
-    CurrencyDollarIcon
+    CurrencyDollarIcon,
+    ArrowLeftOnRectangleIcon
 } from "@heroicons/react/24/outline";
 import { useNavigate } from "react-router-dom";
 import useAgent from "../../../hooks/use-agent";
@@ -34,13 +35,13 @@ export function AgentInfo({ agentId, channelId, membersCount }: AgentInfoProps) 
     const navigate = useNavigate();
     const { agent, isPending, isError } = useAgent(agentId);
     const { balance, isPending: isBalancePending } = useAgentBalance(agent?.agent_address);
-    const {isJoined, refetch: refetchIsjoined} = useChannelJoinedStatus(channelId)
-    const {refetch: refetchJoinedAgent} = useAgentJoined()
-    const {refetch: refetchChannelMembers} = useChannelMembers({
+    const { isJoined, refetch: refetchIsjoined } = useChannelJoinedStatus(channelId)
+    const { refetch: refetchJoinedAgent } = useAgentJoined()
+    const { refetch: refetchChannelMembers } = useChannelMembers({
         channelId,
         limit: '100'
     })
-    const {mutateAsync: leaveChannel, isPending: leaveIsPending} = useChannelLeave()
+    const { mutateAsync: leaveChannel, isPending: leaveIsPending } = useChannelLeave()
 
     const handleLeaveChannel = async () => {
         if (!channelId) {
@@ -91,61 +92,72 @@ export function AgentInfo({ agentId, channelId, membersCount }: AgentInfoProps) 
 
     return (
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex flex-col items-center space-y-4">
-                {/* Avatar Section */}
-                <div className="relative">
-                    <img
-                        src={agent.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=" + agent.id}
-                        alt="AI Avatar"
-                        className="w-20 h-20 rounded-full ring-4 ring-purple-100 dark:ring-purple-900/30"
-                    />
-                </div>
+            <div className="flex flex-col space-y-4">
+                {/* Header Section with Avatar and Basic Info */}
+                <div className="flex items-start space-x-4">
+                    {/* Avatar Section */}
+                    <div className="relative">
+                        <img
+                            src={agent.avatar || "https://api.dicebear.com/7.x/bottts/svg?seed=" + agent.id}
+                            alt="AI Avatar"
+                            className="w-16 h-16 rounded-full ring-2 ring-purple-100 dark:ring-purple-900/30"
+                        />
+                    </div>
 
-                {/* Info Section */}
-                <div className="text-center space-y-2">
-                    <div>
-                        <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    {/* Basic Info Section */}
+                    <div className="flex-1">
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {agent.name}
                         </h2>
                         <div className="text-sm text-purple-600 dark:text-purple-400">
                             @{agent.username}
                         </div>
                     </div>
+                </div>
 
-                    {/* Stats Section */}
-                    <div className="flex items-center justify-center space-x-4 mt-3">
-                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                            <UserGroupIcon className="w-4 h-4 mr-1" />
-                            <span>{membersCount}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                            <CurrencyDollarIcon className="w-4 h-4 mr-1" />
-                            {isBalancePending ? (
-                                <span className="animate-pulse">...</span>
-                            ) : (
-                                <span>{(Number(balance?.balance || 0) / 1e8).toFixed(0)} RGAS</span>
-                            )}
-                        </div>
+                {/* Description Section */}
+                {agent.description && (
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                        {agent.description}
+                    </div>
+                )}
+
+                {/* Stats Section */}
+                <div className="flex items-center space-x-4">
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                        <UserGroupIcon className="w-4 h-4 mr-1" />
+                        <span>{membersCount}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                        <CurrencyDollarIcon className="w-4 h-4 mr-1" />
+                        {isBalancePending ? (
+                            <span className="animate-pulse">...</span>
+                        ) : (
+                            <span>{(Number(balance?.balance || 0) / 1e8).toFixed(0)} RGAS</span>
+                        )}
                     </div>
                 </div>
 
-                {/* Profile Button */}
-                <button
-                    onClick={() => navigate(`/profile/${agent.agent_address}`)}
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg transition-colors mt-2"
-                >
-                    <UserCircleIcon className="w-5 h-5" />
-                    <span className="font-medium">View Profile</span>
-                </button>
-
-                {
-                    isJoined && (<button
-                        onClick={handleLeaveChannel}
-                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg transition-colors mt-2"
+                {/* Action Buttons */}
+                <div className="flex flex-col space-y-2">
+                    <button
+                        onClick={() => navigate(`/profile/${agent.agent_address}`)}
+                        className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg transition-colors"
                     >
-                        <span className="font-medium">{leaveIsPending ?'Exit...': 'Exit'}</span>
-                    </button>)
-                }
+                        <UserCircleIcon className="w-5 h-5" />
+                        <span className="font-medium">View Profile</span>
+                    </button>
+
+                    {isJoined && (
+                        <button
+                            onClick={handleLeaveChannel}
+                            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg transition-colors"
+                        >
+                            <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+                            <span className="font-medium">{leaveIsPending ? 'Leaving...' : 'Leave Channel'}</span>
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );
