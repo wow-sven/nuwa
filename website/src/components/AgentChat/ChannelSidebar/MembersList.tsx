@@ -22,7 +22,7 @@ function MemberItem({ member }: MemberItemProps) {
     return (
         <Link
             to={profileUrl}
-            className={`flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer`}
+            className={`flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer transition-colors duration-150`}
         >
             <img
                 src={avatar}
@@ -31,16 +31,16 @@ function MemberItem({ member }: MemberItemProps) {
             />
             <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         {name}
                     </p>
                     {member.isAgent && (
-                        <span className="text-xs px-1.5 py-0.5 bg-blue-100 text-blue-800 rounded-full">
+                        <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
                             Agent
                         </span>
                     )}
                 </div>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                     @{username}
                 </p>
             </div>
@@ -80,8 +80,8 @@ export function MembersList() {
         <div className="p-4 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center space-x-2">
-                    <UserGroupIcon className="w-5 h-5 text-gray-500" />
-                    <h3 className="text-sm font-medium text-gray-700">
+                    <UserGroupIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         Members ({members.length})
                     </h3>
                 </div>
