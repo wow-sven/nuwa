@@ -15,19 +15,13 @@ import { ThemeProvider, useTheme } from './providers/ThemeProvider'
 import { GetRGAS } from './pages/GetRGAS'
 
 function AppContent() {
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const { isDarkMode } = useTheme()
   const location = useLocation()
 
   // Scroll to top when route changes
   useEffect(() => {
     window.scrollTo(0, 0)
-  }, [location.pathname])
-
-  // Check if sidebar should be collapsed when route changes
-  useEffect(() => {
-    const shouldCollapse = location.pathname.startsWith('/agent/') || location.pathname.startsWith('/docs/')
-    setIsSidebarCollapsed(shouldCollapse)
   }, [location.pathname])
 
   return (

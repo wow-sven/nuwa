@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import useAllAgents from '../../hooks/use-all-agents'
 import useAgentJoined from '../../hooks/use-agent-joined'
 
@@ -16,20 +16,23 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   const location = useLocation()
 
   const { joinedAgents } = useAgentJoined()
+  const { agents: allAgents } = useAllAgents()
 
   // Get current agent ID from URL
   const currentAgentId = location.pathname.split('/agent/')[1]
 
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
+    // If search query is empty, only show joined agents
     if (!searchQuery.trim()) return joinedAgents || []
 
+    // If there's a search query, search through all agents
     const query = searchQuery.toLowerCase().trim()
-    return (joinedAgents || []).filter(agent =>
+    return (allAgents || []).filter(agent =>
       agent.name.toLowerCase().includes(query) ||
       agent.username.toLowerCase().includes(query)
     )
-  }, [joinedAgents, searchQuery])
+  }, [joinedAgents, allAgents, searchQuery])
 
   // Use prop value or local state
   const isCollapsed = propIsCollapsed ?? localIsCollapsed
@@ -49,64 +52,71 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
         }`}
     >
       <div className="flex flex-col h-full">
-        {/* Collapse Button */}
-        <div className={`flex ${isCollapsed ? 'justify-center' : 'justify-start'} px-2 py-2`}>
-          <button
-            onClick={handleCollapse}
-            className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-0 focus:ring-offset-0 transition-colors duration-200 rounded-lg text-gray-600 dark:text-gray-300"
-          >
-            <div className="relative w-5 h-5">
-              <svg
-                className={`absolute inset-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-100 rotate-0' : 'opacity-0 -rotate-180'}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-              <svg
-                className={`absolute inset-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 rotate-180' : 'opacity-100 rotate-0'}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
-                />
-              </svg>
+        {/* Header with Collapse Button and Search */}
+        <div className="px-2 py-2">
+          <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-2'}`}>
+            <div className={`relative flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'hidden' : 'w-auto'}`}>
+              <MagnifyingGlassIcon
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search agents..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                >
+                  <XMarkIcon className="w-4 h-4 text-gray-400" />
+                </button>
+              )}
             </div>
-          </button>
+            <button
+              onClick={handleCollapse}
+              className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-0 focus:ring-offset-0 transition-colors duration-200 rounded-lg text-gray-600 dark:text-gray-300"
+            >
+              <div className="relative w-5 h-5">
+                <svg
+                  className={`absolute inset-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-100 rotate-0' : 'opacity-0 -rotate-180'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
+                </svg>
+                <svg
+                  className={`absolute inset-0 transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 rotate-180' : 'opacity-100 rotate-0'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M11 19l-7-7 7-7m8 14l-7-7 7-7"
+                  />
+                </svg>
+              </div>
+            </button>
+
+          </div>
         </div>
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Discover Section */}
-          <div
-            className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
+          {/* Expanded State Content */}
+          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-0 h-0 overflow-hidden' : 'opacity-100 h-auto'}`}>
             <div className="px-4 pt-2">
-              <div className="relative mb-4">
-                <MagnifyingGlassIcon
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search agents..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              </div>
-
-              {/* AI Characters List */}
-              <div
-                className="space-y-3 h-[calc(100vh-20rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+              <div className="space-y-3 h-[calc(100vh-12rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
                 {filteredAgents.map((agent) => (
                   <div
                     key={agent.username}
@@ -136,8 +146,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
           </div>
 
           {/* Collapsed State Avatars */}
-          <div
-            className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden'}`}>
+          <div className={`transition-all duration-300 ease-in-out ${isCollapsed ? 'opacity-100 h-auto' : 'opacity-0 h-0 overflow-hidden'}`}>
             <div className="px-2 py-2 space-y-3">
               {filteredAgents.map((agent) => (
                 <div
