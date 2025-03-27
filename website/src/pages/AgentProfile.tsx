@@ -573,31 +573,39 @@ export function AgentProfile() {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   Tasks
                 </h2>
-                <button
-                  onClick={() => {
+                {isOwner ? (
+                  <SessionKeyGuard onClick={() => {
                     if (!isAddingTask) {
                       setIsAddingTask(true);
                       setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
                     } else {
                       setIsJsonMode(!isJsonMode);
                     }
-                  }}
-                  className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                >
-                  {!isAddingTask ? (
-                    <>
-                      <PlusIcon className="w-4 h-4 mr-2" />
-                      Add Task
-                    </>
-                  ) : isJsonMode ? (
-                    "Edit Mode"
-                  ) : (
-                    "JSON Mode"
-                  )}
-                </button>
+                  }}>
+                    <button
+                      className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      {!isAddingTask ? (
+                        <>
+                          <PlusIcon className="w-4 h-4 mr-2" />
+                          Add Task
+                        </>
+                      ) : isJsonMode ? (
+                        "Edit Mode"
+                      ) : (
+                        "JSON Mode"
+                      )}
+                    </button>
+                  </SessionKeyGuard>
+                ) : (
+                  <div className="flex items-center text-gray-500 dark:text-gray-400">
+                    <LockClosedIcon className="w-4 h-4 mr-2" />
+                    <span className="text-sm">Only owner can edit</span>
+                  </div>
+                )}
               </div>
 
-              {taskSpecs.length === 0 && (
+              {taskSpecs.length === 0 ? (
                 <div className="text-center py-8 px-4">
                   <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
                     <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
@@ -606,49 +614,165 @@ export function AgentProfile() {
                     No Tasks Yet
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
-                    This AI agent doesn't have any tasks yet. Click the "Add
-                    Task" button to create the first task.
+                    This AI agent doesn't have any tasks yet. {isOwner ? 'Click the "Add Task" button to create the first task.' : ''}
                   </p>
                 </div>
-              )}
-
-              {/* Task List */}
-              <TaskSpecificationEditor
-                taskSpecs={taskSpecs}
-                jsonMode={isJsonMode}
-                onChange={(newTask) => {
-                  setTaskSpecs(newTask);
-                }}
-                onCancel={() => () => { }}
-              />
-
-              {isAddingTask && (
-                <div className="flex justify-end mt-6 gap-4">
-                  <button
-                    onClick={() => {
-                      setIsAddingTask(false);
-                      setTaskSpecs(agentTask || []);
+              ) : isOwner ? (
+                <>
+                  {/* Task List with Editor */}
+                  <TaskSpecificationEditor
+                    taskSpecs={taskSpecs}
+                    jsonMode={isJsonMode}
+                    onChange={(newTask) => {
+                      setTaskSpecs(newTask);
                     }}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => {
-                      setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
-                    }}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    <PlusIcon className="w-4 h-4 mr-2" />
-                    Add Task
-                  </button>
+                    onCancel={() => () => { }}
+                  />
 
-                  <button
-                    onClick={handleSubmmitTask}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    Save
-                  </button>
+                  {isAddingTask && (
+                    <div className="flex justify-end mt-6 gap-4">
+                      <button
+                        onClick={() => {
+                          setIsAddingTask(false);
+                          setTaskSpecs(agentTask || []);
+                        }}
+                        className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => {
+                          setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
+                        }}
+                        className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        <PlusIcon className="w-4 h-4 mr-2" />
+                        Add Task
+                      </button>
+
+                      <button
+                        onClick={handleSubmmitTask}
+                        className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                // Read-only view for non-owners
+                <div className="space-y-4">
+                  {taskSpecs.map((task, index) => (
+                    <div
+                      key={index}
+                      className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center mb-2">
+                            <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
+                              Task #{index + 1}
+                            </span>
+                          </div>
+
+                          {/* Task Name */}
+                          <div className="mb-2">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                              Name
+                            </label>
+                            <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                              {task.name || 'No name specified'}
+                            </h4>
+                          </div>
+
+                          {/* Task Description */}
+                          <div className="mb-3">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                              Description
+                            </label>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
+                              {task.description || 'No description provided'}
+                            </p>
+                          </div>
+
+                          {/* Resolver */}
+                          <div className="mb-3">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                              Resolver
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full flex-1">
+                                {task.resolver || 'No resolver specified'}
+                              </span>
+                              <button
+                                onClick={() => handleCopy(task.resolver || '')}
+                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                title="Copy to Clipboard"
+                              >
+                                <ClipboardIcon className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Arguments Section */}
+                          <div className="mt-3">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                              Arguments
+                            </label>
+                            {task.arguments && task.arguments.length > 0 ? (
+                              <div className="space-y-3">
+                                {task.arguments.map((arg, argIndex) => (
+                                  <div key={argIndex} className="text-sm bg-white dark:bg-gray-800 p-2 rounded">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className="font-medium text-gray-900 dark:text-gray-100">
+                                        {arg.name}
+                                      </span>
+                                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                                        ({arg.type_desc})
+                                      </span>
+                                      {arg.required && (
+                                        <span className="text-xs text-red-500 dark:text-red-400">
+                                          Required
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-gray-600 dark:text-gray-400">
+                                      {arg.description || 'No description provided'}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 p-2 rounded">
+                                No arguments defined
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Task Details */}
+                          <div className="mt-3">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                              Task Details
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Price:</span>
+                                <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-full">
+                                  {task.price || 0} RGas
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Type:</span>
+                                <span className="px-2 py-1 bg-gray-50 text-gray-700 text-xs rounded-full">
+                                  {task.on_chain ? "On-chain" : "Off-chain"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
