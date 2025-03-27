@@ -13,16 +13,27 @@ import { Header } from './components/layout/Header'
 import { HelmetProvider } from 'react-helmet-async'
 import { ThemeProvider, useTheme } from './providers/ThemeProvider'
 import { GetRGAS } from './pages/GetRGAS'
+import { RiskWarningModal } from './components/RiskWarningModal'
+import { useConnectionStatus } from '@roochnetwork/rooch-sdk-kit'
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
   const { isDarkMode } = useTheme()
   const location = useLocation()
+  const connectionStatus = useConnectionStatus()
+  const [showRiskWarning, setShowRiskWarning] = useState(false)
 
   // Scroll to top when route changes
   useEffect(() => {
     window.scrollTo(0, 0)
   }, [location.pathname])
+
+  // Show risk warning when wallet is connected
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      setShowRiskWarning(true)
+    }
+  }, [connectionStatus])
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
@@ -44,6 +55,11 @@ function AppContent() {
           </Routes>
         </div>
       </div>
+
+      <RiskWarningModal
+        isOpen={showRiskWarning}
+        onClose={() => setShowRiskWarning(false)}
+      />
     </div>
   )
 }
