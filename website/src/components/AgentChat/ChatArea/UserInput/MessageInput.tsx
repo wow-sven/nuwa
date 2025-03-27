@@ -49,7 +49,6 @@ export function MessageInput({
     const [showMentionList, setShowMentionList] = useState(false);
     const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
     const [mentionSearchText, setMentionSearchText] = useState("");
-    const [mentionListDirection, setMentionListDirection] = useState<'up' | 'down'>('down');
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<Array<{ id: string, text: string, type: 'user' | 'agent' }>>([]);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -236,7 +235,6 @@ export function MessageInput({
                 const spaceAbove = rect.top;
                 const shouldShowUp = spaceBelow < listHeight && spaceAbove > spaceBelow;
 
-                setMentionListDirection(shouldShowUp ? 'up' : 'down');
                 setMentionPosition({
                     top: shouldShowUp
                         ? rect.top - listHeight
@@ -263,10 +261,16 @@ export function MessageInput({
             type: member.isAgent ? 'agent' : 'user'
         }]);
 
-        // Clear the @ part in the input
-        const lastAtSymbol = inputMessage.lastIndexOf("@");
-        const newMessage = inputMessage.slice(0, lastAtSymbol) + " ";
-        setInputMessage(newMessage);
+        // Keep the text after @ symbol
+        const cursorPosition = inputRef.current?.selectionStart || 0;
+        const lastAtSymbol = inputMessage.lastIndexOf("@", cursorPosition);
+        if (lastAtSymbol !== -1) {
+            const textBeforeAt = inputMessage.slice(0, lastAtSymbol);
+            const textAfterCursor = inputMessage.slice(cursorPosition);
+            const newMessage = textBeforeAt + " " + textAfterCursor;
+            setInputMessage(newMessage);
+        }
+
         setShowMentionList(false);
 
         if (inputRef.current) {
@@ -516,7 +520,7 @@ export function MessageInput({
                                     />
                                     <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
                                 </label>
-                                <span>Talk to Agent</span>
+                                <span>Always @AI</span>
                             </div>
                         )}
                     </div>
