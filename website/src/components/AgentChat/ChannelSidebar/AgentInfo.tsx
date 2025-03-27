@@ -23,28 +23,28 @@ import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
  */
 export function AgentInfo() {
   const navigate = useNavigate();
-  const { agent, channels, memberCount } = useAgentChat();
+  const { agent, selectedChannel, memberCount } = useAgentChat();
   const { balance, isPending: isBalancePending } = useAgentBalance(
     agent?.agent_address
   );
-  const currentChannel = channels?.[0];
+  
   const { isJoined, refetch: refetchIsjoined } = useChannelJoinedStatus(
-    currentChannel?.id || ""
+    selectedChannel || ""
   );
   const { refetch: refetchJoinedAgent } = useAgentJoined();
   const { refetch: refetchChannelMembers } = useChannelMembers({
-    channelId: currentChannel?.id || "",
+    channelId: selectedChannel || "",
     limit: "100",
   });
   const { mutateAsync: leaveChannel, isPending: leaveIsPending } =
     useChannelLeave();
 
   const handleLeaveChannel = async () => {
-    if (!currentChannel?.id) {
+    if (!selectedChannel) {
       return;
     }
     leaveChannel({
-      id: currentChannel.id,
+      id: selectedChannel,
     }).finally(() => {
       refetchIsjoined();
       refetchJoinedAgent();
