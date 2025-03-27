@@ -32,7 +32,7 @@ export function ChatArea({
     // Get detailed channel information
     const { channelInfo } = useChannel(channel);
     // Get agent information using channel's agent address
-    const { agent } = useAgentWithAddress(channelInfo?.agentAddress || "");
+    const { agent } = useAgentWithAddress(channelInfo?.creator || "");
 
     return (
         <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-gray-800">
@@ -40,7 +40,7 @@ export function ChatArea({
             <div className="flex-none border-b border-gray-200 dark:border-gray-700">
                 <div className="p-4">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                        {agent?.name || 'Agent'} Home
+                        {channelInfo?.title}
                     </h2>
                 </div>
             </div>
