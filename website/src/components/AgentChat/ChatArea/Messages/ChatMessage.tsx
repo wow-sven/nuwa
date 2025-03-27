@@ -419,9 +419,9 @@ export function ChatMessage({
                   </div>
                 </div>
               )}
-              {!hasTransferAttachment && (
+              {(
                 <div className="flex flex-col justify-between items-start">
-                  <div className="text-sm leading-tight flex-1 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0">
+                  <div className="text-sm leading-tight">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       className="prose prose-sm max-w-none dark:prose-invert prose-p:m-0 prose-ul:m-0 prose-ol:m-0 prose-li:m-0 prose-pre:m-0 prose-headings:m-0 prose-hr:m-0 prose-blockquote:m-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:mb-0"

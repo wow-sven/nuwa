@@ -140,47 +140,31 @@ export function MessageInput({
                 const mentionText = mentions.map(m => `@${m.text}`).join(' ');
                 const fullMessage = `${mentionText} ${message}`.trim();
 
-                await sendMessage({
+                // 如果显示转账表单，添加 payment 属性
+                const messageData: any = {
                     channelId,
                     content: fullMessage,
                     mentions: [...mentions.map(m => m.id), ...(autoMentionAI && agent.address ? [agent.address] : [])],
                     aiAddress: agent.address,
-                });
+                };
+
+                if (showTokenForm && parseFloat(tokenAmount) > 0) {
+                    const rawAmount = (parseFloat(tokenAmount) * 100000000).toFixed(0);
+                    messageData.payment = parseInt(rawAmount);
+                    messageData.content = message;
+                }
+
+                await sendMessage(messageData);
                 await refetchMessageCount();
                 await refetchMsg();
                 messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
-                // Clear mentions
+                // Clear mentions and reset token form
                 setMentions([]);
+                setShowTokenForm(false);
+                setTokenAmount("0.1");
             } catch (e) {
                 console.log(e);
             }
-        }
-    };
-
-    /**
-     * Handle token transfer
-     */
-    const handleTokenTransfer = async () => {
-        if (parseFloat(tokenAmount) <= 0) {
-            return;
-        }
-        // Convert the decimal amount to the correct integer representation
-        // RGas has 8 decimal places, so multiply by 10^8
-        const rawAmount = (parseFloat(tokenAmount) * 100000000).toFixed(0);
-
-        try {
-            await sendMessage({
-                channelId,
-                content: `transfer::coin ${tokenAmount} RGAS to ${agent.address}`,
-                mentions: [...mentions.map(m => m.id), ...(autoMentionAI && agent.address ? [agent.address] : [])],
-                aiAddress: agent.address,
-                payment: parseInt(rawAmount)
-            });
-            // Reset form and hide
-            setShowTokenForm(false);
-            setTokenAmount("0.1");
-        } catch (e) {
-            console.log("Transfer failed:", e);
         }
     };
 
@@ -368,19 +352,9 @@ export function MessageInput({
                                 value={tokenAmount}
                                 onChange={(e) => setTokenAmount(e.target.value)}
                                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                onKeyPress={(e) => e.key === "Enter" && handleTokenTransfer()}
+                                onKeyPress={(e) => e.key === "Enter" && handleAction()}
                             />
                         </div>
-
-                        {/* Send button integrated into the form line */}
-                        <SessionKeyGuard onClick={handleTokenTransfer}>
-                            <button
-                                className="h-10 px-4 rounded-lg bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                disabled={parseFloat(tokenAmount) <= 0}
-                            >
-                                <PaperAirplaneIcon className="w-5 h-5" />
-                            </button>
-                        </SessionKeyGuard>
 
                         {/* Close button */}
                         <button
