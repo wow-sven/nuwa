@@ -1,4 +1,4 @@
-import { UserGroupIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { UserGroupIcon } from "@heroicons/react/24/outline";
 import { RoochAddress, toShortStr } from "@roochnetwork/rooch-sdk";
 import useUserInfo from "../../../hooks/use-user-info";
 import { Member } from "../../../types/channel";
@@ -85,9 +85,6 @@ export function MembersList() {
                         Members ({members.length})
                     </h3>
                 </div>
-                <button className="p-1 hover:bg-gray-100 rounded-full">
-                    <PlusIcon className="w-4 h-4 text-gray-500" />
-                </button>
             </div>
             <div className="space-y-2 overflow-y-auto flex-1">
                 {sortedMembers.map((member) => {
