@@ -5,25 +5,15 @@ import { LoadingButton } from "./LoadingButton";
 import { useState, useRef, useEffect } from "react";
 import { useChannelMessageSend } from "../../../../hooks/use-channel-message-send";
 import { useChannelJoin } from "../../../../hooks/use-channel-join";
-import useChannelMessageCount from "../../../../hooks/use-channel-message-count";
-import useChannelJoinedStatus from "../../../../hooks/use-channel-joined-status";
-import useChannelMessages from "../../../../hooks/use-channel-messages";
 import { useNetworkVariable } from "../../../../hooks/use-networks";
-import useAgentJoined from "../../../../hooks/use-agent-joined";
-import useChannelMembers from "../../../../hooks/use-channel-member";
+import { useAgentChat } from "../../../../contexts/AgentChatContext";
 
 /**
  * Props for the MessageInput component
  */
 interface MessageInputProps {
-    /** Channel ID */
-    channelId: string;
-    /** Agent address for AI communication */
-    agent?: any;
     /** Ref to scroll to end of messages */
     messagesEndRef?: React.RefObject<HTMLDivElement>;
-    /** List of channel members */
-    members?: Array<{ address: string, avatar: string, name?: string, username?: string, isAgent?: boolean }>;
 }
 
 /**
@@ -37,16 +27,11 @@ interface MessageInputProps {
  * - Token transfer functionality
  */
 export function MessageInput({
-    channelId,
-    agent = "",
     messagesEndRef,
-    members = []
 }: MessageInputProps) {
     const [inputMessage, setInputMessage] = useState("");
     const [showTokenForm, setShowTokenForm] = useState(false);
-    const [selectedReceiver, setSelectedReceiver] = useState("");
     const [tokenAmount, setTokenAmount] = useState("0.1");
-    const [tokenType, setTokenType] = useState("RGAS");
     const [autoMentionAI, setAutoMentionAI] = useState(false);
     const [showMentionList, setShowMentionList] = useState(false);
     const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
@@ -59,26 +44,12 @@ export function MessageInput({
     const packageId = useNetworkVariable("packageId");
     const session = useCurrentSession()
     const { mutate: createSession } = useCreateSessionKey()
-    const {refetch: refetchJoinedAgent} = useAgentJoined()
-    const {refetch: refetchChannelMembers} = useChannelMembers({
-        channelId,
-        limit: '100'
-    })
-    // Check if current user has joined the channel
-    const { isJoined = false, refetch: refetchJoinStatus } = useChannelJoinedStatus(channelId);
+    const { agent, selectedChannel, members, isJoined, refetchJoinStatus, refetchJoinedAgent, refetchChannelMembers, refetchMessageCount, refetchMessages } = useAgentChat();
+
     // Message sending functionality
     const { mutateAsync: sendMessage, isPending: sendingMessage } = useChannelMessageSend();
     // Channel joining functionality
     const { mutateAsync: joinChannel, isPending: joiningChannel } = useChannelJoin();
-    // Get total message count and refetch function
-    const { refetch: refetchMessageCount } = useChannelMessageCount(channelId);
-    // TODO:
-    // Fetch messages and provide refetch function
-    const { refetch: refetchMsg } = useChannelMessages({
-        channelId,
-        page: 0,
-        size: 100,
-    });
 
     // TODO: remove this with sdk-kit export session config
     const sessionCfg = {
@@ -132,9 +103,9 @@ export function MessageInput({
      * Then send the message and update the UI
      */
     const handleSendMessage = async (message: string) => {
-        if (!isJoined) {
+        if (!isJoined && selectedChannel) {
             try {
-                await joinChannel({ id: channelId });
+                await joinChannel({ id: selectedChannel });
                 await refetchJoinStatus();
                 await refetchJoinedAgent();
                 await refetchChannelMembers();
@@ -143,7 +114,7 @@ export function MessageInput({
             }
         }
 
-        if (message.trim() || mentions.length > 0) {
+        if ((message.trim() || mentions.length > 0) && selectedChannel && agent) {
             try {
                 // 构建包含 mentions 的消息内容
                 const mentionText = mentions.map(m => `@${m.text}`).join(' ');
@@ -151,7 +122,7 @@ export function MessageInput({
 
                 // 如果显示转账表单，添加 payment 属性
                 const messageData: any = {
-                    channelId,
+                    channelId: selectedChannel,
                     content: fullMessage,
                     mentions: [...mentions.map(m => m.id), ...(autoMentionAI && agent.address ? [agent.address] : [])],
                     aiAddress: agent.address,
@@ -165,7 +136,7 @@ export function MessageInput({
 
                 await sendMessage(messageData);
                 await refetchMessageCount();
-                await refetchMsg();
+                await refetchMessages();
                 messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
                 // Clear mentions and reset token form
                 setMentions([]);
@@ -281,7 +252,7 @@ export function MessageInput({
 
     // Add agent to the member list
     const allMembers = members.map(member => {
-        if (member.address === agent.address) {
+        if (member.address === agent?.address) {
             return {
                 ...member,
                 name: agent.name,
@@ -344,6 +315,10 @@ export function MessageInput({
             handleRemoveMention(lastMention.id);
         }
     };
+
+    if (!agent || !selectedChannel) {
+        return null;
+    }
 
     return (
         <div className="shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">

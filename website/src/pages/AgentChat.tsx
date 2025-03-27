@@ -1,10 +1,7 @@
 import { useParams } from "react-router-dom";
-import useAgentChannels from "../hooks/use-agent-channel";
-import useChannelMembers from "../hooks/use-channel-member";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
-import useAgent from "../hooks/use-agent";
-import useChannelMemberCount from "../hooks/use-channel-member-count";
 import { useEffect, useState } from "react";
+import { AgentChatProvider, useAgentChat } from "../contexts/AgentChatContext";
 
 /**
  * AgentChat component - Main chat interface for interacting with an AI agent
@@ -15,33 +12,30 @@ import { useEffect, useState } from "react";
  * - Message history
  */
 export function AgentChat() {
-  // Get agent ID from URL parameters
   const { id } = useParams<{ id: string }>();
-  
-  const [selectedChannel, setSelectedChannel] = useState<string>()
 
-  // Get agent information
-  const { agent, isPending: isAgentPending } = useAgent(id);
+  if (!id) {
+    return null;
+  }
 
-  // Get channel information
-  const { channels, isPending: isChannelPending } = useAgentChannels(id);
+  return (
+    <AgentChatProvider agentId={id}>
+      <AgentChatContent />
+    </AgentChatProvider>
+  );
+}
 
-  const { memberCount } = useChannelMemberCount(selectedChannel)
-
-  // Get list of channel members
-  const { members } = useChannelMembers({
-    channelId: selectedChannel,
-    limit: '100',  // Increase member limit to match ChatArea
-  })
+function AgentChatContent() {
+  const { agent, isAgentPending, channels, isChannelsPending, selectedChannel, setSelectedChannel } = useAgentChat();
 
   useEffect(() => {
     if (!selectedChannel && channels) {
       setSelectedChannel(channels[0].id)
     }
-  }, [channels])
+  }, [channels, selectedChannel, setSelectedChannel])
 
   // Show loading state
-  if (isAgentPending || isChannelPending || !channels) {
+  if (isAgentPending || isChannelsPending || !channels) {
     return (
       <div className="flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
         <div className="flex flex-col items-center justify-center h-full space-y-6">
@@ -78,22 +72,13 @@ export function AgentChat() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar showing dialog list */}
-        <DialogSidebar channels={channels} onChannelSelect={(id) => setSelectedChannel(id)}/>
+        <DialogSidebar channels={channels} onChannelSelect={setSelectedChannel} />
 
         {/* Main chat area with messages and input */}
-        <ChatArea
-          agentId={id}
-          channel={selectedChannel}
-          members={members}
-        />
+        <ChatArea />
 
         {/* Right sidebar showing channel info and members */}
-        <ChannelSidebar
-          agentId={id}
-          channelId={selectedChannel}
-          memberCount={memberCount}
-          members={members}
-        />
+        <ChannelSidebar />
       </div>
     </div>
   );
