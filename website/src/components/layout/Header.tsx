@@ -3,11 +3,12 @@ import { ConnectButton, useCurrentAddress, useConnectionStatus } from '@roochnet
 import { ThemeToggle } from './ThemeToggle'
 import { UserInfo } from '../../types/user'
 import useRgasBalance from '../../hooks/use-rgas-balance'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSubscribeOnRequest } from '@roochnetwork/rooch-sdk-kit'
 import { Menu, Transition } from '@headlessui/react'
 import { Fragment } from 'react'
 import useUserInfo from '../../hooks/use-user-info'
+import { toast } from 'react-hot-toast'
 
 interface HeaderProps {
     isDarkMode: boolean
@@ -20,6 +21,7 @@ export function Header({ isDarkMode }: HeaderProps) {
     const { balance: rGas, refetchBalance } = useRgasBalance(address?.genRoochAddress().toHexAddress())
     const subscribeOnRequest = useSubscribeOnRequest()
     const { userInfo } = useUserInfo(address?.genRoochAddress().toHexAddress())
+    const hasShownToast = useRef(false)
 
     useEffect(() => {
         const unsubscribe = subscribeOnRequest((status) => {
@@ -42,6 +44,42 @@ export function Header({ isDarkMode }: HeaderProps) {
             })
         }
     }, [rGas, userInfo, connectionStatus, address])
+
+    // Show different toasts based on wallet connection and RGAS balance
+    useEffect(() => {
+        if (connectionStatus === 'connected' && address && !hasShownToast.current) {
+            hasShownToast.current = true
+            toast.success('Wallet Connected', {
+                duration: 3000,
+                position: 'top-center',
+                className: 'mt-4',
+            })
+        }
+    }, [connectionStatus, address])
+
+    // Show RGAS toast when balance is 0
+    useEffect(() => {
+        if (connectionStatus === 'connected' && address && rGas === 0) {
+            // console.log(rGas)
+            toast(
+                <div className="flex flex-col gap-1 text-sm w-full">
+                    <div>No RGAS balance</div>
+                    <a
+                        href="/getrgas-testnet"
+                        className="text-purple-500 hover:text-purple-600 font-medium dark:text-purple-200 dark:hover:text-purple-300"
+                    >
+                        Click here to get FREE RGAS
+                    </a>
+                </div>,
+                {
+                    duration: 5000,
+                    position: 'top-center',
+                    className: 'mt-4 bg-purple-50 border border-purple-200 text-purple-800 dark:bg-purple-900 dark:border-purple-800 dark:text-purple-300',
+                    icon: '💜'
+                }
+            )
+        }
+    }, [rGas, address])
 
     const handleLogout = () => {
         setUser(null)
@@ -137,6 +175,17 @@ export function Header({ isDarkMode }: HeaderProps) {
                                                         } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
                                                 >
                                                     Profile
+                                                </Link>
+                                            )}
+                                        </Menu.Item>
+                                        <Menu.Item>
+                                            {({ active }) => (
+                                                <Link
+                                                    to="/getrgas-testnet"
+                                                    className={`${active ? '!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400' : 'dark:!text-gray-300'
+                                                        } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
+                                                >
+                                                    Get RGAS
                                                 </Link>
                                             )}
                                         </Menu.Item>
