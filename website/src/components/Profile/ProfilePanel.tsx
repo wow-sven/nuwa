@@ -47,6 +47,14 @@ export const ProfilePanel = ({
         return <div>Error loading user profile</div>
     }
 
+    const handlerRefreshUserInfo =async () =>{
+        const s = setTimeout(async() => {
+            await refetchUserInfo()
+            clearTimeout(s)
+        }, 1000);
+        
+    }
+
     return (
         <>
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
@@ -145,7 +153,9 @@ export const ProfilePanel = ({
                 }}
                 hasUsername={!!userInfo.username}
                 isSubmitting={isUpdating || isInitializing}
-                onSuccess={refetchUserInfo}
+                onSuccess={ () =>  {
+                    handlerRefreshUserInfo()
+                }}
             />
         </>
     )
