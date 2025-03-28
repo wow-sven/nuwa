@@ -83,12 +83,13 @@ export default function useAgentJoined() {
       } catch (error) {
         console.log(error)
       }
+      return []
     },
     enabled: !!address,
   });
 
   return {
-    joinedAgents,
+    joinedAgents: joinedAgents || [],
     isPending,
     isError,
     refetch,

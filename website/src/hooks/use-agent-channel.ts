@@ -15,35 +15,41 @@ export default function useAgentChannel(id?: string) {
   } = useQuery({
     queryKey: ["useAgentChannels", id],
     queryFn: async () => {
-
       const result = await client.executeViewFunction({
         target: `${packageId}::channel::get_agent_home_channel_id`,
         args: [Args.objectId(id!)],
       });
 
-
-      const channelId = result?.return_values?.[0]?.decoded_value as string
+      const channelId = result?.return_values?.[0]?.decoded_value as string;
       const channelResult = await client.queryObjectStates({
-        filter:{
+        filter: {
           object_id: channelId!,
-        }
-      })
+        },
+      });
 
-      const channelValue = channelResult.data[0]?.decoded_value?.value as any
+      const channelValue = channelResult.data[0]?.decoded_value?.value as any;
 
       const topics = await client.listStates({
-        accessPath: `/table/${channelValue.topics.value.handle.value.id}`
-      })
+        accessPath: `/table/${channelValue.topics.value.handle.value.id}`,
+      });
 
-      const channels = [{
-        title: channelValue.title,
-        id: channelId,
-      }].concat(topics.data.map((item) => {
-        return {
-          title: item.state.decoded_value?.value.name as string,
-          id: item.state.decoded_value?.value.value as string
-        }
-      }))
+      const channels = [
+        {
+          title: channelValue.title,
+          id: channelId,
+        },
+      ].concat(
+        topics.data
+          .sort(
+            (b, a) => Number(a.state.updated_at) - Number(b.state.updated_at)
+          )
+          .map((item) => {
+            return {
+              title: item.state.decoded_value?.value.name as string,
+              id: item.state.decoded_value?.value.value as string,
+            };
+          })
+      );
 
       return channels;
     },
