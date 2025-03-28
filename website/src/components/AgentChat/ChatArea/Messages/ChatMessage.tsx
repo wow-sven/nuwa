@@ -382,8 +382,8 @@ export function ChatMessage({
                 </span>
                 <span>
                   {replyToMessage.content.length > 50
-                    ? `${replyToMessage.content.substring(0, 50)}...`
-                    : replyToMessage.content}
+                    ? `${replyToMessage.content.replace(/^@\w+\s/, '').substring(0, 50)}...`
+                    : replyToMessage.content.replace(/^@\w+\s/, '')}
                 </span>
               </div>
             </div>

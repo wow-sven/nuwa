@@ -48,7 +48,7 @@ export interface AgentChatContextType {
   memberCount: number | undefined;
   isJoined: boolean | undefined;
   refetchJoinStatus: () => Promise<QueryObserverResult<boolean, Error>>;
-  refetchJoinedAgent: () => Promise<QueryObserverResult<Agent[], Error>>;
+  refetchJoinedAgent: () => Promise<QueryObserverResult<Agent[] | undefined, Error>>;
   refetchChannelMembers: () => Promise<QueryObserverResult<Member[], Error>>;
   refetchMessageCount: () => Promise<QueryObserverResult<number, Error>>;
   refetchMessages: () => void;

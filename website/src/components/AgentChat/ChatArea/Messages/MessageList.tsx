@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { ChatMessage } from "./ChatMessage";
-import { Message } from "../../../../types/channel";
+import { Message } from "../../../../types/message";
 import useChannelMessageCount from "../../../../hooks/use-channel-message-count";
 import useChannelMessages from "../../../../hooks/use-channel-messages";
 import { useAgentChat } from "../../../../contexts/AgentChatContext";
@@ -17,6 +17,8 @@ interface MessageListProps {
     agentId?: string;
     /** Address of the agent for identifying AI messages */
     agentAddress?: string;
+    /** Callback for AI thinking state changes */
+    onAIThinkingChange?: (isThinking: boolean) => void;
 }
 
 const MESSAGES_PER_PAGE = 50;
@@ -35,7 +37,8 @@ export function MessageList({
     channelId,
     agentName,
     agentId,
-    agentAddress
+    agentAddress,
+    onAIThinkingChange
 }: MessageListProps) {
     const { currentAddress } = useAgentChat();
     const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -333,20 +336,6 @@ export function MessageList({
             // Reset query page after loading is complete
             setCurrentQueryPage(null);
             setIsLoadingMoreUp(false);
-        } else if (pageMessages && pageMessages.length === 0) {
-            // Mark as reached top (if it's page 0)
-            if (currentQueryPage === 0) {
-                setReachedTop(true);
-            }
-
-            // Add current page to loaded pages list
-            if (!loadedPages.includes(currentQueryPage || 0)) {
-                setLoadedPages(prev => [...prev, currentQueryPage || 0]);
-            }
-
-            // Reset query page
-            setCurrentQueryPage(null);
-            setIsLoadingMoreUp(false);
         }
     }, [pageMessages, currentQueryPage, loadedPages]);
 
@@ -456,6 +445,22 @@ export function MessageList({
     const triggerLoad = useCallback(() => {
         setAutoRefreshTrigger(prev => prev + 1);
     }, []);
+
+    // 检测 AI 思考状态
+    useEffect(() => {
+        if (allMessages.length === 0) return;
+
+        const lastMessage = allMessages[allMessages.length - 1];
+        const isLastMessageFromUser = isCurrentUser(lastMessage);
+
+        // 只检查最后一条用户消息是否有回复
+        if (isLastMessageFromUser) {
+            const hasReply = allMessages.some(m => isAI(m) && m.reply_to === lastMessage.index);
+            onAIThinkingChange?.(!hasReply);
+        } else {
+            onAIThinkingChange?.(false);
+        }
+    }, [allMessages, isCurrentUser, isAI, onAIThinkingChange]);
 
     return (
         <div ref={messagesContainerRef} className="h-full overflow-y-auto p-4 space-y-4 relative">
