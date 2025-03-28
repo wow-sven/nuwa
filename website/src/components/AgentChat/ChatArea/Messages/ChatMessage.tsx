@@ -18,7 +18,7 @@ import { useAgentChat } from "../../../../contexts/AgentChatContext";
 // 添加辅助函数来获取用户信息和显示名称
 const useUserDisplay = (address: string) => {
   const { userInfo } = useUserInfo(address);
-  const displayName = (`@` + userInfo?.username) || userInfo?.name || shortenAddress(address);
+  const displayName = (userInfo?.username != "" && (`@` + userInfo?.username)) || userInfo?.name || shortenAddress(address);
   return { userInfo, displayName };
 };
 
@@ -166,7 +166,7 @@ export function ChatMessage({
             <span className="font-medium">
               {amount} {coinType}
             </span>{" "}
-            to{""}
+            to{" "}
             <UserLink address={args.to} />
 
             {args.memo && (
