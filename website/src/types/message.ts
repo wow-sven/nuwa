@@ -26,4 +26,31 @@ export const MESSAGE_TYPE = {
     NORMAL: 0,
     ACTION_EVENT: 1,
     SYSTEM_EVENT: 2,
-} as const; 
+} as const;
+
+// 添加转账附件的类型定义
+export interface TransferAttachment {
+    amount: string;
+    coin_type: string;
+    to: string;
+    memo?: string;
+}
+
+// 添加 action event 的类型定义
+export interface ActionEvent {
+    action: string;
+    args: string;
+    success: boolean;
+    error?: string;
+}
+
+// 添加 ChatMessage 组件的 props 类型定义
+export interface ChatMessageProps {
+    message: Message;
+    isCurrentUser: boolean;
+    isAI: boolean;
+    agentName?: string;
+    agentId?: string;
+    hasPaidContent?: boolean;
+    messages?: Message[];
+} 

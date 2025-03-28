@@ -9,7 +9,10 @@ import useUserInfo from '../hooks/use-user-info';
 import { useUserUpdate } from '../hooks/use-user-update';
 import { SessionKeyGuard, useCurrentAddress } from '@roochnetwork/rooch-sdk-kit';
 import { useTransfer } from '../hooks/use-transfer';
-import { TypeArgs } from '@roochnetwork/rooch-sdk';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+const roochscanBaseUrl = "https://test.roochscan.io";
 
 export const UserProfile = () => {
   const navigate = useNavigate()
@@ -17,7 +20,7 @@ export const UserProfile = () => {
   const currentAddress = useCurrentAddress()
   const isOwnProfile = currentAddress?.genRoochAddress().toBech32Address() === address
   const { balance: rGas, isPending: isRgasPending, isError: isRgasError, refetchBalance } = useRgasBalance(address)
-  const { balance, isPending: isBalancePending, isError: isBalanceError, refetchBalance: refetchAllBalance } = useAllBalance(address)
+  const { balances, isPending: isBalancePending, isError: isBalanceError, refetchBalance: refetchAllBalance } = useAllBalance(address)
   const { userInfo, isPending: isUserInfoPending, isError: isUserInfoError, refetch: refetchUserInfo } = useUserInfo(address)
   const { mutate: updateUser, isPending: isUpdating } = useUserUpdate()
   const { mutate: transfer, isPending: isTransferring } = useTransfer()
@@ -51,6 +54,16 @@ export const UserProfile = () => {
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
+    toast.success('Address copied to clipboard!', {
+      position: "top-right",
+      autoClose: 2000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
   }
 
   const handleEditName = async () => {
@@ -169,10 +182,10 @@ export const UserProfile = () => {
     setIsEditingUsername(false)
   }
 
-  const totalPages = balance ? Math.ceil(balance.length / itemsPerPage) : 0
+  const totalPages = balances ? Math.ceil(balances.length / itemsPerPage) : 0
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentPageTokens = balance?.slice(startIndex, endIndex)
+  const currentPageTokens = balances?.slice(startIndex, endIndex)
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
@@ -229,6 +242,7 @@ export const UserProfile = () => {
         description="Manage your Nuwa account on Rooch, view your AI agents, and track your interactions with autonomous AI agents on the blockchain."
         keywords="User Profile, Nuwa Account, AI Agent Management, Blockchain AI, User Dashboard"
       />
+      <ToastContainer />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Back Button */}
@@ -403,16 +417,28 @@ export const UserProfile = () => {
                     )}
                   </div>
                   <div className="flex items-center space-x-2">
-                    <code className="text-sm text-gray-500 dark:text-gray-400 font-mono">
-                      {address}
-                    </code>
-                    <button
-                      onClick={() => handleCopy(address?.toString() || '')}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                      title="Copy Address"
-                    >
-                      <ClipboardIcon className="w-4 h-4" />
-                    </button>
+                    <div className="flex flex-col">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+                          {address}
+                        </span>
+                        <button
+                          onClick={() => handleCopy(address?.toString() || '')}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          title="Copy Address"
+                        >
+                          <ClipboardIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <a
+                        href={`${roochscanBaseUrl}/account/${address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer mt-0.5"
+                      >
+                        <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">View on Explorer</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -446,36 +472,36 @@ export const UserProfile = () => {
                 </div>
                 <div className="space-y-4">
                   {currentPageTokens && currentPageTokens.length > 0 ? (
-                    currentPageTokens.map((token) => (
+                    currentPageTokens.map((tokenBalance) => (
                       <div
-                        key={token.coin_type}
+                        key={tokenBalance.token.id}
                         className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm"
                       >
                         <div className="flex items-center space-x-3">
                           <img
-                            src={token.icon_url ? normalizeCoinIconUrl(token.icon_url) : `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5"/><path d="M15 8.5C14.315 7.81501 13.1087 7.33003 12 7.33003C9.42267 7.33003 7.33333 9.41937 7.33333 12C7.33333 14.5807 9.42267 16.67 12 16.67C13.1087 16.67 14.315 16.185 15 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.3333 12H16.6667M16.6667 12L15.3333 10.5M16.6667 12L15.3333 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')}`}
-                            alt={token.name}
+                            src={tokenBalance.token.logo ? normalizeCoinIconUrl(tokenBalance.token.logo) : `data:image/svg+xml;utf8,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="currentColor" stroke-width="1.5"/><path d="M15 8.5C14.315 7.81501 13.1087 7.33003 12 7.33003C9.42267 7.33003 7.33333 9.41937 7.33333 12C7.33333 14.5807 9.42267 16.67 12 16.67C13.1087 16.67 14.315 16.185 15 15.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M13.3333 12H16.6667M16.6667 12L15.3333 10.5M16.6667 12L15.3333 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>')}`}
+                            alt={tokenBalance.token.name}
                             className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 p-1.5"
                           />
                           <div>
                             <h3 className="font-medium text-gray-900 dark:text-gray-100">
-                              {token.name}
+                              {tokenBalance.token.name}
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {token.symbol}
+                              {tokenBalance.token.symbol}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-4">
                           <div className="text-right">
                             <p className="font-medium text-gray-900 dark:text-gray-100">
-                              {token.fixedBalance}
+                              {tokenBalance.balance}
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {token.symbol}
+                              {tokenBalance.token.symbol}
                             </p>
                           </div>
-                          <SessionKeyGuard onClick={() => handleTransfer(token)}>
+                          <SessionKeyGuard onClick={() => handleTransfer(tokenBalance.token)}>
                             <button
                               className="px-3 py-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-600 dark:border-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
                               disabled={isTransferring}

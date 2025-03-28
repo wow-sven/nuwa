@@ -1,4 +1,4 @@
-import { Message, MESSAGE_TYPE } from "../../../../types/message";
+import { MESSAGE_TYPE, ChatMessageProps, TransferAttachment, ActionEvent } from "../../../../types/message";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { formatTimestamp } from "../../../../utils/time";
 import ReactMarkdown from "react-markdown";
@@ -11,35 +11,29 @@ import { CheckIcon } from "@heroicons/react/24/solid";
 import { shortenAddress } from "../../../../utils/address";
 import { Link } from "react-router-dom";
 import { RoochAddress } from "@roochnetwork/rooch-sdk";
-import useAgent from "../../../../hooks/use-agent";
 import useUserInfo from "../../../../hooks/use-user-info";
 import React from "react";
+import { useAgentChat } from "../../../../contexts/AgentChatContext";
 
-// Add interface for parsed action event
-interface ActionEvent {
-  action: string;
-  args: string;
-  success: boolean;
-  error?: string;
-}
+// 添加辅助函数来获取用户信息和显示名称
+const useUserDisplay = (address: string) => {
+  const { userInfo } = useUserInfo(address);
+  const displayName = (`@` + userInfo?.username) || userInfo?.name || shortenAddress(address);
+  return { userInfo, displayName };
+};
 
-// 添加转账附件的类型定义
-interface TransferAttachment {
-  amount: string;
-  coin_type: string;
-  to: string;
-  memo?: string;
-}
-
-interface ChatMessageProps {
-  message: Message;
-  isCurrentUser: boolean;
-  isAI: boolean;
-  agentName?: string;
-  agentId?: string;
-  hasPaidContent?: boolean;
-  messages?: Message[];
-}
+// 添加用户链接组件
+const UserLink = ({ address }: { address: string }) => {
+  const { displayName } = useUserDisplay(address);
+  return (
+    <Link
+      to={`/profile/${address}`}
+      className="text-blue-600 hover:underline"
+    >
+      {displayName}
+    </Link>
+  );
+};
 
 export function ChatMessage({
   message,
@@ -51,10 +45,27 @@ export function ChatMessage({
   messages,
 }: ChatMessageProps) {
   const [copied, setCopied] = useState(false);
+  const { agent } = useAgentChat();
+  const { userInfo } = useUserInfo(message.sender);
+
   const timestamp = message.timestamp;
   const isActionEvent = message.message_type === MESSAGE_TYPE.ACTION_EVENT;
-  const { agent } = useAgent(agentId);
-  const { userInfo } = useUserInfo(message.sender);
+  const senderAddress = new RoochAddress(message.sender).toBech32Address();
+
+  // 获取接收者地址
+  const recipientAddress = React.useMemo(() => {
+    if (!isActionEvent) return null;
+    try {
+      const actionEvent = JSON.parse(message.content);
+      const args = JSON.parse(actionEvent.args);
+      return args.to;
+    } catch (error) {
+      console.error("Failed to parse action event:", error);
+      return null;
+    }
+  }, [isActionEvent, message.content]);
+
+  const { userInfo: recipientUserInfo } = useUserInfo(recipientAddress || "");
 
   // 检查消息是否包含转账附件
   const hasTransferAttachment = React.useMemo(() => {
@@ -81,11 +92,6 @@ export function ChatMessage({
     });
     return attachment ? JSON.parse(attachment.attachment_json) as TransferAttachment : null;
   }, [message.attachments, hasTransferAttachment]);
-
-  //TODO use the scanUrl via the network.
-  const roochscanBaseUrl = "https://test.roochscan.io";
-
-  const senderAddress = new RoochAddress(message.sender).toBech32Address();
 
   // 检查消息是否发送给 AI
   const isToAI = React.useMemo(() => {
@@ -131,7 +137,6 @@ export function ChatMessage({
     }
   };
 
-
   // Format action arguments for display
   const formatActionArgs = (argsJson: string): any => {
     try {
@@ -153,24 +158,21 @@ export function ChatMessage({
         const coinType = args.coin_type
           ? args.coin_type.split("::").pop()
           : "coins";
-        const recipient = args.to ? shortenAddress(args.to) : "someone";
 
         return (
           <span>
-            {actionEvent.success ? "Transferred " : "Failed to transfer "}
+
+            {actionEvent.success ? "Agent Transferred " : "Failed to transfer "}
             <span className="font-medium">
               {amount} {coinType}
             </span>{" "}
-            to{" "}
-            <a
-              href={`${roochscanBaseUrl}/account/${args.to}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:underline"
-            >
-              {recipient}
-            </a>
-            {args.memo && <span className="italic"> — "{args.memo}"</span>}
+            to{""}
+            <UserLink address={args.to} />
+
+            {args.memo && (
+              <span className="italic"> - "{args.memo}"</span>
+
+            )}
           </span>
         );
       }
@@ -181,25 +183,35 @@ export function ChatMessage({
       if (actionEvent.action === "memory::add") {
         const args = formatActionArgs(actionEvent.args);
         return (
-          <span>Added a new memory about {shortenAddress(args.addr)}</span>
+          <span>
+            Agent added a new memory about{" "}
+            <UserLink address={args.addr} />
+          </span>
         );
       } else if (actionEvent.action === "memory::update") {
         const args = formatActionArgs(actionEvent.args);
         return (
           <span>
-            Updated memory at index {args.index} for {shortenAddress(args.addr)}
+            Agent updated memory at index {args.index} for{" "}
+            <UserLink address={args.addr} />
           </span>
         );
       } else if (actionEvent.action === "memory::remove") {
         const args = formatActionArgs(actionEvent.args);
         return (
           <span>
-            Removed memory at index {args.index} for {shortenAddress(args.addr)}
+            Agent removed memory at index {args.index} for{" "}
+            <UserLink address={args.addr} />
           </span>
         );
       } else if (actionEvent.action === "memory::compact") {
         const args = formatActionArgs(actionEvent.args);
-        return <span>Compacted memories for {shortenAddress(args.addr)}</span>;
+        return (
+          <span>
+            Agent compacted memories for{" "}
+            <UserLink address={args.addr} />
+          </span>
+        );
       } else if (actionEvent.action === "memory::none") {
         const args = formatActionArgs(actionEvent.args);
         return (
@@ -234,15 +246,6 @@ export function ChatMessage({
         return "🧠";
       } else {
         return "⚙️";
-      }
-    };
-
-    // Get status icon
-    const getStatusIcon = () => {
-      if (actionEvent.success) {
-        return "✅";
-      } else {
-        return "❌";
       }
     };
 
@@ -314,13 +317,11 @@ export function ChatMessage({
                 </div>
               )
             ) : (
-              // User avatar with Roochscan link
-              <a
-                href={`${roochscanBaseUrl}/account/${senderAddress}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              // User avatar with profile link
+              <Link
+                to={`/profile/${senderAddress}`}
                 className="block w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
-                title={`View ${shortenAddress(senderAddress)} on Roochscan`}
+                title={`View ${shortenAddress(senderAddress)}'s profile`}
               >
                 {userInfo?.avatar ? (
                   <img
@@ -331,7 +332,7 @@ export function ChatMessage({
                 ) : (
                   <UserCircleIcon className="w-8 h-8 text-gray-400" />
                 )}
-              </a>
+              </Link>
             )}
           </div>
         )}
@@ -345,15 +346,13 @@ export function ChatMessage({
               ) : isAI ? (
                 displayName
               ) : (
-                <a
-                  href={`${roochscanBaseUrl}/account/${senderAddress}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to={`/profile/${senderAddress}`}
                   className="hover:text-blue-600 hover:underline transition-colors"
-                  title={`View ${senderAddress} on Roochscan`}
+                  title={`View ${shortenAddress(senderAddress)}'s profile`}
                 >
                   {displayName}
-                </a>
+                </Link>
               )}
             </span>
             {!isCurrentUser && !isAI && userInfo?.username && (
@@ -501,12 +500,10 @@ export function ChatMessage({
           <div className="flex-shrink-0 w-8 h-8">
             {/* Add Roochscan link for current user's avatar too */}
             {senderAddress && (
-              <a
-                href={`${roochscanBaseUrl}/account/${senderAddress}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                to={`/profile/${senderAddress}`}
                 className="block w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
-                title={`View your account on Roochscan`}
+                title={`View your profile`}
               >
                 {userInfo?.avatar ? (
                   <img
@@ -517,7 +514,7 @@ export function ChatMessage({
                 ) : (
                   <UserCircleIcon className="w-8 h-8 text-blue-400" />
                 )}
-              </a>
+              </Link>
             )}
           </div>
         )}

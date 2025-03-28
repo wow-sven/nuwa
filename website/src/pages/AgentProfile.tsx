@@ -10,6 +10,8 @@ import {
   ClockIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import useAgent from "../hooks/use-agent";
 import useAgentCaps from "../hooks/use-agent-caps";
 import { SEO } from "../components/layout/SEO";
@@ -22,6 +24,8 @@ import { TaskSpecification } from "../types/task-types";
 import { createEmptyTaskSpec } from "../utils/task";
 import { useUpdateAgentTaskTask } from "../hooks/use-agent-task-update";
 import { useAgentMemories } from "../hooks/use-agent-memories";
+
+const roochscanBaseUrl = "https://test.roochscan.io";
 
 export function AgentProfile() {
   const { address: agentAddress } = useParams<{ address: string }>();
@@ -230,6 +234,16 @@ export function AgentProfile() {
 
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
+    toast.success('Address copied to clipboard!', {
+      position: "top-right",
+      autoClose: 2000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "light",
+    });
   };
 
   return (
@@ -243,6 +257,7 @@ export function AgentProfile() {
         keywords={`${agent?.name}, AI Agent, Web3 AI, Autonomous Agent, Crypto Agent, Blockchain AI, Nuwa Agent`}
         ogUrl={`https://nuwa.dev/agents/${agentAddress}`}
       />
+      <ToastContainer />
       <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto px-4 py-8">
           {/* Back Button */}
@@ -435,20 +450,28 @@ export function AgentProfile() {
                     Agent Address
                   </h3>
                   <div className="flex items-center group">
-                    <code className="text-sm text-gray-900 dark:text-gray-100 font-mono bg-gray-50 dark:bg-gray-800/50 p-2 rounded flex-1 break-all">
-                      {agent?.agent_address}
-                    </code>
-                    <button
-                      onClick={() =>
-                        handleCopy(
-                          "rooch19n5zuqjc7rlcx6zgh3ln5fyateczs8n4des4v28y7gkrt7545a9qppy0rl"
-                        )
-                      }
-                      className="ml-2 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                      title="Copy to Clipboard"
-                    >
-                      <ClipboardIcon className="w-5 h-5" />
-                    </button>
+                    <div className="flex flex-col flex-1">
+                      <div className="flex items-center space-x-2">
+                        <code className="text-sm text-gray-900 dark:text-gray-100 font-mono break-all">
+                          {agent?.agent_address}
+                        </code>
+                        <button
+                          onClick={() => handleCopy(agent?.agent_address || '')}
+                          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                          title="Copy Address"
+                        >
+                          <ClipboardIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <a
+                        href={`${roochscanBaseUrl}/account/${agent?.agent_address}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 cursor-pointer mt-0.5"
+                      >
+                        <span className="bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">View on Explorer</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
 
