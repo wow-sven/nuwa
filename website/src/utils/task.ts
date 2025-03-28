@@ -1,4 +1,4 @@
-import { TaskSpecification, TaskArgument } from '../types/taska';
+import { TaskSpecification, TaskArgument } from '../types/task-types';
 
 
 export const createEmptyTaskSpec = (): TaskSpecification => ({
@@ -12,6 +12,7 @@ export const createEmptyTaskSpec = (): TaskSpecification => ({
 
 export const createEmptyTaskArgument = (): TaskArgument => ({
   name: '',
+  type: 'String',
   type_desc: 'string',
   description: '',
   required: false,
