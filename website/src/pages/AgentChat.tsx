@@ -26,7 +26,7 @@ export function AgentChat() {
 }
 
 function AgentChatContent() {
-  const { agent, isAgentPending, channels, isChannelsPending, selectedChannel, setSelectedChannel } = useAgentChat();
+  const { agent, isAgentPending, channels, isChannelsPending, selectedChannel, setSelectedChannel, refetchChannels } = useAgentChat();
 
   useEffect(() => {
     if (!selectedChannel && channels) {
@@ -72,7 +72,7 @@ function AgentChatContent() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar showing dialog list */}
-        <DialogSidebar channels={channels} onChannelSelect={setSelectedChannel} />
+        <DialogSidebar channels={channels} onChannelSelect={setSelectedChannel} onRefresh={refetchChannels} />
 
         {/* Main chat area with messages and input */}
         <ChatArea />

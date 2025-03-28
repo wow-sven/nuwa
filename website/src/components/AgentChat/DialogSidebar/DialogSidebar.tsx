@@ -15,7 +15,7 @@ interface DialogSidebarProps {
   }[];
   onChannelSelect: (id: string) => void;
   /** Callback to refresh the dialog list */
-  onRefresh?: () => void;
+  onRefresh: () => void;
 }
 
 /**
@@ -35,18 +35,15 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
     if (!topicName.trim()) return;
 
     try {
-      // 如果是第一个 topic，强制使用 "homechannel" 作为名称
-      const finalTopicName = channels.length === 0 ? "homechannel" : topicName;
-
       await mutateAsync({
         channelId: channels[0].id,
-        topic: finalTopicName,
-        joinPolicy: 0, // 所有 topic 都设置为 public
+        topic: topicName,
+        joinPolicy: 0, // all topics are public
       });
       console.log("Topic created successfully");
       setShowInput(false);
       setTopicName("");
-      onRefresh?.(); // 刷新对话列表
+      onRefresh(); // refresh the dialog list
     } catch (error) {
       console.error("Error creating topic:", error);
     }
