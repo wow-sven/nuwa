@@ -27,7 +27,6 @@ export const UserProfile = () => {
   const { mutate: transfer, isPending: isTransferring } = useTransfer()
   const [isEditingName, setIsEditingName] = useState(false)
   const [isEditingAvatar, setIsEditingAvatar] = useState(false)
-  const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
   const [transferForm, setTransferForm] = useState({
     recipient: '',
@@ -37,18 +36,17 @@ export const UserProfile = () => {
   const [currentToken, setCurrentToken] = useState<{ name: string; symbol: string } | null>(null)
   const [editForm, setEditForm] = useState({
     name: '',
-    avatar: '',
-    username: ''
+    avatar: ''
   })
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   useEffect(() => {
     if (userInfo) {
       setEditForm({
         name: userInfo.name,
-        avatar: userInfo.avatar,
-        username: userInfo.username
+        avatar: userInfo.avatar
       })
     }
   }, [userInfo])
@@ -143,46 +141,6 @@ export const UserProfile = () => {
     setIsEditingAvatar(false)
   }
 
-  const handleEditUsername = async () => {
-    if (isEditingUsername) {
-      // Save changes
-      if (editForm.username !== userInfo?.username) {
-        try {
-          await updateUser({
-            objId: userInfo?.id || '',
-            username: editForm.username,
-          })
-          await refetchUserInfo()
-          setIsEditingUsername(false)
-        } catch (error) {
-          console.error('Failed to update username:', error)
-        }
-      } else {
-        setIsEditingUsername(false)
-      }
-    } else {
-      // Start editing
-      setEditForm(prev => ({
-        ...prev,
-        username: userInfo?.username || ''
-      }))
-      setIsEditingUsername(true)
-    }
-  }
-
-  const handleUsernameChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newUsername = e.target.value
-    setEditForm(prev => ({ ...prev, username: newUsername }))
-  }
-
-  const handleCancelUsername = () => {
-    setEditForm(prev => ({
-      ...prev,
-      username: userInfo?.username || ''
-    }))
-    setIsEditingUsername(false)
-  }
-
   const totalPages = balances ? Math.ceil(balances.length / itemsPerPage) : 0
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
@@ -225,6 +183,14 @@ export const UserProfile = () => {
     } catch (error) {
       console.error('Transfer failed:', error)
     }
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    await refetchAllBalance()
+    setTimeout(() => {
+      setIsRefreshing(false)
+    }, 1000)
   }
 
   if (isRgasPending || isBalancePending || isUserInfoPending) {
@@ -271,11 +237,6 @@ export const UserProfile = () => {
                     alt={userInfo.name}
                     className="w-full h-full rounded-full border-0 border-white dark:border-gray-800 bg-white dark:bg-gray-800 object-cover"
                   />
-                  {isOwnProfile && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black opacity-0 group-hover:opacity-50 transition-opacity">
-                      <PhotoIcon className="w-5 h-5 text-white" />
-                    </div>
-                  )}
                 </div>
                 {isOwnProfile && (
                   <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
@@ -373,48 +334,7 @@ export const UserProfile = () => {
                 <div className="mt-1 flex flex-col space-y-2">
                   <div className="text-gray-500 dark:text-gray-400 flex items-center space-x-2">
                     @
-                    {isEditingUsername && isOwnProfile ? (
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={editForm.username}
-                          onChange={handleUsernameChange}
-                          className="text-sm bg-transparent border-b border-gray-300 dark:border-gray-600 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                          placeholder="Enter username"
-                          disabled={isUpdating}
-                        />
-                        <button
-                          onClick={handleEditUsername}
-                          disabled={isUpdating}
-                          className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-50"
-                          title="Save"
-                        >
-                          <CheckIcon className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={handleCancelUsername}
-                          disabled={isUpdating}
-                          className="text-gray-700 dark:text-gray-200 hover:text-purple-600 dark:hover:text-purple-400 disabled:opacity-50"
-                          title="Cancel"
-                        >
-                          <XMarkIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <span>{userInfo.username || 'Username Not Set'}</span>
-                        {isOwnProfile && (
-                          <SessionKeyGuard onClick={handleEditUsername}>
-                            <button
-                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                              title="Edit Username"
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                            </button>
-                          </SessionKeyGuard>
-                        )}
-                      </>
-                    )}
+                    <span>{userInfo.username || 'Username Not Set'}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <div className="flex flex-col">
@@ -463,9 +383,10 @@ export const UserProfile = () => {
                     Portfolio
                   </h2>
                   <button
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    className={`text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-transform duration-1000 ${isRefreshing ? 'animate-spin' : ''}`}
                     title="Refresh"
-                    onClick={() => refetchAllBalance()}
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
                   >
                     <ArrowPathIcon className="w-5 h-5" />
                   </button>
