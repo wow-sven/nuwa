@@ -1,7 +1,30 @@
 import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
 import { useQuery } from "@tanstack/react-query";
-import { AllBalance } from "../types/user";
-import { RoochAddress } from "@roochnetwork/rooch-sdk";
+import { AllBalance, TokenBalance, Token } from "../types/user";
+import { RoochAddress, BalanceInfoView } from "@roochnetwork/rooch-sdk";
+
+interface BalanceResponse {
+  data: BalanceInfoView[];
+  next_cursor: any;
+  has_next_page: boolean;
+}
+
+// Helper function to calculate token balance with decimals
+const calculateBalance = (balance: string, decimals: number): number => {
+  return Number(balance) / Math.pow(10, decimals);
+};
+
+// Helper function to transform balance item to Token
+const transformToToken = (item: BalanceInfoView): Token => {
+  return {
+    id: item.coin_type,
+    name: item.name,
+    symbol: item.symbol,
+    logo: item.icon_url || '',
+    balance: calculateBalance(item.balance, item.decimals),
+    decimals: item.decimals
+  };
+};
 
 export default function useAllBalance(address: string | undefined): AllBalance {
   const client = useRoochClient()
@@ -14,17 +37,51 @@ export default function useAllBalance(address: string | undefined): AllBalance {
   } = useQuery({
     queryKey: ['useBalance', address],
     queryFn: async () => {
-      const balance = await client
-        .getBalances({
-          owner: new RoochAddress(address!).toBech32Address(),
-        })
-      return balance
+      console.log('Fetching balances for address:', address);
+      if (!address) return null;
+
+      try {
+        // Ensure correct address format
+        const roochAddress = new RoochAddress(address);
+        const bech32Address = roochAddress.toBech32Address();
+        console.log('Converted address:', bech32Address);
+
+        const balance = await client
+          .getBalances({
+            owner: bech32Address,
+          })
+        console.log('Raw balance data:', balance);
+        return balance as BalanceResponse;
+      } catch (error) {
+        console.error('Error fetching balances:', error);
+        throw error;
+      }
     },
     enabled: !!address
   })
 
+  console.log('Balance data after query:', balance);
+
+  // Transform balance data into TokenBalance format
+  const tokenBalances: TokenBalance[] = (balance?.data || []).map((item: BalanceInfoView) => {
+    console.log('Processing balance item:', item);
+    const token = transformToToken(item);
+    return {
+      token,
+      balance: calculateBalance(item.balance, item.decimals),
+      isPending: false,
+      isError: false
+    }
+  })
+
+  console.log('Processed token balances:', tokenBalances);
+
+  // Filter out tokens with zero balance
+  const nonZeroBalances = tokenBalances.filter(item => item.balance > 0)
+  console.log('Non-zero balances:', nonZeroBalances);
+
   return {
-    balance: balance?.data || [],
+    balances: nonZeroBalances,
     isPending,
     isError,
     refetchBalance
