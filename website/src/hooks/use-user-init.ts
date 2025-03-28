@@ -2,6 +2,7 @@ import {
   UseMutationOptions,
   UseMutationResult,
   useMutation,
+  useQueryClient,
 } from "@tanstack/react-query";
 
 import { Transaction, Args } from "@roochnetwork/rooch-sdk";
@@ -34,6 +35,7 @@ export function useUserInit({
   const client = useRoochClient();
   const session = useCurrentSession();
   const packageId = useNetworkVariable("packageId");
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationKey: mutationKeys.initUser(mutationKey),
@@ -85,6 +87,10 @@ export function useUserInit({
           )}`
         );
       }
+    },
+    onSuccess: () => {
+      // 使所有用户信息相关的查询失效
+      queryClient.invalidateQueries({ queryKey: ["useUserInfo"] });
     },
     ...mutationOptions,
   });

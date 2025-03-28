@@ -2,12 +2,10 @@ import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useState, useEffect } from 'react'
-import { useRoochClient } from '@roochnetwork/rooch-sdk-kit'
-import { Args } from '@roochnetwork/rooch-sdk'
 import { toast } from 'react-toastify'
 import { useUserUpdate } from '../../hooks/use-user-update'
 import { useUserInit } from '../../hooks/use-user-init'
-import { useNetworkVariable } from '../../hooks/use-networks'
+import useUserNameCheck from '../../hooks/use-user-name-check'
 
 interface EditProfileModalProps {
     isOpen: boolean
@@ -38,10 +36,9 @@ export const EditProfileModal = ({
     })
     const [error, setError] = useState('')
     const [previewUrl, setPreviewUrl] = useState('')
-    const client = useRoochClient()
-    const packageId = useNetworkVariable("packageId")
     const { mutate: updateUser } = useUserUpdate()
     const { mutate: initUser } = useUserInit()
+    const { available: usernameCheck, isPending: isCheckingUsername, refetch: refetchUsername } = useUserNameCheck(formData.username)
 
     useEffect(() => {
         setFormData(initialData)
@@ -56,18 +53,6 @@ export const EditProfileModal = ({
     const handleEditProfile = async (data: { name: string; username: string; avatar: string }) => {
         try {
             if (!hasUsername) {
-                // check if the username is available
-                const result = await client.executeViewFunction({
-                    target: `${packageId}::name_registry::is_username_available`,
-                    args: [Args.string(data.username.trim())],
-                });
-
-                const isAvailable = result?.return_values?.[0]?.decoded_value || false;
-
-                if (!isAvailable) {
-                    throw new Error('This username is already taken, please choose another one');
-                }
-
                 // initialize the user
                 await initUser({
                     name: data.name,
@@ -123,16 +108,16 @@ export const EditProfileModal = ({
                 setError('Username is required')
                 return
             }
-            if (formData.username.length < 4 || formData.username.length > 16) {
-                setError('Username must be between 4-16 characters')
+
+            // refetch the username
+            const result = await refetchUsername()
+            if (result.data?.error) {
+                setError(result.data.error)
                 return
             }
-            if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-                setError('Username can only contain letters, numbers, and underscores')
-                return
-            }
-            if (/^\d+$/.test(formData.username)) {
-                setError('Username cannot be all numbers')
+
+            if (!result.data?.isAvailable) {
+                setError('Username is not available')
                 return
             }
         }
@@ -209,6 +194,11 @@ export const EditProfileModal = ({
                                                         placeholder="Enter username"
                                                         disabled={isSubmitting}
                                                     />
+                                                    {isCheckingUsername && (
+                                                        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                                            Checking username availability...
+                                                        </p>
+                                                    )}
                                                 </div>
                                             )}
                                             <div>
