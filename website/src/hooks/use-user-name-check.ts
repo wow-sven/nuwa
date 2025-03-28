@@ -13,7 +13,7 @@ export default function useUserNameCheck(name: string) {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["useUserNameCheck"],
+    queryKey: ["useUserNameCheck", name],
     queryFn: async () => {
       if (name.length < 4 || name.length > 16) {
         return {
