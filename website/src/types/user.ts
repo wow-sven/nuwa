@@ -84,8 +84,15 @@ export interface RgasBalance {
   refetchBalance: () => void;
 }
 
+export interface TokenBalance {
+  token: Token;
+  balance: number;
+  isPending: boolean;
+  isError: boolean;
+}
+
 export interface AllBalance {
-  balance: any[]; // 这里使用 any[] 因为具体类型需要根据 Rooch 的返回类型来确定
+  balances: TokenBalance[];
   isPending: boolean;
   isError: boolean;
   refetchBalance: () => void;

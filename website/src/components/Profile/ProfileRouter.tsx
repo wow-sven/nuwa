@@ -1,7 +1,7 @@
 import { useParams, Navigate } from 'react-router-dom'
-import { AgentProfile } from '../pages/AgentProfile'
-import { UserProfile } from '../pages/UserProfile'
-import useAgentWithAddress from '../hooks/use-agent-with-address'
+import { AgentProfile } from '../../pages/AgentProfile'
+import { UserProfile } from '../../pages/UserProfile'
+import useAgentWithAddress from '../../hooks/use-agent-with-address'
 
 export function ProfileRouter() {
     const { address } = useParams<{ address: string }>()

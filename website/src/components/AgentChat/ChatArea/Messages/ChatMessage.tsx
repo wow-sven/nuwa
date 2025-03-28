@@ -1,4 +1,4 @@
-import { Message, MESSAGE_TYPE } from "../../../../types/channel";
+import { Message, MESSAGE_TYPE } from "../../../../types/message";
 import { UserCircleIcon } from "@heroicons/react/24/solid";
 import { formatTimestamp } from "../../../../utils/time";
 import ReactMarkdown from "react-markdown";

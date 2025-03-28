@@ -2,7 +2,7 @@ import { useNetworkVariable } from "./use-networks.ts";
 import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
 import { useQuery } from "@tanstack/react-query";
 import { RoochAddress } from "@roochnetwork/rooch-sdk";
-import { Agent } from "../types/agent";
+import { Agent } from "../types/agent.ts";
 import { FEATURED_AGENTS, TRENDING_AGENTS } from "../config/featured-agents";
 
 export default function useAllAgents() {

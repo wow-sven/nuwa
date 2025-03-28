@@ -1,7 +1,7 @@
 import { useNetworkVariable } from "./use-networks.ts";
 import { useCurrentAddress, useRoochClient } from "@roochnetwork/rooch-sdk-kit";
 import { useQuery } from "@tanstack/react-query";
-import { AgentCapabilities } from "../types/agent";
+import { AgentCapabilities } from "../types/agent.ts";
 
 interface AgentCap {
   id: string;

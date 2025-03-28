@@ -1,21 +1,9 @@
+import { Message } from './message';
+import { Member } from "./channel";
+import { QueryObserverResult } from "@tanstack/react-query";
+import type { Agent } from "./agent";
+
 export type MessageRole = 'user' | 'assistant'
-
-export interface Attachment {
-  attachment_type: number;
-  attachment_json: string;
-}
-
-export interface Message {
-  index: number;
-  channel_id: string;
-  sender: string;
-  content: string;
-  timestamp: number;
-  message_type: number;
-  mentions: string[];
-  reply_to: number;
-  attachments: Attachment[];
-}
 
 export interface Topic {
   id: string
@@ -43,4 +31,28 @@ export interface ChatProps {
 export interface MessageProps {
   message: Message
   onTopicClick?: (topicId: string) => void
+}
+
+export interface Channel {
+  id: string;
+  title: string;
+}
+
+export interface AgentChatContextType {
+  agent: Agent | undefined;
+  isAgentPending: boolean;
+  channels: Channel[] | undefined;
+  isChannelsPending: boolean;
+  refetchChannels: () => Promise<QueryObserverResult<Channel[], Error>>;
+  members: Member[];
+  memberCount: number | undefined;
+  isJoined: boolean | undefined;
+  refetchJoinStatus: () => Promise<QueryObserverResult<boolean, Error>>;
+  refetchJoinedAgent: () => Promise<QueryObserverResult<Agent[], Error>>;
+  refetchChannelMembers: () => Promise<QueryObserverResult<Member[], Error>>;
+  refetchMessageCount: () => Promise<QueryObserverResult<number, Error>>;
+  refetchMessages: () => void;
+  currentAddress: string | undefined;
+  selectedChannel: string | undefined;
+  setSelectedChannel: (channelId: string | undefined) => void;
 } 

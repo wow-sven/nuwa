@@ -18,8 +18,7 @@ import { SessionKeyGuard, useCurrentAddress } from "@roochnetwork/rooch-sdk-kit"
 import { RoochAddress, Serializer } from "@roochnetwork/rooch-sdk";
 import { useNetworkVariable } from "../hooks/use-networks";
 import useAgentTask from "../hooks/use-agent-task";
-import { TaskSpecificationEditor } from "../components/TaskSpecificationEditor";
-import { TaskSpecification } from "../types/taska";
+import { TaskSpecification } from "../types/task-types";
 import { createEmptyTaskSpec } from "../utils/task";
 import { useUpdateAgentTaskTask } from "../hooks/use-agent-task-update";
 import { useAgentMemories } from "../hooks/use-agent-memories";
@@ -717,7 +716,7 @@ export function AgentProfile() {
                                   const newTasks = [...taskSpecs];
                                   newTasks[index] = {
                                     ...newTasks[index],
-                                    arguments: [...(newTasks[index].arguments || []), { name: '', type_desc: '', description: '', required: false }]
+                                    arguments: [...(newTasks[index].arguments || []), { name: '', type: 'String', type_desc: '', description: '', required: false }]
                                   };
                                   setTaskSpecs(newTasks);
                                 }}

@@ -8,7 +8,7 @@ import useAgentJoined from '../hooks/use-agent-joined';
 import useChannelMessageCount from '../hooks/use-channel-message-count';
 import useChannelMessages from '../hooks/use-channel-messages';
 import { useCurrentAddress } from "@roochnetwork/rooch-sdk-kit";
-import { AgentChatContextType } from '../types/agent-chat';
+import { AgentChatContextType } from '../types/chat';
 
 const AgentChatContext = createContext<AgentChatContextType | undefined>(undefined);
 
