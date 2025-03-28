@@ -13,6 +13,7 @@ import { Header } from './components/layout/Header'
 import { HelmetProvider } from 'react-helmet-async'
 import { ThemeProvider, useTheme } from './providers/ThemeProvider'
 import { GetRGAS } from './pages/GetRGAS'
+import { GetRGASTestnet } from './pages/GetRGASTestNet'
 import { RiskWarningModal } from './components/RiskWarningModal'
 import { useConnectionStatus } from '@roochnetwork/rooch-sdk-kit'
 
@@ -55,6 +56,7 @@ function AppContent() {
             <Route path="/allagents" element={<AllAgents />} />
             <Route path="/docs/:docId" element={<DocPage />} />
             <Route path="/getrgas" element={<GetRGAS />} />
+            <Route path="/getrgas-testnet" element={<GetRGASTestnet />} />
           </Routes>
         </div>
       </div>

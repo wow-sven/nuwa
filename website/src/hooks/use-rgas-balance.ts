@@ -24,7 +24,8 @@ export default function useRgasBalance(address: string | undefined): RgasBalance
   })
 
   return {
-    balance: rGas?.fixedBalance || 0,
+
+    balance: rGas ? (rGas?.fixedBalance || 0) : undefined,
     isPending,
     isError,
     refetchBalance

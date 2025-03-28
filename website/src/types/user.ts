@@ -78,7 +78,7 @@ export interface UserInfo {
 }
 
 export interface RgasBalance {
-  balance: number;
+  balance: number | undefined;
   isPending: boolean;
   isError: boolean;
   refetchBalance: () => void;
