@@ -22,6 +22,7 @@ export function Header({ isDarkMode }: HeaderProps) {
     const subscribeOnRequest = useSubscribeOnRequest()
     const { userInfo } = useUserInfo(address?.genRoochAddress().toHexAddress())
     const hasShownToast = useRef(false)
+    const hasShownProfileToast = useRef(false)
 
     useEffect(() => {
         const unsubscribe = subscribeOnRequest((status) => {
@@ -57,19 +58,42 @@ export function Header({ isDarkMode }: HeaderProps) {
         }
     }, [connectionStatus, address])
 
+    // Show profile creation toast when user has RGAS but no username
+    useEffect(() => {
+        if (connectionStatus === 'connected' && address && userInfo && !userInfo?.name && rGas && rGas > 0 && !hasShownProfileToast.current) {
+            hasShownProfileToast.current = true
+            toast(
+                <div className="flex flex-col gap-1 text-sm w-full">
+                    <div className='font-bold'>Create your profile</div>
+                    <Link
+                        to={`/profile/${address?.genRoochAddress().toBech32Address()}`}
+                        className="text-purple-500 hover:text-purple-600 font-medium dark:text-purple-200 dark:hover:text-purple-300"
+                    >
+                        Click here to set up your profile
+                    </Link>
+                </div>,
+                {
+                    duration: 5000,
+                    position: 'top-center',
+                    className: 'mt-4 bg-purple-50 border border-purple-200 text-purple-800 dark:bg-purple-900 dark:border-purple-800 dark:text-purple-300',
+                    icon: '👤'
+                }
+            )
+        }
+    }, [connectionStatus, address, userInfo, rGas])
+
     // Show RGAS toast when balance is 0
     useEffect(() => {
-        if (connectionStatus === 'connected' && address && rGas === 0) {
-            // console.log(rGas)
+        if (connectionStatus === 'connected' && address && rGas === 0 && window.location.pathname !== '/getrgas-testnet') {
             toast(
                 <div className="flex flex-col gap-1 text-sm w-full">
                     <div>No RGAS balance</div>
-                    <a
-                        href="/getrgas-testnet"
+                    <Link
+                        to="/getrgas-testnet"
                         className="text-purple-500 hover:text-purple-600 font-medium dark:text-purple-200 dark:hover:text-purple-300"
                     >
                         Click here to get FREE RGAS
-                    </a>
+                    </Link>
                 </div>,
                 {
                     duration: 5000,
