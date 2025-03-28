@@ -4,8 +4,8 @@ export const FEATURED_AGENTS = [
 ] as const;
 
 export const TRENDING_AGENTS = [
-    'nuwa',
-    'gollum',
+    'caishen',
+    'oraclebite',
 ] as const;
 
 export type FeaturedAgent = typeof FEATURED_AGENTS[number];
