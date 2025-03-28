@@ -38,6 +38,29 @@ export function useUserInit({
   return useMutation({
     mutationKey: mutationKeys.initUser(mutationKey),
     mutationFn: async (args) => {
+      console.log(args)
+
+      // verify the parameters
+      if (!args.username) {
+        throw new Error("Username is required");
+      }
+
+      // verify the username length
+      if (args.username.length < 4 || args.username.length > 16) {
+        throw new Error("Username must be between 4-16 characters");
+      }
+
+      // verify the username format
+      if (!/^[a-zA-Z0-9_]+$/.test(args.username)) {
+        throw new Error("Username can only contain letters, numbers, and underscores");
+      }
+
+      // verify the username cannot be all numbers
+      if (/^\d+$/.test(args.username)) {
+        throw new Error("Username cannot be all numbers");
+      }
+
+
       const tx = new Transaction();
       tx.callFunction({
         target: `${packageId}::user_profile::init_profile`,
