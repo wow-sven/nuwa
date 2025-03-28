@@ -4,6 +4,7 @@ import { Message } from "../../../../types/message";
 import useChannelMessageCount from "../../../../hooks/use-channel-message-count";
 import useChannelMessages from "../../../../hooks/use-channel-messages";
 import { useAgentChat } from "../../../../contexts/AgentChatContext";
+import { RoochAddress } from "@roochnetwork/rooch-sdk";
 
 /**
  * Props for the MessageList component
@@ -453,14 +454,23 @@ export function MessageList({
         const lastMessage = allMessages[allMessages.length - 1];
         const isLastMessageFromUser = isCurrentUser(lastMessage);
 
-        // 只检查最后一条用户消息是否有回复
+        // 检查最后一条用户消息是否有回复，并且消息是发送给当前 agent 的
         if (isLastMessageFromUser) {
+            const isMessageToAgent = Boolean(agentAddress && lastMessage.mentions.some(mention => {
+                try {
+                    const mentionAddress = new RoochAddress(mention).toBech32Address();
+                    return mentionAddress === agentAddress;
+                } catch (error) {
+                    console.error('Error parsing mention address:', error);
+                    return false;
+                }
+            }));
             const hasReply = allMessages.some(m => isAI(m) && m.reply_to === lastMessage.index);
-            onAIThinkingChange?.(!hasReply);
+            onAIThinkingChange?.(isMessageToAgent && !hasReply);
         } else {
             onAIThinkingChange?.(false);
         }
-    }, [allMessages, isCurrentUser, isAI, onAIThinkingChange]);
+    }, [allMessages, isCurrentUser, isAI, onAIThinkingChange, agentAddress]);
 
     return (
         <div ref={messagesContainerRef} className="h-full overflow-y-auto p-4 space-y-4 relative">
@@ -479,7 +489,7 @@ export function MessageList({
             )}
 
             {/* Message loading status */}
-            {allMessages.length === 0 && (isMessagesLoading || currentQueryPage !== null) && (
+            {allMessages.length === 0 && isMessagesLoading && (
                 <div className="flex justify-center py-4 flex-col items-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mb-2"></div>
                     <div className="text-gray-500">Loading messages...</div>
@@ -487,7 +497,7 @@ export function MessageList({
             )}
 
             {/* Message list */}
-            {allMessages.length === 0 && !isMessagesLoading && currentQueryPage === null ? (
+            {allMessages.length === 0 && !isMessagesLoading ? (
                 <div className="text-center text-gray-500 py-2">
                     No messages yet, start chatting!
                 </div>
