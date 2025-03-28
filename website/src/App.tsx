@@ -31,7 +31,10 @@ function AppContent() {
   // Show risk warning when wallet is connected
   useEffect(() => {
     if (connectionStatus === 'connected') {
-      setShowRiskWarning(true)
+      const hasSeenWarning = localStorage.getItem('hasSeenRiskWarning')
+      if (!hasSeenWarning) {
+        setShowRiskWarning(true)
+      }
     }
   }, [connectionStatus])
 

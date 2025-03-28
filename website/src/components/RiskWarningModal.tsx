@@ -36,7 +36,10 @@ export function RiskWarningModal({ isOpen, onClose }: RiskWarningModalProps) {
                 </div>
                 <div className="mt-6 flex justify-end">
                     <button
-                        onClick={onClose}
+                        onClick={() => {
+                            localStorage.setItem('hasSeenRiskWarning', 'true')
+                            onClose()
+                        }}
                         disabled={!isChecked}
                         className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
