@@ -129,7 +129,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                     <img
                       src={agent.avatar}
                       alt={agent.name}
-                      className="w-10 h-10 rounded-full aspect-square object-cover flex-shrink-0"
+                      className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-full aspect-square object-cover flex-shrink-0"
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -160,7 +160,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                   <img
                     src={agent.avatar}
                     alt={agent.name}
-                    className="w-10 h-10 rounded-full aspect-square object-cover"
+                    className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-full aspect-square object-cover"
                   />
                 </div>
               ))}
