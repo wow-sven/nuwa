@@ -7,7 +7,7 @@ module nuwa_framework::channel_entry {
     use rooch_framework::gas_coin::RGas;
     use rooch_framework::account_coin_store;
     use nuwa_framework::channel::{Self, Channel};
-    use nuwa_framework::agent::{Self, Agent};
+    use nuwa_framework::agent;
     use nuwa_framework::agent_runner;
     use nuwa_framework::config;
     use nuwa_framework::message_for_agent;
@@ -94,29 +94,22 @@ module nuwa_framework::channel_entry {
         let message_ids = channel::get_last_messages(channel_obj, message_limit);
         let messages = message::get_messages_by_ids(&message_ids);
         
-        let message_input = message_for_agent::new_agent_input_v2(messages);
+        let message_input = message_for_agent::new_agent_input(messages);
         let agent = agent::borrow_mut_agent_by_address(ai_addr);
         agent_runner::submit_input_internal(agent, message_input, fee);
     }
 
+
     public entry fun create_topic_channel(
         user_account: &signer,
-        agent: &mut Object<Agent>,
         parent_channel_obj: &mut Object<Channel>,
         topic: String,
         join_policy: u8,
     ) {
-        channel::create_topic_channel(user_account, agent, parent_channel_obj, topic, join_policy);
+        channel::create_topic_channel(user_account, parent_channel_obj, topic, join_policy);
     }
 
-    public entry fun create_topic_channel_v2(
-        user_account: &signer,
-        parent_channel_obj: &mut Object<Channel>,
-        topic: String,
-        join_policy: u8,
-    ) {
-        channel::create_topic_channel_v2(user_account, parent_channel_obj, topic, join_policy);
-    }
+    
     public entry fun join_channel(
         account: &signer,
         channel_obj: &mut Object<Channel>,

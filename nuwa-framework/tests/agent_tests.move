@@ -14,6 +14,7 @@ module nuwa_framework::agent_tests {
     use nuwa_framework::message_for_agent;
     use nuwa_framework::prompt_input;
     use nuwa_framework::user_profile;
+    use nuwa_framework::user_profile_for_agent;
     use nuwa_framework::test_helper;
     
     #[test]
@@ -29,7 +30,7 @@ module nuwa_framework::agent_tests {
         );
         
         // Create AI home channel
-        let channel_id = channel::create_ai_home_channel(agent);
+        let channel_id = channel::create_ai_home_channel_for_test(agent);
        
         let test_user_signer = test_helper::create_test_account();
         let test_user = signer::address_of(&test_user_signer);
@@ -50,10 +51,11 @@ module nuwa_framework::agent_tests {
         
         let coin_input = agent_input_info::new_coin_input_info_by_type<RGas>(1000000000u256);
 
-        let agent_input = message_for_agent::new_agent_input_v2(vector[test_message]);
+        let agent_input = message_for_agent::new_agent_input(vector[test_message]);
         std::debug::print(&agent_input);
-        
-        let agent_input_info = agent_input::into_agent_input_info(agent_input, coin_input);
+
+        let sender_profile = user_profile_for_agent::get_user_profile(test_user);
+        let agent_input_info = agent_input::into_agent_input_info(agent_input, sender_profile, coin_input);
         
         // Get first prompt
         let prompt_input = agent_runner::generate_system_prompt(agent, agent_input_info);

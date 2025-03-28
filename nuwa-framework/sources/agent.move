@@ -7,6 +7,7 @@ module nuwa_framework::agent {
     use moveos_std::signer;
     use moveos_std::timestamp;
     use moveos_std::decimal_value::{Self, DecimalValue};
+    use moveos_std::string_utils;
 
     use rooch_framework::coin::{Self, Coin};
     use rooch_framework::account_coin_store;
@@ -82,8 +83,9 @@ module nuwa_framework::agent {
         let agent_address = signer::address_of(&agent_signer);
         account_coin_store::deposit<RGas>(agent_address, initial_fee);
 
+        let lowercase_username = string_utils::to_lower_case(&username);
         // Create a user profile for the agent
-        user_profile::init_profile(&agent_signer, name, username, avatar);
+        user_profile::init_profile(&agent_signer, name, lowercase_username, avatar);
         //The name and username has validated in user_profile::init_profile
         validate_agent_description(&description);
         validate_agent_instructions(&instructions);
@@ -91,7 +93,7 @@ module nuwa_framework::agent {
         let agent = Agent {
             agent_address,
             name,
-            username,
+            username: lowercase_username,
             avatar,
             description,
             instructions,
@@ -351,15 +353,9 @@ module nuwa_framework::agent {
     fun sync_agent_profile(agent_obj: &mut Object<Agent>) {
         let agent_signer = create_agent_signer(agent_obj);
         let agent = object::borrow(agent_obj);
-        
-        if (!user_profile::exists_profile(agent.agent_address)) {
-            //TODO remove this after clearing the old agent data.
-            user_profile::init_profile_internal(agent.agent_address, agent.name, agent.username, agent.avatar);
-        }else{
-            let profile_obj = user_profile::borrow_mut_profile(&agent_signer);
-            user_profile::update_user_profile_name(profile_obj, agent.name);
-            user_profile::update_user_profile_avatar(profile_obj, agent.avatar);
-        }
+        let profile_obj = user_profile::borrow_mut_profile(&agent_signer);
+        user_profile::update_user_profile_name(profile_obj, agent.name);
+        user_profile::update_user_profile_avatar(profile_obj, agent.avatar);
     }
 
     /// Update agent's instructions
@@ -425,6 +421,12 @@ module nuwa_framework::agent {
     ) {
         let task_specs = task_spec::task_specs_from_json(task_specs_json);
         update_agent_task_specs(cap, task_specs);
+    }
+
+    entry fun fix_agent_username(agent_obj: &mut Object<Agent>) {
+        let agent = object::borrow_mut(agent_obj);
+        let lowercase_username = string_utils::to_lower_case(&agent.username);
+        agent.username = lowercase_username;
     }
 
 
