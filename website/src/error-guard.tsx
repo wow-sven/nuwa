@@ -1,9 +1,11 @@
+import { ErrorValidateCantPayGasDeposit } from '@roochnetwork/rooch-sdk';
 import { useSubscribeOnError } from '@roochnetwork/rooch-sdk-kit'
 import { useEffect } from "react";
 import toast from 'react-hot-toast';
 
 export function ErrorGuard() {
   const subscribeToError = useSubscribeOnError();
+  
 
   useEffect(() => {
     const unsubscribe = subscribeToError((error) => {
@@ -14,8 +16,14 @@ export function ErrorGuard() {
         return
       }
 
+      let msg = error.message
+
+      if (error.code === ErrorValidateCantPayGasDeposit) {
+        msg = 'Your gas balance is insufficient. Please add more gas to continue.'
+      }
+
       // Display error toast in bottom-left corner
-      toast.error(error.message, {
+      toast.error(msg, {
         position: 'bottom-left',
         duration: 5000, // Auto dismiss after 5 seconds
       });
