@@ -37,34 +37,27 @@ export default function useAllBalance(address: string | undefined): AllBalance {
   } = useQuery({
     queryKey: ['useBalance', address],
     queryFn: async () => {
-      console.log('Fetching balances for address:', address);
       if (!address) return null;
 
       try {
         // Ensure correct address format
         const roochAddress = new RoochAddress(address);
         const bech32Address = roochAddress.toBech32Address();
-        console.log('Converted address:', bech32Address);
 
         const balance = await client
           .getBalances({
             owner: bech32Address,
           })
-        console.log('Raw balance data:', balance);
         return balance as BalanceResponse;
       } catch (error) {
-        console.error('Error fetching balances:', error);
         throw error;
       }
     },
     enabled: !!address
   })
 
-  console.log('Balance data after query:', balance);
-
   // Transform balance data into TokenBalance format
   const tokenBalances: TokenBalance[] = (balance?.data || []).map((item: BalanceInfoView) => {
-    console.log('Processing balance item:', item);
     const token = transformToToken(item);
     return {
       token,
@@ -74,11 +67,8 @@ export default function useAllBalance(address: string | undefined): AllBalance {
     }
   })
 
-  console.log('Processed token balances:', tokenBalances);
-
   // Filter out tokens with zero balance
   const nonZeroBalances = tokenBalances.filter(item => item.balance > 0)
-  console.log('Non-zero balances:', nonZeroBalances);
 
   return {
     balances: nonZeroBalances,

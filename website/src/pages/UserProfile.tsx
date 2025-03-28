@@ -11,6 +11,7 @@ import { SessionKeyGuard, useCurrentAddress } from '@roochnetwork/rooch-sdk-kit'
 import { useTransfer } from '../hooks/use-transfer';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Token } from '../types/user';
 
 const roochscanBaseUrl = "https://test.roochscan.io";
 
@@ -199,10 +200,10 @@ export const UserProfile = () => {
     }
   }
 
-  const handleTransfer = async (token: any) => {
+  const handleTransfer = async (token: Token) => {
     setTransferForm(prev => ({
       ...prev,
-      coinType: token.coin_type
+      coinType: token.id
     }))
     setCurrentToken({
       name: token.name,
@@ -213,7 +214,6 @@ export const UserProfile = () => {
 
   const handleTransferSubmit = async () => {
     try {
-      console.log(transferForm.coinType);
       await transfer({
         recipient: transferForm.recipient,
         amount: BigInt(Number(transferForm.amount) * 100_000_000), // Convert to smallest unit
@@ -501,14 +501,16 @@ export const UserProfile = () => {
                               {tokenBalance.token.symbol}
                             </p>
                           </div>
-                          <SessionKeyGuard onClick={() => handleTransfer(tokenBalance.token)}>
-                            <button
-                              className="px-3 py-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-600 dark:border-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
-                              disabled={isTransferring}
-                            >
-                              {isTransferring ? 'Transferring...' : 'Transfer'}
-                            </button>
-                          </SessionKeyGuard>
+                          {isOwnProfile && (
+                            <SessionKeyGuard onClick={() => handleTransfer(tokenBalance.token)}>
+                              <button
+                                className="px-3 py-1 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 border border-purple-600 dark:border-purple-400 rounded-md hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                                disabled={isTransferring}
+                              >
+                                {isTransferring ? 'Transferring...' : 'Transfer'}
+                              </button>
+                            </SessionKeyGuard>
+                          )}
                         </div>
                       </div>
                     ))
