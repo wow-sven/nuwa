@@ -7,6 +7,7 @@ import { useChannelMessageSend } from "../../../../hooks/use-channel-message-sen
 import { useChannelJoin } from "../../../../hooks/use-channel-join";
 import { useNetworkVariable } from "../../../../hooks/use-networks";
 import { useAgentChat } from "../../../../contexts/AgentChatContext";
+import { RoochAddress } from "@roochnetwork/rooch-sdk";
 
 /**
  * Props for the MessageInput component
@@ -254,13 +255,19 @@ export function MessageInput({
                 isAgent: true
             };
         }
-        return member;
+        return {
+            ...member,
+            isAgent: false
+        };
     });
 
     // Move agent to the top of the list
-    const sortedMembers = [...allMembers].sort((a, b) => {
-        if (a.isAgent) return -1;
-        if (b.isAgent) return 1;
+    const sortedMembers = [...members].sort((a, b) => {
+        const aAddr = new RoochAddress(a.address).toHexAddress();
+        const bAddr = new RoochAddress(b.address).toHexAddress();
+        const agentAddr = new RoochAddress(agent?.address || '').toHexAddress();
+        if (aAddr === agentAddr) return -1;
+        if (bAddr === agentAddr) return 1;
         return 0;
     });
 
@@ -397,31 +404,34 @@ export function MessageInput({
                                     maxHeight: `${Math.min(filteredMembers.length * 48 + 16, 4 * 48 + 16)}px`
                                 }}
                             >
-                                {filteredMembers.map((member, index) => (
-                                    <div
-                                        key={member.address}
-                                        className={`px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ${index === selectedIndex ? 'bg-gray-100 dark:bg-gray-700' : ''
-                                            }`}
-                                        onClick={() => {
-                                            setSelectedIndex(index);
-                                            handleMentionSelect(member);
-                                        }}
-                                    >
-                                        <div className="font-medium flex items-center">
-                                            {member.isAgent && (
-                                                <span className="mr-2 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded">
-                                                    AI
-                                                </span>
-                                            )}
-                                            {member.name || member.username || member.address}
-                                        </div>
-                                        {member.name && member.username && (
-                                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                                                @{member.username}
+                                {filteredMembers.map((member, index) => {
+                                    const isAgent = new RoochAddress(member.address).toHexAddress() === new RoochAddress(agent?.address || '').toHexAddress();
+                                    return (
+                                        <div
+                                            key={member.address}
+                                            className={`px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer ${index === selectedIndex ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                                }`}
+                                            onClick={() => {
+                                                setSelectedIndex(index);
+                                                handleMentionSelect(member);
+                                            }}
+                                        >
+                                            <div className="font-medium flex items-center">
+                                                {member.name || member.username || member.address}
+                                                {isAgent && (
+                                                    <span className="ml-2 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded font-semibold">
+                                                        AI Agent
+                                                    </span>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
+                                            {member.name && member.username && (
+                                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                    @{member.username}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
 
