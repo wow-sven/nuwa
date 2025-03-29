@@ -470,7 +470,7 @@ export function MessageInput({
                         isPending={sendingMessage || joiningChannel}
                         className={isJoined ? '' : 'w-full'}
                         onClick={() => { }}
-                        disabled={!inputMessage.trim() && mentions.length === 0}
+                        disabled={isJoined && !inputMessage.trim() && mentions.length === 0}
                     >
                         {
                             isJoined ? (
