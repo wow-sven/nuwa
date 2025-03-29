@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   PencilIcon,
   ArrowLeftIcon,
@@ -25,14 +25,17 @@ import { createEmptyTaskSpec } from "../utils/task";
 import { useUpdateAgentTaskTask } from "../hooks/use-agent-task-update";
 import { useAgentMemories } from "../hooks/use-agent-memories";
 
+interface AgentProfileProps {
+  address: string
+}
+
 const roochscanBaseUrl = "https://test.roochscan.io";
 
-export function AgentProfile() {
-  const { address: agentAddress } = useParams<{ address: string }>();
+export function AgentProfile({ address }: AgentProfileProps) {
   const currentAddress = useCurrentAddress()?.genRoochAddress().toHexAddress();
   const packageId = useNetworkVariable("packageId");
   const agentId = Serializer.accountNamedObjectID(
-    new RoochAddress(agentAddress || "").toHexAddress(),
+    new RoochAddress(address).toHexAddress(),
     {
       address: packageId,
       module: "agent",
@@ -339,7 +342,7 @@ export function AgentProfile() {
           "View detailed information about this AI agent on Nuwa platform."
         }
         keywords={`${agent?.name}, AI Agent, Web3 AI, Autonomous Agent, Crypto Agent, Blockchain AI, Nuwa Agent`}
-        ogUrl={`https://nuwa.dev/agents/${agentAddress}`}
+        ogUrl={`https://nuwa.dev/agents/${address}`}
       />
       <ToastContainer />
       <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">

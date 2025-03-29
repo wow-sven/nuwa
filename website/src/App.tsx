@@ -15,7 +15,7 @@ import { GetRGAS } from './pages/GetRGAS'
 import { GetRGASTestnet } from './pages/GetRGASTestNet'
 import { RiskWarningModal } from './components/RiskWarningModal'
 import { useConnectionStatus } from '@roochnetwork/rooch-sdk-kit'
-import { LoadingScreen } from './components/AgentChat/LoadingScreen'
+import { LoadingScreen } from './components/layout/LoadingScreen'
 import { NotFound } from './pages/NotFound'
 
 // preload AgentChat component
@@ -77,7 +77,7 @@ function AppContent() {
               <Route path="/studio" element={<AIStudio />} />
               <Route path="/studio/create" element={<CreateAgent />} />
               <Route path="/agent/:id" element={<AgentChat />} />
-              <Route path="/profile/:address" element={<ProfileRouter />} />
+              <Route path="/profile/:identifier" element={<ProfileRouter />} />
               <Route path="/allagents" element={<AllAgents />} />
               <Route path="/docs/:docId" element={<DocPage />} />
               <Route path="/getrgas" element={<GetRGAS />} />

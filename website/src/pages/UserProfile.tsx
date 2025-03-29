@@ -1,20 +1,17 @@
 import { ArrowLeftIcon } from '@heroicons/react/24/outline'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { SEO } from '../components/layout/SEO'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import { ProfilePanel } from '../components/Profile/ProfilePanel'
 import { PortfolioPanel } from '../components/Profile/PortfolioPanel'
 
+interface UserProfileProps {
+  address: string
+}
 
-
-export const UserProfile = () => {
+export const UserProfile = ({ address }: UserProfileProps) => {
   const navigate = useNavigate()
-  const { address } = useParams()
-
-  if (!address) {
-    return <div>No address provided</div>
-  }
 
   return (
     <>

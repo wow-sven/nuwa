@@ -3,7 +3,7 @@ import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat
 import { useEffect } from "react";
 import { AgentChatProvider, useAgentChat } from "../contexts/AgentChatContext";
 import useAgent from "../hooks/use-agent";
-import { LoadingScreen } from "../components/AgentChat/LoadingScreen";
+import { LoadingScreen } from "../components/layout/LoadingScreen";
 
 /**
  * AgentChat component - Main chat interface for interacting with an AI agent
