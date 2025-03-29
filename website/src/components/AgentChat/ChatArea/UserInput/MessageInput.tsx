@@ -208,6 +208,10 @@ export function MessageInput({
 
             handleSendMessage(inputMessage);
             setInputMessage("");
+            // 重置输入框高度
+            if (inputRef.current) {
+                inputRef.current.style.height = '24px';
+            }
         }
     };
 
@@ -225,8 +229,11 @@ export function MessageInput({
 
         // 自动调整高度
         if (inputRef.current) {
+            // 先重置高度为 auto，这样可以获取正确的最小高度
             inputRef.current.style.height = 'auto';
-            inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+            // 获取 scrollHeight 并设置新的高度
+            const newHeight = Math.max(inputRef.current.scrollHeight, 24); // 确保最小高度为 24px
+            inputRef.current.style.height = `${newHeight}px`;
         }
 
         if (lastAtSymbol !== -1) {
