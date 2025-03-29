@@ -14,7 +14,7 @@ interface ProfilePanelProps {
     address: string
 }
 
-export const ProfilePanel = ({
+export const UserProfilePanel = ({
     address
 }: ProfilePanelProps) => {
     const currentAddress = useCurrentAddress()

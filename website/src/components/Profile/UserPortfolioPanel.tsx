@@ -11,7 +11,7 @@ interface PortfolioPanelProps {
     address: string
 }
 
-export const PortfolioPanel = ({
+export const UserPortfolioPanel = ({
     address
 }: PortfolioPanelProps) => {
     const currentAddress = useCurrentAddress()
