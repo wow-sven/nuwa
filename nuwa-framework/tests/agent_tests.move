@@ -4,8 +4,9 @@ module nuwa_framework::agent_tests {
     use std::string;
     use std::vector;
     use moveos_std::signer;
+    use moveos_std::object;
     use rooch_framework::gas_coin::RGas;
-    use nuwa_framework::agent;
+    use nuwa_framework::agent::{Self, Agent};
     use nuwa_framework::agent_runner;
     use nuwa_framework::agent_input;
     use nuwa_framework::channel;
@@ -28,6 +29,12 @@ module nuwa_framework::agent_tests {
             string::utf8(b"A specialized Move programming assistant with expertise in blockchain development"),
             string::utf8(b"Patient and methodical in explanations"),
         );
+
+        let agent_id = object::id(agent);
+        //release the agent reference
+        let _ = agent;
+        agent::update_agent_temperature(&mut cap, 19);
+        let agent = object::borrow_mut_object_shared<Agent>(agent_id); 
         
         // Create AI home channel
         let channel_id = channel::create_ai_home_channel_for_test(agent);
@@ -63,6 +70,8 @@ module nuwa_framework::agent_tests {
         // Print first prompt for debugging
         debug::print(&string::utf8(b"First Prompt:"));
         debug::print(string::bytes(&prompt));
+
+        //TODO output the request
 
         // Clean up
         channel::delete_channel_for_testing(channel_id);

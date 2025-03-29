@@ -21,6 +21,7 @@ module nuwa_framework::agent {
     use nuwa_framework::config;
     use nuwa_framework::user_profile;
     use nuwa_framework::user_input_validator::{validate_agent_description, validate_agent_instructions};
+    
     friend nuwa_framework::memory_action;
     friend nuwa_framework::transfer_action;
     friend nuwa_framework::action_dispatcher;
@@ -34,7 +35,8 @@ module nuwa_framework::agent {
     const ErrorDeprecatedFunction: u64 = 1;
     const ErrorInvalidInitialFee: u64 = 2;
     const ErrorInvalidAgentCap: u64 = 3;
-
+    const ErrorInvalidTemperature: u64 = 4;
+    
     const AGENT_STATUS_DRAFT: u8 = 0;
     const AGENT_STATUS_ACTIVE: u8 = 1;
     const AGENT_STATUS_INACTIVE: u8 = 2;
@@ -370,6 +372,30 @@ module nuwa_framework::agent {
         agent.instructions = new_instructions;
     }
 
+    /// Update agent's temperature
+    /// Only allowed for users who possess the AgentCap for this agent
+    /// The temperature is a value between 0 and 2, from openai docs:
+    /// https://platform.openai.com/docs/api-reference/chat/create#chat-create-temperature
+    /// But we can not use float as argument, so we use u64 to represent the temperature
+    /// The value between 0~20 and will be converted to 0~2
+    public entry fun update_agent_temperature(
+        cap: &mut Object<AgentCap>,
+        new_temperature: u64,
+    ) {
+        let agent_obj_id = agent_cap::get_agent_obj_id(cap);
+        let agent_obj = borrow_mut_agent(agent_obj_id);
+        update_agent_temperature_internal(agent_obj, new_temperature);
+    }
+
+    fun update_agent_temperature_internal(
+        agent: &mut Object<Agent>,
+        new_temperature: u64,
+    ) {
+        let agent_ref = object::borrow_mut(agent);
+        assert!(new_temperature >= 0 && new_temperature <= 20, ErrorInvalidTemperature);
+        agent_ref.temperature = decimal_value::new((new_temperature as u256), 1);
+    }
+
     public entry fun activate_agent(cap: &mut Object<AgentCap>) {
         let agent_obj_id = agent_cap::get_agent_obj_id(cap);
         let agent_obj = borrow_mut_agent(agent_obj_id);
@@ -469,4 +495,17 @@ module nuwa_framework::agent {
         assert!(option::is_none(&agent_cap_id), 3);
     }
 
+    #[test]
+    fun test_update_agent_temperature() {
+        use nuwa_framework::ai_request;
+        use moveos_std::json;
+        nuwa_framework::genesis::init_for_test();
+        let (agent, agent_cap) = create_default_test_agent();
+        update_agent_temperature_internal(agent, 19);
+        let temperature = get_agent_temperature(agent);
+        let request = ai_request::new_chat_request(string::utf8(b"gpt-4o"), vector[], temperature);
+        let request_json = string::utf8(json::to_json(&request));
+        std::debug::print(&request_json);
+        destroy_agent_cap(agent, agent_cap);
+    }
 }

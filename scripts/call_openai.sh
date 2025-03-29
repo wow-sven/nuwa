@@ -22,7 +22,7 @@ response=$(curl -s -X POST https://api.openai.com/v1/chat/completions \
       \"content\": ${escaped_prompt}
     }
   ],
-  \"temperature\": 1,
+  \"temperature\": 1.1,
   \"max_tokens\": 2000
 }")
 
