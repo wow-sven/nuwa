@@ -14,8 +14,8 @@ function MemberItem({ member }: MemberItemProps) {
     const { agent } = useAgentChat();
 
     const avatar = member.isAgent ? agent?.avatar : (userInfo?.avatar || member.avatar);
-    const name = member.isAgent ? agent?.name : (userInfo?.name || toShortStr(member.address));
-    const username = member.isAgent ? agent?.username : (userInfo?.username || toShortStr(member.address));
+    const name = member.isAgent ? agent?.name : (userInfo?.name || toShortStr(new RoochAddress(member.address).toBech32Address()));
+    const username = member.isAgent ? agent?.username : (userInfo?.username || toShortStr(new RoochAddress(member.address).toBech32Address()));
 
     const profileUrl = `/profile/${new RoochAddress(member.address).toBech32Address()}`;
 

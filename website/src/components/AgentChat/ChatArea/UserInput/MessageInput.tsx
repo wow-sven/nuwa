@@ -7,7 +7,7 @@ import { useChannelMessageSend } from "../../../../hooks/use-channel-message-sen
 import { useChannelJoin } from "../../../../hooks/use-channel-join";
 import { useNetworkVariable } from "../../../../hooks/use-networks";
 import { useAgentChat } from "../../../../contexts/AgentChatContext";
-import { RoochAddress } from "@roochnetwork/rooch-sdk";
+import { RoochAddress, toShortStr } from "@roochnetwork/rooch-sdk";
 
 /**
  * Props for the MessageInput component
@@ -429,7 +429,7 @@ export function MessageInput({
                                             }}
                                         >
                                             <div className="font-medium flex items-center">
-                                                {member.name || member.username || member.address}
+                                                {member.name || member.username || toShortStr(new RoochAddress(member.address).toBech32Address())}
                                                 {isAgent && (
                                                     <span className="ml-2 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-0.5 rounded font-semibold">
                                                         AI Agent
