@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { PencilIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, ChatBubbleLeftIcon } from "@heroicons/react/24/outline";
 import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
 import { useAgentProfile } from "./AgentProfileContext";
 import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
 
 export function AgentProfilePanel() {
     const { agent, isOwner, caps, updateAgent, refetchAgent } = useAgentProfile();
@@ -311,6 +312,15 @@ export function AgentProfilePanel() {
                             {agent?.description}
                         </p>
                     )}
+                </div>
+                <div className="mt-4">
+                    <Link
+                        to={`/agent/${agent?.username}`}
+                        className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
+                    >
+                        <ChatBubbleLeftIcon className="w-4 h-4 mr-2" />
+                        Start Chat
+                    </Link>
                 </div>
             </div>
         </div>
