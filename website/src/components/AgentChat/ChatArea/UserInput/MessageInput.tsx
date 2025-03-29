@@ -153,11 +153,15 @@ export function MessageInput({
             createSession(sessionCfg)
             return
         }
-        if (inputMessage.trim() && isJoined) {
+
+        if (!isJoined) {
+            handleSendMessage("");
+            return;
+        }
+
+        if (inputMessage.trim()) {
             handleSendMessage(inputMessage);
             setInputMessage("");
-        } else if (!isJoined) {
-            handleSendMessage("");
         }
     };
 
@@ -451,7 +455,12 @@ export function MessageInput({
 
                 {/* Send/Join button with session key guard */}
                 <SessionKeyGuard onClick={handleAction}>
-                    <LoadingButton isPending={sendingMessage || joiningChannel} className={isJoined ? '' : 'w-full'} onClick={() => { }}>
+                    <LoadingButton
+                        isPending={sendingMessage || joiningChannel}
+                        className={isJoined ? '' : 'w-full'}
+                        onClick={() => { }}
+                        disabled={isJoined && !inputMessage.trim()}
+                    >
                         {
                             isJoined ? (
                                 <PaperAirplaneIcon className="w-5 h-5" />
