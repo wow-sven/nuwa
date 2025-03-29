@@ -375,7 +375,10 @@ export function ChatMessage({
             )}
           </div>
           {replyToMessage && (
-            <div className="mb-1 text-xs text-gray-500 bg-gray-100 dark:bg-gray-800 rounded px-2 py-1">
+            <div className={`mb-1 text-xs rounded px-2 py-1 ${isAI
+              ? "bg-purple-100 text-purple-700 dark:bg-purple-800/50 dark:text-purple-200"
+              : "bg-gray-100 text-gray-500 dark:bg-gray-800"
+              }`}>
               <div className="flex flex-col gap-1">
                 <span className="font-medium">
                   Reply to {`@` + replyToUserInfo?.username || replyToUserInfo?.name || shortenAddress(new RoochAddress(replyToMessage.sender).toBech32Address())}
@@ -390,21 +393,15 @@ export function ChatMessage({
           )}
           <div className="relative group">
             <div
-              className={`rounded-lg px-2 py-0.5 ${isCurrentUser
-                ? isToAI
-                  ? "bg-green-100 text-green-900 border border-green-200 dark:bg-green-800 dark:text-white dark:border-green-700"
-                  : hasTransferAttachment
-                    ? "bg-yellow-100 text-yellow-900 border border-yellow-200 dark:bg-yellow-800 dark:text-white dark:border-yellow-700"
-                    : "bg-blue-100 text-blue-900 border border-blue-200 dark:bg-blue-700 dark:text-white dark:border-blue-600"
-                : isAI
-                  ? "bg-purple-100 text-purple-900 border border-purple-200 dark:bg-purple-700 dark:text-white dark:border-purple-600"
-                  : hasTransferAttachment
-                    ? "bg-yellow-100 text-yellow-900 border border-yellow-200 dark:bg-yellow-800 dark:text-white dark:border-yellow-700"
-                    : "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+              className={`rounded-lg px-2 py-0.5 ${isAI
+                ? "bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-white"
+                : hasTransferAttachment
+                  ? "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                  : "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 }`}
             >
               {hasTransferAttachment && transferAttachment && (
-                <div className="mb-2 p-2 bg-white/50 dark:bg-black/20 rounded-xl border border-yellow-200 dark:border-yellow-700">
+                <div className="p-2 my-2 bg-purple-300/80 dark:bg-black/20 rounded-xl">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-yellow-600 dark:text-yellow-400">💸</span>
                     <span>Transfer</span>

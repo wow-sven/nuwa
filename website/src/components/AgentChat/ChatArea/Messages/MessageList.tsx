@@ -439,7 +439,15 @@ export function MessageList({
     }, [currentAddress]);
 
     const isAI = useCallback((message: Message) => {
-        return message.sender === agentAddress;
+        if (!agentAddress) return false;
+        try {
+            const messageSender = new RoochAddress(message.sender).toBech32Address();
+            const agentAddr = new RoochAddress(agentAddress).toBech32Address();
+            return messageSender === agentAddr;
+        } catch (error) {
+            console.error('Error comparing addresses:', error);
+            return false;
+        }
     }, [agentAddress]);
 
     // Manually trigger loading (internal use, no button exposed)
