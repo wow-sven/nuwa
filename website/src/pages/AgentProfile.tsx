@@ -3,15 +3,14 @@ import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { SEO } from "../components/layout/SEO";
-import {
-  AgentProfileProvider,
-  AgentProfilePanel,
-  AgentOverviewPanel,
-  AgentPromptPanel,
-  AgentTasksPanel,
-  AgentMemoriesPanel,
-  AgentTemperaturePanel
-} from "../components/profile";
+import { AgentProfilePanel } from "../components/profile/AgentProfilePanel";
+import { AgentProfileProvider } from "../components/profile/AgentProfileContext";
+import { AgentTasksPanel } from "../components/profile/AgentTasksPanel";
+import { AgentOverviewPanel } from "../components/profile/AgentOverviewPanel";
+import { AgentPromptPanel } from "../components/profile/AgentPromptPanel";
+import { AgentMemoriesPanel } from "../components/profile/AgentMemoriesPanel";
+import { AgentTemperaturePanel } from "../components/profile/AgentTemperaturePanel";
+
 
 interface AgentProfileProps {
   address: string
