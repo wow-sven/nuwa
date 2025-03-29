@@ -14,6 +14,7 @@ export const mutationKeys = {
   updateAgent: formMutationKeyFn('updateAgent'),
   createAgent: formMutationKeyFn('create_agent'),
   updateAgentTask: formMutationKeyFn('update_gent_task'),
+  updateAgentTemperature: formMutationKeyFn('update_agent_temperature'),
   joinChannel: formMutationKeyFn('join_channel'),
   snedChannelMessage: formMutationKeyFn('send_channel_message'),
 }

@@ -3,4 +3,5 @@ export * from './AgentProfilePanel';
 export * from './AgentOverviewPanel';
 export * from './AgentPromptPanel';
 export * from './AgentTasksPanel';
-export * from './AgentMemoriesPanel'; 
+export * from './AgentMemoriesPanel';
+export * from './AgentTemperaturePanel'; 

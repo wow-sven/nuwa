@@ -9,7 +9,8 @@ import {
   AgentOverviewPanel,
   AgentPromptPanel,
   AgentTasksPanel,
-  AgentMemoriesPanel
+  AgentMemoriesPanel,
+  AgentTemperaturePanel
 } from "../components/profile";
 
 interface AgentProfileProps {
@@ -47,6 +48,9 @@ export function AgentProfile({ address }: AgentProfileProps) {
 
           {/* Prompt Section */}
           <AgentPromptPanel />
+
+          {/* Temperature Section */}
+          <AgentTemperaturePanel />
 
           {/* Tasks Section */}
           <AgentTasksPanel />
