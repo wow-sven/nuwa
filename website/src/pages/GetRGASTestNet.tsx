@@ -38,7 +38,7 @@ export const GetRGASTestnet = () => {
             const data = await response.json()
             await refetchBalance()
             setHasClaimed(true)
-            toast.success(`Successfully claimed ${data.gas || 50} RGAS!`)
+            toast.success(`Successfully claimed ${Math.floor((data.gas || 5000000000) / 100000000)} RGAS!`)
         } catch (error) {
             console.error('Claim failed:', error)
             setError(error instanceof Error ? error.message : 'Failed to claim RGAS')
