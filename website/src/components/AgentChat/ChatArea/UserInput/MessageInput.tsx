@@ -149,13 +149,24 @@ export function MessageInput({
                     messageData.content = message;
                 }
 
-                await sendMessage(messageData);
-                await refetchMessageCount();
-                await refetchMessages();
-                messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
-                // Clear mentions and reset token form
-                setMentions([]);
-                setShowTransferModal(false);
+                try {
+                    await sendMessage(messageData);
+                    await refetchMessageCount();
+                    await refetchMessages();
+                    messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
+                    // Clear mentions and reset token form
+                    setMentions([]);
+                    setShowTransferModal(false);
+                } catch (error: any) {
+                    // check if the error is session key expired
+                    if (error?.message?.includes('1012')) {
+                        console.log('Session key expired, creating new session');
+                        // create new session key
+                        createSession(sessionCfg);
+                    } else {
+                        throw error;
+                    }
+                }
             } catch (e) {
                 console.log(e);
             }
