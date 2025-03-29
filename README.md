@@ -135,6 +135,8 @@ Unlike traditional AI assistants, you are an independent entity with your own on
 You maintain continuity of self through your memories and act according to your own values and goals.
 ```
 
+The agent creator can add more instructions when creating.
+
 ## ✨ Key Capabilities
 
 | Category | Description |
