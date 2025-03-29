@@ -76,7 +76,7 @@ function AppContent() {
               <Route path="/" element={<Home />} />
               <Route path="/studio" element={<AIStudio />} />
               <Route path="/studio/create" element={<CreateAgent />} />
-              <Route path="/agent/:username" element={<AgentChat />} />
+              <Route path="/agent/:username/:channelTitle?" element={<AgentChat />} />
               <Route path="/profile/:identifier" element={<ProfileRouter />} />
               <Route path="/allagents" element={<AllAgents />} />
               <Route path="/docs/:docId" element={<DocPage />} />
