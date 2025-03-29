@@ -5,7 +5,7 @@ import useRgasBalance from "../../hooks/use-rgas-balance"
 import useUserInfo from '../../hooks/use-user-info'
 import { useUserUpdate } from '../../hooks/use-user-update'
 import { useUserInit } from '../../hooks/use-user-init'
-import { EditProfileModal } from './EditProfileModal'
+import { EditProfileModal } from '../profile/EditUserProfileModal'
 import { useState } from 'react'
 
 const roochscanBaseUrl = "https://test.roochscan.io"
@@ -47,12 +47,12 @@ export const ProfilePanel = ({
         return <div>Error loading user profile</div>
     }
 
-    const handlerRefreshUserInfo =async () =>{
-        const s = setTimeout(async() => {
+    const handlerRefreshUserInfo = async () => {
+        const s = setTimeout(async () => {
             await refetchUserInfo()
             clearTimeout(s)
         }, 1000);
-        
+
     }
 
     return (
@@ -153,7 +153,7 @@ export const ProfilePanel = ({
                 }}
                 hasUsername={!!userInfo.username}
                 isSubmitting={isUpdating || isInitializing}
-                onSuccess={ () =>  {
+                onSuccess={() => {
                     handlerRefreshUserInfo()
                 }}
             />

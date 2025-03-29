@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { SEO } from '../components/layout/SEO'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
-import { ProfilePanel } from '../components/Profile/ProfilePanel'
-import { PortfolioPanel } from '../components/Profile/PortfolioPanel'
+import { ProfilePanel } from '../components/profile/UserProfilePanel'
+import { PortfolioPanel } from '../components/profile/UserPortfolioPanel'
 
 interface UserProfileProps {
   address: string
