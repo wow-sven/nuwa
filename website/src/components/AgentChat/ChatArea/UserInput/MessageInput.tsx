@@ -9,6 +9,8 @@ import { useNetworkVariable } from "../../../../hooks/use-networks";
 import { useAgentChat } from "../../../../contexts/AgentChatContext";
 import { RoochAddress, toShortStr } from "@roochnetwork/rooch-sdk";
 import { toast } from "react-hot-toast";
+import { ActionMenu } from "./ActionMenu";
+import { TransferModal } from "./TransferModal";
 
 /**
  * Props for the MessageInput component
@@ -32,15 +34,14 @@ export function MessageInput({
     messagesEndRef,
 }: MessageInputProps) {
     const [inputMessage, setInputMessage] = useState("");
-    const [showTokenForm, setShowTokenForm] = useState(false);
-    const [tokenAmount, setTokenAmount] = useState("0.1");
+    const [showTransferModal, setShowTransferModal] = useState(false);
     const [autoMentionAI, setAutoMentionAI] = useState(false);
     const [showMentionList, setShowMentionList] = useState(false);
     const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
     const [mentionSearchText, setMentionSearchText] = useState("");
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<Array<{ id: string, text: string, type: 'user' | 'agent' }>>([]);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
     const mentionListRef = useRef<HTMLDivElement>(null);
 
     const packageId = useNetworkVariable("packageId");
@@ -104,7 +105,7 @@ export function MessageInput({
      * If user hasn't joined the channel, join first
      * Then send the message and update the UI
      */
-    const handleSendMessage = async (message: string) => {
+    const handleSendMessage = async (message: string, payment?: number) => {
         if ((message.trim() || mentions.length > 0) && selectedChannel && agent) {
             try {
                 console.log('Message length:', message.length);
@@ -143,9 +144,8 @@ export function MessageInput({
                     aiAddress: agent.address,
                 };
 
-                if (showTokenForm && parseFloat(tokenAmount) > 0) {
-                    const rawAmount = (parseFloat(tokenAmount) * 100000000).toFixed(0);
-                    messageData.payment = parseInt(rawAmount);
+                if (payment) {
+                    messageData.payment = payment;
                     messageData.content = message;
                 }
 
@@ -155,8 +155,7 @@ export function MessageInput({
                 messagesEndRef?.current?.scrollIntoView({ behavior: "smooth" });
                 // Clear mentions and reset token form
                 setMentions([]);
-                setShowTokenForm(false);
-                setTokenAmount("0.1");
+                setShowTransferModal(false);
             } catch (e) {
                 console.log(e);
             }
@@ -212,14 +211,23 @@ export function MessageInput({
         }
     };
 
-    const toggleTokenForm = () => {
-        setShowTokenForm(!showTokenForm);
+    const handleTransfer = (amount: string, message: string) => {
+        if (parseFloat(amount) > 0) {
+            const rawAmount = (parseFloat(amount) * 100000000).toFixed(0);
+            handleSendMessage(message, parseInt(rawAmount));
+        }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
         const value = e.target.value;
         const cursorPosition = e.target.selectionStart || 0;
         const lastAtSymbol = value.lastIndexOf("@", cursorPosition);
+
+        // 自动调整高度
+        if (inputRef.current) {
+            inputRef.current.style.height = 'auto';
+            inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
+        }
 
         if (lastAtSymbol !== -1) {
             const searchText = value.slice(lastAtSymbol + 1, cursorPosition);
@@ -338,7 +346,7 @@ export function MessageInput({
         );
     });
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (showMentionList && filteredMembers.length > 0) {
             switch (e.key) {
                 case "ArrowDown":
@@ -365,6 +373,9 @@ export function MessageInput({
                     setSelectedIndex(0);
                     break;
             }
+        } else if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleAction();
         } else if (e.key === "Backspace" && inputMessage === "" && mentions.length > 0) {
             // When input is empty and there are tags, delete the last tag
             e.preventDefault();
@@ -379,73 +390,41 @@ export function MessageInput({
 
     return (
         <div className="shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
-            {/* Token Transfer Form */}
-            {showTokenForm && isJoined && (
-                <div className="mb-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-300 dark:border-gray-600">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                        Send RGAS to Agent ({agent.name || agent.username || agent.address.substring(0, 8) + '...' + agent.address.substring(agent.address.length - 6)})
-                    </div>
-                    <div className="flex space-x-3 items-end">
-                        {/* Amount Input */}
-                        <div className="flex-1">
-                            <input
-                                type="number"
-                                value={tokenAmount}
-                                onChange={(e) => setTokenAmount(e.target.value)}
-                                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                onKeyPress={(e) => e.key === "Enter" && handleAction()}
-                            />
-                        </div>
-
-                        {/* Close button */}
-                        <button
-                            onClick={() => setShowTokenForm(false)}
-                            className="h-10 px-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                        >
-                            <XMarkIcon className="w-5 h-5" />
-                        </button>
-                    </div>
-                </div>
-            )}
-
             <div className="flex space-x-2">
-                {/* Token Button - only shown when joined - now on the left side */}
+                {/* Action Menu - only shown when joined */}
                 {isJoined && (
-                    <SessionKeyGuard onClick={toggleTokenForm}>
-                        <button
-                            className="p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        >
-                            <CurrencyDollarIcon className="w-5 h-5" />
-                        </button>
-                    </SessionKeyGuard>
+                    <ActionMenu
+                        onTransferClick={() => setShowTransferModal(true)}
+                        autoMentionAI={autoMentionAI}
+                        onAutoMentionToggle={() => setAutoMentionAI(!autoMentionAI)}
+                    />
                 )}
 
                 {/* Message input field - only shown when joined */}
                 {isJoined && (
                     <div className="flex-1 relative">
-                        <div className="flex flex-wrap gap-1 items-center w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 focus-within:ring-2 focus-within:ring-purple-500">
+                        <div className="flex flex-wrap items-center w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 focus-within:ring-2 focus-within:ring-purple-500 min-h-[40px]">
                             {mentions.map((mention) => (
                                 <div
                                     key={mention.id}
                                     className={`inline-flex items-center text-xs px-2 py-1 rounded-full group relative cursor-pointer ${mention.type === 'agent'
                                         ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
                                         : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                                        }`}
+                                        } mb-1 mr-1`}
                                     onClick={() => handleRemoveMention(mention.id)}
                                 >
                                     <span className="leading-none group-hover:invisible">@{mention.text}</span>
                                     <XMarkIcon className="w-3.5 h-3.5 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden group-hover:block" />
                                 </div>
                             ))}
-                            <input
+                            <textarea
                                 ref={inputRef}
-                                type="text"
                                 value={inputMessage}
                                 onChange={handleInputChange}
-                                onKeyPress={(e) => e.key === "Enter" && handleAction()}
                                 onKeyDown={handleKeyDown}
                                 placeholder={mentions.length > 0 ? "" : "Type a message..."}
-                                className="flex-1 bg-transparent outline-none text-sm ml-1"
+                                className="flex-1 bg-transparent outline-none text-sm resize-none py-0 min-h-[24px]"
+                                rows={1}
                             />
                         </div>
 
@@ -491,21 +470,6 @@ export function MessageInput({
                                 })}
                             </div>
                         )}
-
-                        {agent.address && (
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center space-x-1 text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md">
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={autoMentionAI}
-                                        onChange={(e) => setAutoMentionAI(e.target.checked)}
-                                        className="sr-only peer"
-                                    />
-                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300 dark:peer-focus:ring-purple-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-purple-600"></div>
-                                </label>
-                                <span>Always @AI</span>
-                            </div>
-                        )}
                     </div>
                 )}
 
@@ -513,18 +477,29 @@ export function MessageInput({
                 <SessionKeyGuard onClick={handleAction}>
                     <LoadingButton
                         isPending={sendingMessage || joiningChannel}
-                        className={isJoined ? '' : 'w-full'}
+                        className={`${isJoined ? 'h-[40px] w-[40px] flex items-center justify-center !p-0' : 'w-full h-[40px]'}`}
                         onClick={() => { }}
                         disabled={isJoined && !inputMessage.trim() && mentions.length === 0}
                     >
                         {
                             isJoined ? (
-                                <PaperAirplaneIcon className="w-5 h-5" />
+                                <PaperAirplaneIcon className="w-7 h-7" />
                             ) : (<>Join</>)
                         }
                     </LoadingButton>
                 </SessionKeyGuard>
             </div>
+
+            {/* Transfer Modal */}
+            {showTransferModal && agent && (
+                <TransferModal
+                    isOpen={showTransferModal}
+                    onClose={() => setShowTransferModal(false)}
+                    onTransfer={handleTransfer}
+                    agentName={agent.name || agent.username}
+                    agentAddress={agent.address}
+                />
+            )}
         </div>
     );
 } 
