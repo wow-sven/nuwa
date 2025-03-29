@@ -143,6 +143,7 @@ export function MessageInput({
             return
         }
 
+<<<<<<< HEAD
         if (!isJoined && selectedChannel) {
             try {
                 await joinChannel({ id: selectedChannel });
@@ -152,6 +153,10 @@ export function MessageInput({
             } catch (e) {
                 console.log(e);
             }
+=======
+        if (!isJoined) {
+            handleSendMessage("");
+>>>>>>> 62093536e3bd8a6c24d6a22a8590b6fd4c4d9d95
             return;
         }
 
