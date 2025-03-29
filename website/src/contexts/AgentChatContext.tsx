@@ -9,17 +9,22 @@ import useChannelMessageCount from '../hooks/use-channel-message-count';
 import useChannelMessages from '../hooks/use-channel-messages';
 import { useCurrentAddress } from "@roochnetwork/rooch-sdk-kit";
 import { AgentChatContextType } from '../types/chat';
+import useAddressByUsername from '../hooks/use-address-by-username';
+import useAgentWithAddress from '../hooks/use-agent-with-address';
 
 const AgentChatContext = createContext<AgentChatContextType | undefined>(undefined);
 
 export function AgentChatProvider({
     children,
-    agentId
+    agentUsername
 }: {
     children: ReactNode;
-    agentId: string;
+    agentUsername: string;
 }) {
-    const { agent, isPending: isAgentPending } = useAgent(agentId);
+    const { address } = useAddressByUsername(agentUsername);
+    const { agent } = useAgentWithAddress(address ?? undefined);
+    const agentId = agent?.id ?? undefined;
+    const { agent: agentDetails, isPending: isAgentPending } = useAgent(agentId);
     const { channels, isPending: isChannelsPending, refetch: refetchChannels } = useAgentChannel(agentId);
     const [selectedChannel, setSelectedChannel] = useState<string>();
     const { memberCount } = useChannelMemberCount(selectedChannel || channels?.[0]?.id);
@@ -40,7 +45,7 @@ export function AgentChatProvider({
     // Reset selectedChannel when agentId changes
     useEffect(() => {
         setSelectedChannel(undefined);
-    }, [agentId]);
+    }, [agent?.id]);
 
     // 单独处理 channel 选择
     useEffect(() => {
@@ -50,7 +55,7 @@ export function AgentChatProvider({
     }, [channels, selectedChannel]);
 
     const value: AgentChatContextType = {
-        agent,
+        agent: agentDetails,
         isAgentPending,
         channels,
         isChannelsPending,

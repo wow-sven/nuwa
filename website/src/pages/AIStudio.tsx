@@ -93,7 +93,7 @@ export const AIStudio = () => {
                                         <div key={agent.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 relative flex flex-col min-h-[200px]">
                                             {/* Chat button for each agent */}
                                             <button
-                                                onClick={() => navigate(`/agent/${agent.id}`)}
+                                                onClick={() => navigate(`/agent/${agent.username}`)}
                                                 className="absolute top-3 right-3 flex items-center justify-center p-2 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
                                                 title="Chat"
                                             >

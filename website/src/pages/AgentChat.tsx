@@ -2,8 +2,8 @@ import { useParams } from "react-router-dom";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
 import { useEffect } from "react";
 import { AgentChatProvider, useAgentChat } from "../contexts/AgentChatContext";
-import useAgent from "../hooks/use-agent";
 import { LoadingScreen } from "../components/layout/LoadingScreen";
+import { NotFound } from "./NotFound";
 
 /**
  * AgentChat component - Main chat interface for interacting with an AI agent
@@ -14,27 +14,21 @@ import { LoadingScreen } from "../components/layout/LoadingScreen";
  * - Message history
  */
 export function AgentChat() {
-  const { id } = useParams<{ id: string }>();
+  const { username } = useParams<{ username: string }>();
 
-  if (!id) {
-    return null;
-  }
-
-  const { agent, isPending: isAgentPending } = useAgent(id);
-
-  if (isAgentPending) {
-    return <LoadingScreen />;
+  if (!username) {
+    return <NotFound />
   }
 
   return (
-    <AgentChatProvider agentId={id}>
+    <AgentChatProvider agentUsername={username}>
       <AgentChatContent />
     </AgentChatProvider>
   );
 }
 
 function AgentChatContent() {
-  const { agent, isAgentPending, channels, isChannelsPending, selectedChannel, setSelectedChannel, refetchChannels } = useAgentChat();
+  const { agent, channels, isChannelsPending, isAgentPending, selectedChannel, setSelectedChannel, refetchChannels } = useAgentChat();
 
   useEffect(() => {
     if (!selectedChannel && channels) {
@@ -42,8 +36,8 @@ function AgentChatContent() {
     }
   }, [channels, selectedChannel, setSelectedChannel])
 
-  // Show loading state for channels
-  if (isChannelsPending || !channels) {
+  // Show loading state for agent or channels
+  if (isAgentPending || isChannelsPending || !channels) {
     return <LoadingScreen agentName={agent?.name} />;
   }
 

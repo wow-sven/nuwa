@@ -19,7 +19,7 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
   const { agents: allAgents } = useAllAgents()
 
   // Get current agent ID from URL
-  const currentAgentId = location.pathname.split('/agent/')[1]
+  const currentAgentUsername = location.pathname.split('/agent/')[1]
 
   // Filter agents based on search query
   const filteredAgents = useMemo(() => {
@@ -120,11 +120,11 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
                 {filteredAgents.map((agent) => (
                   <div
                     key={agent.username}
-                    className={`flex items-start space-x-3 p-2 rounded-lg transition-colors cursor-pointer ${agent.id === currentAgentId
+                    className={`flex items-start space-x-3 p-2 rounded-lg transition-colors cursor-pointer ${agent.username === currentAgentUsername
                       ? 'bg-purple-200 dark:bg-purple-500/50'
                       : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                       }`}
-                    onClick={() => navigate(`/agent/${agent.id}`)}
+                    onClick={() => navigate(`/agent/${agent.username}`)}
                   >
                     <img
                       src={agent.avatar}
@@ -151,11 +151,11 @@ export function Sidebar({ onCollapse, isCollapsed: propIsCollapsed }: SidebarPro
               {filteredAgents.map((agent) => (
                 <div
                   key={agent.username}
-                  className={`flex justify-center cursor-pointer rounded-lg p-2 transition-colors ${agent.id === currentAgentId
+                  className={`flex justify-center cursor-pointer rounded-lg p-2 transition-colors ${agent.username === currentAgentUsername
                     ? 'bg-purple-200 dark:bg-purple-500/50'
                     : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
-                  onClick={() => navigate(`/agent/${agent.id}`)}
+                  onClick={() => navigate(`/agent/${agent.username}`)}
                 >
                   <img
                     src={agent.avatar}

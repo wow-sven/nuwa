@@ -43,7 +43,7 @@ export function AgentCard({ agent }: AgentCardProps) {
   return (
     <div
       className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer group border border-gray-100 dark:border-gray-700"
-      onClick={() => navigate(`/agent/${agent.id}`)}
+      onClick={() => navigate(`/agent/${agent.username}`)}
     >
       {/* Cover Image */}
       <div className="h-32 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 relative">
@@ -132,7 +132,7 @@ export function AgentCard({ agent }: AgentCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation()
-              navigate(`/agent/${agent.id}`)
+              navigate(`/agent/${agent.username}`)
             }}
             className="group relative w-full px-8 py-3 text-sm font-semibold rounded-lg border-2 border-purple-600 bg-white dark:bg-gray-900 transition-all duration-500 ease-in-out overflow-hidden"
           >

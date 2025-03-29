@@ -39,8 +39,6 @@ export function ChatMessage({
   message,
   isCurrentUser,
   isAI,
-  agentName,
-  agentId,
   hasPaidContent,
   messages,
 }: ChatMessageProps) {
@@ -109,7 +107,7 @@ export function ChatMessage({
 
   // Use the agent's actual name if provided, otherwise fallback to address
   const displayName = isAI
-    ? agentName || "AI Agent"
+    ? agent?.name || "AI Agent"
     : userInfo?.name || shortenAddress(senderAddress);
 
   const handleCopy = async () => {
@@ -292,28 +290,28 @@ export function ChatMessage({
           <div className="flex-shrink-0 w-8 h-8">
             {isAI ? (
               // Wrap the avatar in a Link component if agentId is provided
-              agentId ? (
+              agent ? (
                 <Link
-                  to={`/agent/${agentId}`}
+                  to={`/profile/${agent.username}`}
                   className="block w-8 h-8 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all"
-                  title={`View ${agentName || "AI Agent"}'s profile`}
+                  title={`View ${agent.name || "AI Agent"}'s profile`}
                 >
                   {agent?.avatar ? (
                     <img
                       src={agent.avatar}
-                      alt={agentName || "AI Agent"}
+                      alt={agent.name || "AI Agent"}
                       className="w-8 h-8 rounded-full object-cover"
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
-                      {agentName ? agentName.substring(0, 2).toUpperCase() : "AI"}
+                      {agent.name ? agent.name.substring(0, 2).toUpperCase() : "AI"}
                     </div>
                   )}
                 </Link>
               ) : (
                 // Original div if no agentId provided
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
-                  {agentName ? agentName.substring(0, 2).toUpperCase() : "AI"}
+                  {"AI"}
                 </div>
               )
             ) : (
