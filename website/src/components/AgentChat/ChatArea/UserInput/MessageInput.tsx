@@ -145,8 +145,20 @@ export function MessageInput({
         }
 
         if (!isJoined) {
-            handleSendMessage("");
-            return;
+            try {
+                if (!selectedChannel) {
+                    console.log('No channel selected');
+                    return;
+                }
+                await joinChannel({ id: selectedChannel });
+                await refetchJoinStatus();
+                await refetchJoinedAgent();
+                await refetchChannelMembers();
+                return;
+            } catch (e) {
+                console.log(e);
+                return;
+            }
         }
 
         if (inputMessage.trim()) {
@@ -458,7 +470,7 @@ export function MessageInput({
                         isPending={sendingMessage || joiningChannel}
                         className={isJoined ? '' : 'w-full'}
                         onClick={() => { }}
-                        disabled={isJoined && !inputMessage.trim()}
+                        disabled={!inputMessage.trim() && mentions.length === 0}
                     >
                         {
                             isJoined ? (
