@@ -103,17 +103,6 @@ export function MessageInput({
      * Then send the message and update the UI
      */
     const handleSendMessage = async (message: string) => {
-        if (!isJoined && selectedChannel) {
-            try {
-                await joinChannel({ id: selectedChannel });
-                await refetchJoinStatus();
-                await refetchJoinedAgent();
-                await refetchChannelMembers();
-            } catch (e) {
-                console.log(e);
-            }
-        }
-
         if ((message.trim() || mentions.length > 0) && selectedChannel && agent) {
             try {
                 // 构建包含 mentions 的消息内容
@@ -148,14 +137,21 @@ export function MessageInput({
         }
     };
 
-    const handleAction = () => {
+    const handleAction = async () => {
         if (!session) {
             createSession(sessionCfg)
             return
         }
 
-        if (!isJoined) {
-            handleSendMessage("");
+        if (!isJoined && selectedChannel) {
+            try {
+                await joinChannel({ id: selectedChannel });
+                await refetchJoinStatus();
+                await refetchJoinedAgent();
+                await refetchChannelMembers();
+            } catch (e) {
+                console.log(e);
+            }
             return;
         }
 
