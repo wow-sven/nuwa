@@ -2,12 +2,11 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { Toaster } from 'react-hot-toast'
 import { Sidebar } from './components/layout/Sidebar'
 import { Home } from './pages/Home'
-import { AgentChat } from './pages/AgentChat'
 import { AIStudio } from './pages/AIStudio'
 import { CreateAgent } from './pages/CreateAgent'
 import { AllAgents } from './pages/AllAgents'
 import { ProfileRouter } from './components/Profile/ProfileRouter'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, lazy } from 'react'
 import { DocPage } from './pages/docs/DocPage'
 import { Header } from './components/layout/Header'
 import { HelmetProvider } from 'react-helmet-async'
@@ -16,6 +15,21 @@ import { GetRGAS } from './pages/GetRGAS'
 import { GetRGASTestnet } from './pages/GetRGASTestNet'
 import { RiskWarningModal } from './components/RiskWarningModal'
 import { useConnectionStatus } from '@roochnetwork/rooch-sdk-kit'
+import { LoadingScreen } from './components/AgentChat/LoadingScreen'
+
+// preload AgentChat component
+const AgentChat = lazy(() => import('./pages/AgentChat').then(module => {
+  // preload agent data after component is loaded
+  const preloadAgent = (id: string) => {
+    import('./hooks/use-agent').then(({ default: useAgent }) => {
+      useAgent(id);
+    });
+  };
+  return {
+    default: module.AgentChat,
+    preload: preloadAgent
+  };
+}));
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
@@ -39,6 +53,15 @@ function AppContent() {
     }
   }, [connectionStatus])
 
+  // preload agent data
+  useEffect(() => {
+    const agentId = location.pathname.match(/\/agent\/([^\/]+)/)?.[1];
+    if (agentId) {
+      // @ts-ignore - preload method will be available after component is loaded
+      AgentChat.preload?.(agentId);
+    }
+  }, [location.pathname]);
+
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
       <Header isDarkMode={isDarkMode} />
@@ -47,17 +70,19 @@ function AppContent() {
       <div className="flex flex-1 overflow-hidden pt-16">
         <Sidebar onCollapse={setIsSidebarCollapsed} isCollapsed={isSidebarCollapsed} />
         <div className={`flex-1 overflow-auto ${isSidebarCollapsed ? 'ml-16' : 'ml-64'} transition-all duration-300`}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/studio" element={<AIStudio />} />
-            <Route path="/studio/create" element={<CreateAgent />} />
-            <Route path="/agent/:id" element={<AgentChat />} />
-            <Route path="/profile/:address" element={<ProfileRouter />} />
-            <Route path="/allagents" element={<AllAgents />} />
-            <Route path="/docs/:docId" element={<DocPage />} />
-            <Route path="/getrgas" element={<GetRGAS />} />
-            <Route path="/getrgas-testnet" element={<GetRGASTestnet />} />
-          </Routes>
+          <Suspense fallback={<LoadingScreen />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/studio" element={<AIStudio />} />
+              <Route path="/studio/create" element={<CreateAgent />} />
+              <Route path="/agent/:id" element={<AgentChat />} />
+              <Route path="/profile/:address" element={<ProfileRouter />} />
+              <Route path="/allagents" element={<AllAgents />} />
+              <Route path="/docs/:docId" element={<DocPage />} />
+              <Route path="/getrgas" element={<GetRGAS />} />
+              <Route path="/getrgas-testnet" element={<GetRGASTestnet />} />
+            </Routes>
+          </Suspense>
         </div>
       </div>
 

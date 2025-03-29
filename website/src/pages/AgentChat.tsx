@@ -2,6 +2,8 @@ import { useParams } from "react-router-dom";
 import { DialogSidebar, ChatArea, ChannelSidebar } from "../components/AgentChat";
 import { useEffect } from "react";
 import { AgentChatProvider, useAgentChat } from "../contexts/AgentChatContext";
+import useAgent from "../hooks/use-agent";
+import { LoadingScreen } from "../components/AgentChat/LoadingScreen";
 
 /**
  * AgentChat component - Main chat interface for interacting with an AI agent
@@ -16,6 +18,12 @@ export function AgentChat() {
 
   if (!id) {
     return null;
+  }
+
+  const { agent, isPending: isAgentPending } = useAgent(id);
+
+  if (isAgentPending) {
+    return <LoadingScreen />;
   }
 
   return (
@@ -34,37 +42,9 @@ function AgentChatContent() {
     }
   }, [channels, selectedChannel, setSelectedChannel])
 
-  // Show loading state
-  if (isAgentPending || isChannelsPending || !channels) {
-    return (
-      <div className="flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
-        <div className="flex flex-col items-center justify-center h-full space-y-6">
-          {/* Logo */}
-          <div className="relative w-32 h-32 animate-float">
-            <img
-              src="/nuwa-logo-horizontal-dark.svg"
-              className="w-full h-full object-contain hidden dark:block"
-              alt="Nuwa"
-            />
-            <img
-              src="/nuwa-logo-horizontal.svg"
-              className="w-full h-full object-contain dark:hidden"
-              alt="Nuwa"
-            />
-          </div>
-          {/* Loading Spinner */}
-          <div className="flex items-center space-x-3">
-            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-            <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
-          </div>
-          {/* Loading Text */}
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Connecting to {agent?.name || 'AI'} assistant...
-          </p>
-        </div>
-      </div>
-    );
+  // Show loading state for channels
+  if (isChannelsPending || !channels) {
+    return <LoadingScreen agentName={agent?.name} />;
   }
 
   return (
