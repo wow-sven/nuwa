@@ -29,10 +29,31 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
   const { mutateAsync, isPending } = useChannelCreateTopic();
   const [showInput, setShowInput] = useState(false);
   const [topicName, setTopicName] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const { selectedChannel } = useAgentChat();
 
+  const validateTopicName = (name: string): string | null => {
+    if (!name.trim()) {
+      return 'Topic name cannot be empty';
+    }
+    if (name.length > 50) {
+      return 'Topic name cannot exceed 50 characters';
+    }
+    if (name.includes('\n')) {
+      return 'Topic name cannot contain line breaks';
+    }
+    if (/^\s+$/.test(name)) {
+      return 'Topic name cannot contain only whitespace';
+    }
+    return null;
+  };
+
   const handleCreateTopic = async () => {
-    if (!topicName.trim()) return;
+    const validationError = validateTopicName(topicName);
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
 
     try {
       await mutateAsync({
@@ -43,9 +64,11 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
       console.log("Topic created successfully");
       setShowInput(false);
       setTopicName("");
+      setError(null);
       onRefresh(); // refresh the dialog list
     } catch (error) {
       console.error("Error creating topic:", error);
+      setError("Failed to create topic");
     }
   }
 
@@ -74,10 +97,16 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
             <input
               type="text"
               value={topicName}
-              onChange={(e) => setTopicName(e.target.value)}
+              onChange={(e) => {
+                setTopicName(e.target.value);
+                setError(null);
+              }}
               placeholder="Enter topic name"
               className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
+            {error && (
+              <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleCreateTopic}
@@ -90,6 +119,7 @@ export function DialogSidebar({ channels, onChannelSelect, onRefresh }: DialogSi
                 onClick={() => {
                   setShowInput(false);
                   setTopicName("");
+                  setError(null);
                 }}
                 className="flex-1 px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
               >

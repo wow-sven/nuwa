@@ -8,6 +8,7 @@ import { useChannelJoin } from "../../../../hooks/use-channel-join";
 import { useNetworkVariable } from "../../../../hooks/use-networks";
 import { useAgentChat } from "../../../../contexts/AgentChatContext";
 import { RoochAddress, toShortStr } from "@roochnetwork/rooch-sdk";
+import { toast } from "react-hot-toast";
 
 /**
  * Props for the MessageInput component
@@ -106,9 +107,33 @@ export function MessageInput({
     const handleSendMessage = async (message: string) => {
         if ((message.trim() || mentions.length > 0) && selectedChannel && agent) {
             try {
+                console.log('Message length:', message.length);
+                console.log('Message content:', message);
+
+                // 检查消息长度
+                if (message.length > 4096) {
+                    console.log('Message too long, showing error toast');
+                    toast.error('Message is too long', {
+                        position: 'top-center'
+                    });
+                    return;
+                }
+
                 // 构建包含 mentions 的消息内容
                 const mentionText = mentions.map(m => `@${m.text}`).join(' ');
                 const fullMessage = `${mentionText} ${message}`.trim();
+
+                console.log('Full message length:', fullMessage.length);
+                console.log('Full message content:', fullMessage);
+
+                // 检查完整消息长度（包含 mentions）
+                if (fullMessage.length > 4096) {
+                    console.log('Full message too long, showing error toast');
+                    toast.error('Message is too long', {
+                        position: 'top-center'
+                    });
+                    return;
+                }
 
                 // 如果显示转账表单，添加 payment 属性
                 const messageData: any = {
@@ -162,6 +187,26 @@ export function MessageInput({
         }
 
         if (inputMessage.trim()) {
+            // 检查消息长度
+            if (inputMessage.length > 4096) {
+                toast.error('Message is too long', {
+                    position: 'top-center'
+                });
+                return;
+            }
+
+            // 构建包含 mentions 的消息内容
+            const mentionText = mentions.map(m => `@${m.text}`).join(' ');
+            const fullMessage = `${mentionText} ${inputMessage}`.trim();
+
+            // 检查完整消息长度（包含 mentions）
+            if (fullMessage.length > 4096) {
+                toast.error('Message is too long', {
+                    position: 'top-center'
+                });
+                return;
+            }
+
             handleSendMessage(inputMessage);
             setInputMessage("");
         }

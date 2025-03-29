@@ -73,6 +73,11 @@ export function AgentProfile() {
   });
   const [avatarError, setAvatarError] = useState<string>("");
   const [previewAvatar, setPreviewAvatar] = useState<string>("");
+  const [formErrors, setFormErrors] = useState<{
+    name?: string;
+    description?: string;
+    prompt?: string;
+  }>({});
 
   const { memories: allMemories, isLoading: isLoadingMemories, error: memoriesError, refetch: refetchMemories } = useAgentMemories({
     agentId: agent?.id || "",
@@ -150,8 +155,72 @@ export function AgentProfile() {
     }
   };
 
+  const validateName = (name: string): string | null => {
+    if (!name.trim()) {
+      return 'Display name cannot be empty'
+    }
+    if (name.length < 2) {
+      return 'Display name must be at least 2 characters'
+    }
+    if (name.length > 64) {
+      return 'Display name cannot exceed 64 characters'
+    }
+    if (name.includes('\n')) {
+      return 'Display name cannot contain line breaks'
+    }
+    if (/^\s+$/.test(name)) {
+      return 'Display name cannot contain only whitespace'
+    }
+    return null
+  }
+
+  const validateDescription = (description: string): string | null => {
+    if (description.length > 256) {
+      return 'Description cannot exceed 256 characters'
+    }
+    if (description.includes('\n')) {
+      return 'Description cannot contain line breaks'
+    }
+    if (description.trim() && /^\s+$/.test(description)) {
+      return 'Description cannot contain only whitespace'
+    }
+    return null
+  }
+
+  const validatePrompt = (prompt: string): string | null => {
+    if (prompt.length > 4096) {
+      return 'Prompt cannot exceed 4096 characters'
+    }
+    if (prompt.trim() && /^\s+$/.test(prompt)) {
+      return 'Prompt cannot contain only whitespace'
+    }
+    return null
+  }
+
   const handleEdit = async () => {
     if (isEditing) {
+      // 验证表单
+      const newErrors: {
+        name?: string;
+        description?: string;
+        prompt?: string;
+      } = {};
+
+      const nameError = validateName(editForm.name || '');
+      if (nameError) {
+        newErrors.name = nameError;
+      }
+
+      const descriptionError = validateDescription(editForm.description || '');
+      if (descriptionError) {
+        newErrors.description = descriptionError;
+      }
+
+      if (Object.keys(newErrors).length > 0) {
+        setFormErrors(newErrors);
+        return;
+      }
+
       // Save changes
       if (
         editForm.name === agent?.name &&
@@ -196,6 +265,7 @@ export function AgentProfile() {
         description: agent?.description || "",
         avatar: agent?.avatar || "",
       });
+      setFormErrors({});
     }
     setIsEditing(!isEditing);
   };
@@ -204,6 +274,16 @@ export function AgentProfile() {
     if (!isOwner) return;
 
     if (isEditingPrompt) {
+      // 验证 prompt
+      const promptError = validatePrompt(editForm.prompt || '');
+      if (promptError) {
+        setFormErrors(prev => ({
+          ...prev,
+          prompt: promptError
+        }));
+        return;
+      }
+
       // Save changes
       if (editForm.prompt === agent?.instructions) {
         setIsEditingPrompt(false);
@@ -228,6 +308,10 @@ export function AgentProfile() {
         ...editForm,
         prompt: agent?.instructions || "",
       });
+      setFormErrors(prev => ({
+        ...prev,
+        prompt: undefined
+      }));
     }
     setIsEditingPrompt(!isEditingPrompt);
   };
@@ -323,9 +407,12 @@ export function AgentProfile() {
                               name: e.target.value,
                             }))
                           }
-                          className="block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                          className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${formErrors.name ? 'border-red-500' : ''}`}
                           placeholder="Enter name"
                         />
+                        {formErrors.name && (
+                          <p className="mt-1 text-sm text-red-500">{formErrors.name}</p>
+                        )}
                       </div>
                     </>
                   ) : (
@@ -387,10 +474,13 @@ export function AgentProfile() {
                           description: e.target.value,
                         }))
                       }
-                      className="block w-full text-sm text-gray-600 dark:text-gray-300 bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                      className={`block w-full text-sm text-gray-600 dark:text-gray-300 bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${formErrors.description ? 'border-red-500' : ''}`}
                       placeholder="Enter description"
                       rows={2}
                     />
+                    {formErrors.description && (
+                      <p className="mt-1 text-sm text-red-500">{formErrors.description}</p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-gray-600 dark:text-gray-300">
@@ -567,18 +657,28 @@ export function AgentProfile() {
 
               <div className="space-y-4">
                 {isEditingPrompt ? (
-                  <textarea
-                    value={editForm.prompt}
-                    onChange={(e) =>
-                      setEditForm((prev) => ({
-                        ...prev,
-                        prompt: e.target.value,
-                      }))
-                    }
-                    className="block w-full text-gray-600 dark:text-gray-300 bg-transparent border rounded-lg p-4 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none font-mono text-sm leading-relaxed"
-                    placeholder="Enter AI character's prompt..."
-                    rows={12}
-                  />
+                  <>
+                    <textarea
+                      value={editForm.prompt}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          prompt: e.target.value,
+                        }))
+                      }
+                      className={`block w-full text-gray-600 dark:text-gray-300 bg-transparent border rounded-lg p-4 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none font-mono text-sm leading-relaxed ${formErrors.prompt ? 'border-red-500' : ''}`}
+                      placeholder="Enter AI character's prompt..."
+                      rows={12}
+                    />
+                    <div className="flex justify-between items-center mt-1">
+                      {formErrors.prompt && (
+                        <p className="text-sm text-red-500">{formErrors.prompt}</p>
+                      )}
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {4096 - (editForm.prompt?.length || 0)}/4096 characters remaining
+                      </p>
+                    </div>
+                  </>
                 ) : (
                   <pre className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 font-mono text-sm leading-relaxed bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
                     {agent?.instructions}

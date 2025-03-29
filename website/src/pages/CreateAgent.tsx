@@ -83,16 +83,92 @@ export const CreateAgent = () => {
         setHasCustomAvatar(true)
     }
 
+    // 添加验证函数
+    const validateUsername = (username: string): string | null => {
+        if (!username.trim()) {
+            return 'Username cannot be empty'
+        }
+        if (username.length < 3) {
+            return 'Username must be at least 3 characters'
+        }
+        if (username.length > 32) {
+            return 'Username cannot exceed 32 characters'
+        }
+        if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+            return 'Username can only contain letters, numbers and underscores'
+        }
+        if (/^\d+$/.test(username)) {
+            return 'Username cannot contain only numbers'
+        }
+        return null
+    }
+
+    const validateName = (name: string): string | null => {
+        if (!name.trim()) {
+            return 'Display name cannot be empty'
+        }
+        if (name.length < 2) {
+            return 'Display name must be at least 2 characters'
+        }
+        if (name.length > 64) {
+            return 'Display name cannot exceed 64 characters'
+        }
+        if (name.includes('\n')) {
+            return 'Display name cannot contain line breaks'
+        }
+        if (/^\s+$/.test(name)) {
+            return 'Display name cannot contain only whitespace'
+        }
+        return null
+    }
+
+    const validateDescription = (description: string): string | null => {
+        if (description.length > 256) {
+            return 'Description cannot exceed 256 characters'
+        }
+        if (description.includes('\n')) {
+            return 'Description cannot contain line breaks'
+        }
+        if (description.trim() && /^\s+$/.test(description)) {
+            return 'Description cannot contain only whitespace'
+        }
+        return null
+    }
+
+    const validatePrompt = (prompt: string): string | null => {
+        if (prompt.length > 4096) {
+            return 'Prompt cannot exceed 4096 characters'
+        }
+        if (prompt.trim() && /^\s+$/.test(prompt)) {
+            return 'Prompt cannot contain only whitespace'
+        }
+        return null
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
-        // Validate form
+        // 验证表单
         const newErrors: Partial<CreateAgentForm> = {}
-        if (!form.username.trim()) {
-            newErrors.username = 'Username is required'
+
+        const usernameError = validateUsername(form.username)
+        if (usernameError) {
+            newErrors.username = usernameError
         }
-        if (!form.name.trim()) {
-            newErrors.name = 'Display name is required'
+
+        const nameError = validateName(form.name)
+        if (nameError) {
+            newErrors.name = nameError
+        }
+
+        const descriptionError = validateDescription(form.description)
+        if (descriptionError) {
+            newErrors.description = descriptionError
+        }
+
+        const promptError = validatePrompt(form.prompt)
+        if (promptError) {
+            newErrors.prompt = promptError
         }
 
         if (Object.keys(newErrors).length > 0) {
@@ -100,7 +176,7 @@ export const CreateAgent = () => {
             return
         }
 
-        // Check username availability
+        // 检查用户名可用性
         const result = await refetchUsername()
         if (result.data?.error) {
             setErrors(prev => ({
@@ -247,9 +323,12 @@ export const CreateAgent = () => {
                                     value={form.description}
                                     onChange={handleInputChange}
                                     rows={3}
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                    className={`block w-full rounded-lg border ${errors.description ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500`}
                                     placeholder="Enter agent description"
                                 />
+                                {errors.description && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+                                )}
                             </div>
 
                             {/* Prompt */}
@@ -263,9 +342,17 @@ export const CreateAgent = () => {
                                     value={form.prompt}
                                     onChange={handleInputChange}
                                     rows={5}
-                                    className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+                                    className={`block w-full rounded-lg border ${errors.prompt ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-800 px-4 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm`}
                                     placeholder="Enter agent prompt"
                                 />
+                                <div className="flex justify-between items-center mt-1">
+                                    {errors.prompt && (
+                                        <p className="text-sm text-red-500">{errors.prompt}</p>
+                                    )}
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        {4096 - (form.prompt?.length || 0)}/4096 characters remaining
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Paid Option */}
