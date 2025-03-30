@@ -457,27 +457,39 @@ export function MessageList({
 
     // 检测 AI 思考状态
     useEffect(() => {
-        if (allMessages.length === 0) return;
+        if (allMessages.length === 0 || !agentAddress) return;
 
-        const lastMessage = allMessages[allMessages.length - 1];
-        const isLastMessageFromUser = isCurrentUser(lastMessage);
+        // 找到用户最后一条发送给 agent 的消息
+        const lastMessageToAgent = [...allMessages].reverse().find(m => {
+            if (!isCurrentUser(m)) return false;
 
-        // 检查最后一条用户消息是否有回复，并且消息是发送给当前 agent 的
-        if (isLastMessageFromUser) {
-            const isMessageToAgent = Boolean(agentAddress && lastMessage.mentions.some(mention => {
+            return m.mentions.some(mention => {
                 try {
                     const mentionAddress = new RoochAddress(mention).toBech32Address();
-                    return mentionAddress === agentAddress;
+                    const agentAddr = new RoochAddress(agentAddress).toBech32Address();
+                    return mentionAddress === agentAddr;
                 } catch (error) {
-                    console.error('Error parsing mention address:', error);
+                    console.error('Error parsing addresses:', error);
                     return false;
                 }
-            }));
-            const hasReply = allMessages.some(m => isAI(m) && m.reply_to === lastMessage.index);
-            onAIThinkingChange?.(isMessageToAgent && !hasReply);
-        } else {
+            });
+        });
+
+        // 如果没有找到发送给 agent 的消息，关闭 thinking 状态
+        if (!lastMessageToAgent) {
             onAIThinkingChange?.(false);
+            return;
         }
+
+        // 检查是否有 AI 回复了这条消息
+        const hasReply = allMessages.some(m =>
+            isAI(m) &&
+            m.reply_to === lastMessageToAgent.index &&
+            m.index > lastMessageToAgent.index
+        );
+
+        // 只有当没有回复时才设置 thinking 状态
+        onAIThinkingChange?.(!hasReply);
     }, [allMessages, isCurrentUser, isAI, onAIThinkingChange, agentAddress]);
 
     return (

@@ -16,7 +16,6 @@ import { NotFound } from "./NotFound";
 export function AgentChat() {
   const { username, channelTitle } = useParams<{ username: string; channelTitle?: string }>();
 
-  console.log('username', username)
 
   if (!username) {
     return <NotFound />
