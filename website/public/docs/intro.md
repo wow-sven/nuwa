@@ -17,93 +17,86 @@ Agents seamlessly bridge blockchain and traditional systems through direct acces
 Nuwa agents consist of several integrated systems:
 
 ```mermaid
-graph TB
-    subgraph "User Interaction"
-        U[User] --> I[Input]
-    end
+flowchart TD
+    %% Core Components
+    User([🧑 User]) -->|Send Message| Chat[💬 Onchain Agent Channel]
+    Chat --> Context[🧠 Context Builder]
+    Context --> PromptGen[📨 Prompt Generator]
+    PromptGen --> LLM[🧠 LLM Oracle]
+    LLM --> Decision[🎯 Decision Making]
+    Decision --> Profile[🧬 Agent Personality]
+    Decision -->|Make Choice| Planner[🛠️ Action Planner]
 
-    subgraph "AI Agent on Nuwa(Onchain)"
-        subgraph "Memory System"
-            SM[Short-term Memory]
-            LM[Long-term Memory]
-        end
-        
-        subgraph "Agent Core"
-            C[Character Profile]
-            D[Decision Making]
-        end
-        
-        subgraph "Action System"
-            A1[Memory Actions]
-            A2[Response Actions]
-            A3[Asset Actions]
-            A4[Tasks]
-        end
-
-        subgraph "Chat System"
-           C1[Channel and DM]
-        end
-    end
-
-    subgraph "AI Service(Oracle)"
-        AI[LLM Processing]
-    end
-
-    subgraph T ["Task Engine(Offchain)"]
-       T1[Task Subscriber]
-       T2[Task Executor]
-       T3[Task Reporter]
-    end
-
-    I --> |Context| D
-    SM --> |Recent Context| D
-    LM --> |Historical Context| D
-    C --> |Personality| D
-    D --> |Prompt| AI
-    AI --> |Decisions| D
-    D --> |Execute| A1
-    D --> |Execute| A2
-    D --> |Execute| A3
-    D --> |Publish| A4
-    A1 --> |Update| SM
-    A1 --> |Update| LM
-    A2 --> |Send message|C1
-    C1 --> |Response| U
-    A4 --> |Subscribe| T1
-    T1 --> T2
-    T2 --> T3
-    T3 --> |Send report| C1
-
-    style D fill:#f9f,stroke:#333
-    style AI fill:#9cf,stroke:#333
+    %% Styling
+    classDef core fill:#fef9c3,stroke:#000,color:#111,font-weight:bold;
+    class Profile,Decision,Planner core;
 ```
 
 ```mermaid
-graph TB
-  C1[Onchain Task Event]
-  C2[Onchain channel]
-  subgraph "Task Engine(Offchain)"
-    T1[Task Subscriber]
-    T2[Task Executor]
-    T3[Task Reporter]
-  end
-  subgraph E [Executor Adapter]
-    E1[OpenManus]
-    E2[Langchain]
-  end
-  subgraph S [Storage Adapter]
-    IPFS
-    S3
-    Arweave
-    Walrus
-  end
+flowchart TD
+    %% Action System
+    Planner[🛠️ Action Planner] --> Resp[💬 Response Action]
+    Planner --> Mem[🧠 Memory Action]
+    Planner --> Asset[💰 Asset Action]
+    Planner --> Task[⏳ Async Task]
+    Planner --> Plugin[🧩 Plugin System]
 
-  C1 --> |Subscribe|T1
-  T1 --> |Call|T2
-  T2 --> |Execute|E
-  T2 --> |Store data|S
-  T2 --> |Output progress info|T3
-  T3 --> |Report progress|C2
+    Resp -->|Send Reply| Chat[💬 Onchain Agent Channel]
+    Mem -->|Store or Update| Memory[📚 Agent Memory]
+    Asset -->|Transfer Coin| Wallet[👛 Agent Wallet]
+
+    %% Styling
+    classDef action fill:#ede9fe,stroke:#444;
+    class Resp,Mem,Asset,Task,Plugin action;
+```
+
+```mermaid
+flowchart TD
+    %% External Integration
+    Wallet[👛 Agent Wallet] -->|Balance Info| Context[🧠 Context Builder]
+    Memory[📚 Agent Memory] -->|Historical Data| Context
+    Profile[🧬 Agent Personality] -->|Personality| Context
+
+    subgraph OnchainExecution[⛓️Onchain Execution]
+        Wallet
+        Contracts[📄 DeFi, Bridge, CrossChain]
+    end
+
+    subgraph OffchainServices[☁️ Offchain Services]
+        LLM[🧠 LLM Oracle]
+        PriceOracle[📈 Price Oracle]
+    end
+
+    %% Styling
+    classDef exec fill:#dbeafe,stroke:#333,color:#111;
+    class Wallet,Contracts exec;
+```
+
+```mermaid
+flowchart TD
+    %% Task System
+    Task[⏳ Async Task] -->|Onchain Task| Contracts[📄 DeFi, Bridge, CrossChain]
+    Task -->|Offchain Task| TaskEngine[🔁 Task Engine]
+    TaskEngine -->|Event Report| Chat[💬 Onchain Agent Channel]
+
+    subgraph Executors["🔌 Executor Adapter"]
+        Manus[OpenManus]
+        Lang[Langchain]
+    end
+
+    subgraph Storage["💾 Storage Adapter"]
+        IPFS
+        S3
+        Arweave
+        Walrus
+    end
+
+    TaskEngine -->|Execute Task| Executors
+    TaskEngine -->|Store Data| Storage
+
+    %% Styling
+    classDef adapter fill:#dbeafe,stroke:#333,color:#000;
+    class Manus,Lang,IPFS,S3,Arweave,Walrus adapter;
 ```
 
 The architecture consists of these key components:

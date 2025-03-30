@@ -1,75 +1,44 @@
 import { useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import mermaid from 'mermaid';
+import { useTheme } from '../../providers/ThemeProvider';
 
 interface DocContentProps {
     content: string;
 }
 
-export const DocContent = ({ content }: DocContentProps) => {
-    useEffect(() => {
-        const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+const extractMermaidTitle = (content: string): string => {
+    // 尝试从注释中获取标题
+    const commentMatch = content.match(/%%\s*(.+)/);
+    if (commentMatch) {
+        return commentMatch[1].trim();
+    }
 
+    // 尝试从图表标题中获取
+    const titleMatch = content.match(/title\s+(.+)/);
+    if (titleMatch) {
+        return titleMatch[1].trim();
+    }
+
+    // 如果没有找到标题，返回默认值
+    return '图表';
+};
+
+export const DocContent = ({ content }: DocContentProps) => {
+    const { isDarkMode } = useTheme();
+
+    useEffect(() => {
         mermaid.initialize({
             startOnLoad: true,
-            theme: isDarkMode ? 'dark' : 'default',
             securityLevel: 'loose',
+            theme: isDarkMode ? 'dark' : 'base',
             darkMode: isDarkMode,
-            themeVariables: isDarkMode ? {
-                primaryColor: '#1f2937',
-                primaryTextColor: '#e5e7eb',
-                primaryBorderColor: '#374151',
-                lineColor: '#4b5563',
-                secondaryColor: '#374151',
-                tertiaryColor: '#1f2937',
-                textColor: '#e5e7eb',
-                mainBkg: '#111827',
-                nodeBkg: '#1f2937',
-                nodeBorder: '#374151',
-                clusterBkg: '#1f2937',
-                clusterBorder: '#374151',
-                defaultLinkColor: '#60a5fa',
-                edgeLabelBackground: '#374151',
-            } : undefined,
         });
-
-        // 监听系统主题变化
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        const handleThemeChange = (e: MediaQueryListEvent) => {
-            mermaid.initialize({
-                theme: e.matches ? 'dark' : 'default',
-                darkMode: e.matches,
-                themeVariables: e.matches ? {
-                    primaryColor: '#1f2937',
-                    primaryTextColor: '#e5e7eb',
-                    primaryBorderColor: '#374151',
-                    lineColor: '#4b5563',
-                    secondaryColor: '#374151',
-                    tertiaryColor: '#1f2937',
-                    textColor: '#e5e7eb',
-                    mainBkg: '#111827',
-                    nodeBkg: '#1f2937',
-                    nodeBorder: '#374151',
-                    clusterBkg: '#1f2937',
-                    clusterBorder: '#374151',
-                    defaultLinkColor: '#60a5fa',
-                    edgeLabelBackground: '#374151',
-                } : undefined,
-            });
-            mermaid.run();
-        };
-
-        mediaQuery.addEventListener('change', handleThemeChange);
-
         // Update all mermaid diagrams
         setTimeout(() => {
             mermaid.run();
         }, 0);
-
-        return () => {
-            mediaQuery.removeEventListener('change', handleThemeChange);
-        };
-    }, [content]); // Re-run when content changes
+    }, [content, isDarkMode]); // Re-run when content or theme changes
 
     return (
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
@@ -108,9 +77,14 @@ export const DocContent = ({ content }: DocContentProps) => {
                         code({ className, children }) {
                             const match = /language-(\w+)/.exec(className || '');
                             if (match && match[1] === 'mermaid') {
+                                const mermaidContent = String(children).replace(/\n$/, '');
+                                const title = extractMermaidTitle(mermaidContent);
                                 return (
-                                    <div className="mermaid my-6">
-                                        {String(children).replace(/\n$/, '')}
+                                    <div className="space-y-2 flex flex-col items-center">
+                                        <h4 className="text-lg font-semibold text-gray-700 dark:text-gray-200">{title}</h4>
+                                        <div className="mermaid my-6 w-full flex justify-center">
+                                            {mermaidContent}
+                                        </div>
                                     </div>
                                 );
                             }
