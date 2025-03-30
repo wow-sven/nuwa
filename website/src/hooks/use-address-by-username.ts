@@ -23,7 +23,12 @@ export default function useAddressByUsername(username?: string) {
             });
 
             const address = result?.return_values?.[0]?.decoded_value;
-            if (!address || address === "0x0") return null;
+            if (!address) return null;
+
+            // Check if the address is zero
+            if (address === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+                throw new Error("404");
+            }
 
             return new RoochAddress(String(address)).toBech32Address();
         },

@@ -21,7 +21,7 @@ export function AgentChatProvider({
     children: ReactNode;
     agentUsername: string;
 }) {
-    const { address } = useAddressByUsername(agentUsername);
+    const { address, isError: isAddressError } = useAddressByUsername(agentUsername);
     const { agent } = useAgentWithAddress(address ?? undefined);
     const agentId = agent?.id ?? undefined;
     const { agent: agentDetails, isPending: isAgentPending } = useAgent(agentId);
@@ -71,6 +71,7 @@ export function AgentChatProvider({
         currentAddress: currentAddress?.genRoochAddress().toHexAddress(),
         selectedChannel,
         setSelectedChannel,
+        isAddressError,
     };
 
     return (

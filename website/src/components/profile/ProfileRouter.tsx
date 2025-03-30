@@ -13,7 +13,7 @@ export function ProfileRouter() {
     const { identifier } = useParams<{ identifier: string }>()
     const navigate = useNavigate()
 
-    // 使用 RoochAddress 检查是否是有效的地址
+    // Check if the identifier is a valid address
     const isAddress = (() => {
         try {
             if (!identifier) return false
@@ -24,18 +24,18 @@ export function ProfileRouter() {
         }
     })()
 
-    // 如果 identifier 是地址，检查是否是 agent 或 user
+    // If the identifier is an address, check if it's an agent or user
     const { agent, isPending: isAgentPending, isError: isAgentError } = useAgentWithAddress(isAddress ? identifier : undefined)
     const { userInfo, isPending: isUserPending, isError: isUserError } = useUserInfo(isAddress ? identifier : undefined)
 
-    // 如果 identifier 是用户名，尝试获取对应的地址
-    const { address, isPending: isAddressPending } = useAddressByUsername(!isAddress ? identifier : undefined)
+    // If the identifier is a username, try to get the corresponding address
+    const { address, isPending: isAddressPending, isError: isAddressError } = useAddressByUsername(!isAddress ? identifier : undefined)
 
-    // 为用户名类型添加 agent 和 userInfo 查询
+    // Add agent and userInfo queries for username type
     const { agent: usernameAgent, isPending: isUsernameAgentPending } = useAgentWithAddress(address || undefined)
     const { userInfo: usernameUserInfo, isPending: isUsernameUserPending } = useUserInfo(address || undefined)
 
-    // 重定向逻辑
+    // Redirect logic
     useEffect(() => {
         if (isAddress) {
             if (!isAgentPending && agent?.username) {
@@ -50,7 +50,7 @@ export function ProfileRouter() {
         return <NotFound />
     }
 
-    // 处理地址类型的 identifier
+    // Handle address type identifier
     if (isAddress) {
         if (isAgentPending || isUserPending) {
             return <LoadingScreen />
@@ -67,16 +67,16 @@ export function ProfileRouter() {
         return <NotFound />
     }
 
-    // 处理用户名类型的 identifier
-    if (isAddressPending || isUsernameAgentPending || isUsernameUserPending) {
+    // Handle username type identifier
+    if (isAddressPending || isUserError || isUsernameAgentPending || isUsernameUserPending) {
         return <LoadingScreen />
     }
 
-    if (!address) {
+    if (isAgentError || isAddressError || !address) {
         return <NotFound />
     }
 
-    // 根据地址类型显示对应的 Profile
+    // Display the corresponding Profile based on the address type
     if (usernameAgent) {
         return <div className="h-screen overflow-auto"><AgentProfile address={address} /></div>
     }

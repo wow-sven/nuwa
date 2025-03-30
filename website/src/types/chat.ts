@@ -55,4 +55,5 @@ export interface AgentChatContextType {
   currentAddress: string | undefined;
   selectedChannel: string | undefined;
   setSelectedChannel: (channelId: string | undefined) => void;
+  isAddressError: boolean;
 } 

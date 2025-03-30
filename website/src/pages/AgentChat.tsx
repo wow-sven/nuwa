@@ -16,6 +16,8 @@ import { NotFound } from "./NotFound";
 export function AgentChat() {
   const { username, channelTitle } = useParams<{ username: string; channelTitle?: string }>();
 
+  console.log('username', username)
+
   if (!username) {
     return <NotFound />
   }
@@ -35,7 +37,7 @@ interface AgentChatContentProps {
 }
 
 function AgentChatContent({ initialChannelTitle }: AgentChatContentProps) {
-  const { agent, channels, isChannelsPending, isAgentPending, selectedChannel, setSelectedChannel, refetchChannels } = useAgentChat();
+  const { agent, channels, isChannelsPending, isAgentPending, selectedChannel, setSelectedChannel, refetchChannels, isAddressError } = useAgentChat();
   const navigate = useNavigate();
   const { username } = useParams<{ username: string }>();
 
@@ -64,20 +66,27 @@ function AgentChatContent({ initialChannelTitle }: AgentChatContentProps) {
     }
   }, [channels, selectedChannel, setSelectedChannel, initialChannelTitle, navigate, username])
 
-  // 处理 channel 切换
+  // Handle channel switch
   const handleChannelSelect = (channelId: string) => {
     const channel = channels?.find(c => c.id === channelId);
     if (channel) {
       setSelectedChannel(channelId);
-      // 更新 URL 为选中的 channel 的 title（使用下划线）
+      // Update URL to the selected channel's title (using underscores)
       navigate(`/agent/${username}/${encodeChannelTitle(channel.title)}`, { replace: true });
     }
   };
+
+  // If the address is not found, show 404 page
+  if (isAddressError) {
+    return <NotFound />;
+  }
 
   // Show loading state for agent or channels
   if (isAgentPending || isChannelsPending || !channels) {
     return <LoadingScreen agentName={agent?.name} />;
   }
+
+
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
