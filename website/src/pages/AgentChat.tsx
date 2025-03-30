@@ -45,26 +45,22 @@ function AgentChatContent({ initialChannelTitle }: AgentChatContentProps) {
   const encodeChannelTitle = (title: string) => title.replace(/\s+/g, '_');
 
   useEffect(() => {
-    if (!selectedChannel && channels) {
+
+    if (channels) {
       if (initialChannelTitle) {
         // 如果提供了 channel title，尝试找到对应的 channel
         const channel = channels.find(c => c.title === initialChannelTitle);
         if (channel) {
           setSelectedChannel(channel.id);
-        } else {
-          // 如果找不到对应的 channel，使用第一个 channel
-          setSelectedChannel(channels[0].id);
-          // 更新 URL 为第一个 channel 的 title（使用下划线）
-          navigate(`/agent/${username}/${encodeChannelTitle(channels[0].title)}`, { replace: true });
         }
-      } else {
-        // 如果没有提供 channel title，使用第一个 channel
+      } else if (!selectedChannel) {
+        // 只有在没有 initialChannelTitle 且没有选中 channel 时，才使用第一个 channel
         setSelectedChannel(channels[0].id);
         // 更新 URL 为第一个 channel 的 title（使用下划线）
         navigate(`/agent/${username}/${encodeChannelTitle(channels[0].title)}`, { replace: true });
       }
     }
-  }, [channels, selectedChannel, setSelectedChannel, initialChannelTitle, navigate, username])
+  }, [channels, initialChannelTitle, navigate, username, selectedChannel]);
 
   // Handle channel switch
   const handleChannelSelect = (channelId: string) => {
@@ -86,7 +82,20 @@ function AgentChatContent({ initialChannelTitle }: AgentChatContentProps) {
     return <LoadingScreen agentName={agent?.name} />;
   }
 
-
+  // 修改错误处理的逻辑
+  if (channels && initialChannelTitle) {
+    const channelExists = channels.some(c => c.title === initialChannelTitle);
+    if (!channelExists) {
+      return (
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center">
+            <h2 className="text-xl font-semibold mb-2">找不到指定的对话</h2>
+            <p className="text-gray-600 dark:text-gray-400">请检查 URL 是否正确，或者选择其他对话。</p>
+          </div>
+        </div>
+      );
+    }
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
