@@ -235,11 +235,48 @@ export function MessageInput({
 
         // 自动调整高度
         if (inputRef.current) {
-            // 先重置高度为 auto，这样可以获取正确的最小高度
             inputRef.current.style.height = 'auto';
-            // 获取 scrollHeight 并设置新的高度
-            const newHeight = Math.max(inputRef.current.scrollHeight, 24); // 确保最小高度为 24px
+            const newHeight = Math.max(inputRef.current.scrollHeight, 24);
             inputRef.current.style.height = `${newHeight}px`;
+        }
+
+        // 处理粘贴事件
+        if ((e.nativeEvent as InputEvent).inputType === 'insertFromPaste') {
+            const pastedText = value;
+            const mentionRegex = /@(\w+)/g;
+            let match;
+            const newMentions: Array<{ id: string, text: string, type: 'user' | 'agent' }> = [];
+            let processedText = pastedText;
+
+            while ((match = mentionRegex.exec(pastedText)) !== null) {
+                const mentionText = match[1];
+                const member = allMembers.find(m =>
+                    m.username?.toLowerCase() === mentionText.toLowerCase() ||
+                    m.name?.toLowerCase() === mentionText.toLowerCase()
+                );
+
+                if (member) {
+                    const displayName = member.username || member.name || member.address;
+                    newMentions.push({
+                        id: member.address,
+                        text: displayName,
+                        type: member.isAgent ? 'agent' : 'user'
+                    });
+                    // 替换掉文本中的 @ 提及部分
+                    processedText = processedText.replace(`@${mentionText}`, '');
+                }
+            }
+
+            if (newMentions.length > 0) {
+                setMentions(prev => {
+                    const existingMentionIds = new Set(prev.map(m => m.id));
+                    const uniqueNewMentions = newMentions.filter(m => !existingMentionIds.has(m.id));
+                    return [...prev, ...uniqueNewMentions];
+                });
+                // 更新输入框的内容，移除已处理的 @ 提及
+                setInputMessage(processedText.trim());
+                return; // 如果是粘贴事件且处理了 mentions，直接返回
+            }
         }
 
         if (lastAtSymbol !== -1) {
