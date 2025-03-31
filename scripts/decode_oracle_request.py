@@ -5,7 +5,7 @@ import sys
 import subprocess
 from datetime import datetime
 import argparse
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 def decode_hex(hex_string: str) -> str:
     """Decode a hex string to UTF-8 text."""
@@ -239,21 +239,181 @@ def analyze_oracle_request(data: Dict[str, Any]) -> None:
 
     print("\n===== End of Oracle Request Details =====\n")
 
+def fetch_request_list(limit: int = 10) -> List[Dict[str, Any]]:
+    """Fetch a list of Oracle request objects."""
+    print(f"Fetching the latest {limit} Oracle request objects...")
+    try:
+        result = subprocess.run(
+            [
+                'rooch', 'object', 
+                '-t', '0xf1290fb0e7e1de7e92e616209fb628970232e85c4c1a264858ff35092e1be231::oracles::Request',
+                '-d', '--limit', str(limit)
+            ], 
+            capture_output=True, 
+            text=True, 
+            check=True
+        )
+        data = json.loads(result.stdout)
+        
+        # Check if we got any data
+        if not data.get('data'):
+            print("No Oracle request objects found.")
+            sys.exit(1)
+            
+        return data['data']
+    except subprocess.CalledProcessError as e:
+        print(f"Error executing rooch command: {e}")
+        print(f"stderr: {e.stderr}")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error parsing response from rooch command: {e}")
+        sys.exit(1)
+
+def process_response_summary(response_vec: Dict[str, Any]) -> str:
+    """Process response and return a summary of key information."""
+    try:
+        if 'value' in response_vec and isinstance(response_vec['value'], list) and len(response_vec['value']) > 0:
+            if isinstance(response_vec['value'][0], list) and len(response_vec['value'][0]) > 0:
+                hex_string = response_vec['value'][0][0]
+                if hex_string:
+                    decoded = decode_hex(hex_string)
+                    try:
+                        # Try to parse as JSON
+                        json_str_response = json.loads(decoded)
+                        json_response = json.loads(json_str_response)
+                        
+                        # Extract key information
+                        summary = []
+                        
+                        # Check for error information
+                        if 'error' in json_response:
+                            summary.append(f"Error: {json_response['error'].get('message', 'Unknown error')}")
+                        
+                        # Check for status code
+                        if 'status' in json_response:
+                            summary.append(f"Status: {json_response['status']}")
+                        
+                        # Check for OpenAI response
+                        if 'choices' in json_response and json_response['choices']:
+                            message = json_response['choices'][0].get('message', {})
+                            if 'content' in message:
+                                content = message['content']
+                                # Truncate content if too long
+                                if len(content) > 100:
+                                    content = content[:100] + "..."
+                                summary.append(f"Response: {content}")
+                        
+                        # If no specific information found, show truncated raw response
+                        if not summary:
+                            if len(decoded) > 100:
+                                decoded = decoded[:100] + "..."
+                            summary.append(f"Response: {decoded}")
+                        
+                        return " | ".join(summary)
+                    except json.JSONDecodeError:
+                        # If not JSON, return truncated version
+                        if len(decoded) > 100:
+                            decoded = decoded[:100] + "..."
+                        return f"Response: {decoded}"
+    except Exception as e:
+        return f"Error processing response: {str(e)}"
+    return "No response content"
+
+def display_request_list(requests: List[Dict[str, Any]], show_details: bool = False) -> None:
+    """Display a list of Oracle requests in a compact format."""
+    print("\n===== Oracle Request List =====\n")
+    
+    for idx, obj in enumerate(requests, 1):
+        decoded_value = obj.get('decoded_value', {})
+        value = decoded_value.get('value', {})
+        params = extract_nested_value(value, 'params.value')
+        
+        # Basic information
+        print(f"{idx}. ID: {obj['id']}")
+        print(f"   Created: {format_timestamp(obj['created_at'])}")
+        print(f"   Status: {value.get('response_status', 'Pending')}")
+        
+        # Request details
+        if 'request_account' in value:
+            print(f"   Requester: {value['request_account']}")
+        if 'oracle' in value:
+            print(f"   Oracle: {value['oracle']}")
+            
+        # URL and method if available
+        if params:
+            if 'url' in params:
+                print(f"   URL: {params['url']}")
+            if 'method' in params:
+                print(f"   Method: {params['method']}")
+        
+        # Process and display response summary
+        response_vec = extract_nested_value(value, 'response.value.vec')
+        if response_vec:
+            response_summary = process_response_summary(response_vec)
+            print(f"   Response: {response_summary}")
+        
+        # Show more details if requested
+        if show_details:
+            print("\n   Details:")
+            if 'amount' in value:
+                print(f"   - Amount: {value['amount']} (Gas)")
+            
+            # Show full response if available
+            if response_vec:
+                try:
+                    if 'value' in response_vec and isinstance(response_vec['value'], list) and len(response_vec['value']) > 0:
+                        if isinstance(response_vec['value'][0], list) and len(response_vec['value'][0]) > 0:
+                            hex_string = response_vec['value'][0][0]
+                            if hex_string:
+                                decoded = decode_hex(hex_string)
+                                try:
+                                    json_str_response = json.loads(decoded)
+                                    json_response = json.loads(json_str_response)
+                                    
+                                    # Check for OpenAI response
+                                    if 'choices' in json_response and json_response['choices']:
+                                        message = json_response['choices'][0].get('message', {})
+                                        if 'content' in message:
+                                            print("\n   AI Response:")
+                                            print("   " + "-" * 50)
+                                            print(message['content'])
+                                            print("   " + "-" * 50)
+                                    else:
+                                        print(f"   - Response: {decoded[:200]}...")
+                                except:
+                                    print(f"   - Response: {decoded[:200]}...")
+                except:
+                    pass
+            
+            print("   " + "-" * 50)
+        
+        print()  # Add a blank line between requests
+    
+    print("===== End of Oracle Request List =====\n")
+
 def main():
     parser = argparse.ArgumentParser(description='Decode and display Rooch Oracle request objects')
     parser.add_argument('object_id', nargs='?', help='Object ID of the Oracle request to decode. If not provided, shows the latest request.')
+    parser.add_argument('--list', '-l', action='store_true', help='List mode: show multiple requests in a compact format')
+    parser.add_argument('--limit', type=int, default=10, help='Number of requests to show in list mode (default: 10)')
+    parser.add_argument('--details', '-d', action='store_true', help='Show more details in list mode')
     
     args = parser.parse_args()
     
     try:
-        # Fetch object data - either by ID or get the latest
-        if args.object_id:
-            data = fetch_object_by_id(args.object_id)
+        if args.list:
+            # List mode
+            requests = fetch_request_list(args.limit)
+            display_request_list(requests, args.details)
         else:
-            data = fetch_latest_request()
-        
-        # Analyze and display the data
-        analyze_oracle_request(data)
+            # Single request mode
+            if args.object_id:
+                data = fetch_object_by_id(args.object_id)
+            else:
+                data = fetch_latest_request()
+            
+            # Analyze and display the data
+            analyze_oracle_request(data)
         
     except Exception as e:
         print(f"Error: {e}")
