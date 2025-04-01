@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PencilIcon, LockClosedIcon, PlusIcon, InboxIcon } from "@heroicons/react/24/outline";
+import { PencilIcon, LockClosedIcon, PlusIcon, InboxIcon, ClipboardIcon } from "@heroicons/react/24/outline";
 import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
 import { useAgentProfile } from "./AgentProfileContext";
 import { TaskSpecification } from "../../types/task-types";
@@ -90,6 +90,33 @@ export function AgentTasksPanel() {
         }
     };
 
+    const handleCopyJson = async (task: TaskSpecification) => {
+        try {
+            await navigator.clipboard.writeText(JSON.stringify(task, null, 2));
+            toast.success('Task JSON copied to clipboard!', {
+                position: "top-right",
+                autoClose: 2000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+        } catch (err) {
+            toast.error('Failed to copy JSON', {
+                position: "top-right",
+                autoClose: 2000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+        }
+    };
+
     return (
         <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
             <div className="px-6 py-6">
@@ -124,9 +151,18 @@ export function AgentTasksPanel() {
                             </button>
                         </SessionKeyGuard>
                     ) : (
-                        <div className="flex items-center text-gray-500 dark:text-gray-400">
-                            <LockClosedIcon className="w-4 h-4 mr-2" />
-                            <span className="text-sm">Only the owner can edit</span>
+                        <div className="flex items-center space-x-4">
+                            <button
+                                onClick={() => handleCopyJson(taskSpecs[0])}
+                                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                            >
+                                <ClipboardIcon className="w-4 h-4 mr-2" />
+                                Copy JSON
+                            </button>
+                            <div className="flex items-center text-gray-500 dark:text-gray-400">
+                                <LockClosedIcon className="w-4 h-4 mr-2" />
+                                <span className="text-sm">Only the owner can edit</span>
+                            </div>
                         </div>
                     )}
                 </div>
