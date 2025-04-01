@@ -15,39 +15,36 @@ export function AgentTemperaturePanel() {
 
     // Safely parse temperature value, ensuring it always returns a number
     const safeParseTemperature = (value: any): number => {
-        if (value === undefined || value === null) return 7;
+        if (value === undefined || value === null) return 0.7;
 
         try {
             // If it's an object with a value property (DecimalValue format)
             if (typeof value === 'object' && value !== null && 'value' in value) {
                 const parsed = parseInt(value.value.toString());
-                return isNaN(parsed) ? 7 : parsed;
+                return isNaN(parsed) ? 0.7 : parsed / 10;
             }
 
             // If it's a direct value
             const parsed = parseInt(value.toString());
-            return isNaN(parsed) ? 7 : parsed;
+            return isNaN(parsed) ? 0.7 : parsed / 10;
         } catch (e) {
             console.error("Error parsing temperature:", e);
-            return 7; // Default value
+            return 0.7; // Default value
         }
     };
 
     // Extract temperature value from agent
     const agentTempValue = agent?.temperature
         ? safeParseTemperature(agent.temperature)
-        : 7;
+        : 0.7;
 
     // Use fetched temperature or agent value, ensuring it's a valid number
     const temperatureValue = !isLoading && fetchedTemperature !== undefined
         ? fetchedTemperature
         : agentTempValue;
 
-    console.log("Temperature values:", {
-        fetchedTemperature,
-        agentTemperature: agent?.temperature,
-        parsedValue: temperatureValue
-    });
+    console.log("temperatureValue", temperatureValue);
+
 
     const [editForm, setEditForm] = useState({
         temperature: temperatureValue,
@@ -76,7 +73,7 @@ export function AgentTemperaturePanel() {
             try {
                 await updateAgentTemperature({
                     cap: caps.get(agent?.id!)!.id,
-                    temperature: editForm.temperature,
+                    temperature: editForm.temperature * 10,
                 });
 
                 toast.success('Agent temperature updated successfully!', {
@@ -160,18 +157,19 @@ export function AgentTemperaturePanel() {
                                 <input
                                     type="range"
                                     min="0"
-                                    max="20"
+                                    max="2"
+                                    step="0.1"
                                     value={editForm.temperature}
                                     onChange={(e) =>
                                         setEditForm((prev) => ({
                                             ...prev,
-                                            temperature: parseInt(e.target.value),
+                                            temperature: parseFloat(e.target.value),
                                         }))
                                     }
                                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
                                 />
                                 <span className="text-lg font-medium text-gray-700 dark:text-gray-300 min-w-[3rem] text-center">
-                                    {(editForm.temperature / 10).toFixed(1)}
+                                    {editForm.temperature.toFixed(1)}
                                 </span>
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -185,13 +183,13 @@ export function AgentTemperaturePanel() {
                                     <div
                                         className="h-2.5 rounded-full"
                                         style={{
-                                            width: `${(temperatureValue / 20) * 100}%`,
+                                            width: `${(temperatureValue / 2) * 100}%`,
                                             background: 'linear-gradient(to right, #d8b4fe, #9333ea)'
                                         }}
                                     ></div>
                                 </div>
                                 <span className="text-lg font-medium text-gray-700 dark:text-gray-300 min-w-[3rem] text-center">
-                                    {(temperatureValue / 10).toFixed(1)}
+                                    {temperatureValue.toFixed(1)}
                                 </span>
                             </div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
