@@ -13,10 +13,12 @@ export function AgentTasksPanel() {
     const [isAddingTask, setIsAddingTask] = useState(false);
     const [isJsonMode, setIsJsonMode] = useState(false);
     const [editingTaskIndex, setEditingTaskIndex] = useState<number | null>(null);
+    const [jsonInput, setJsonInput] = useState<string>('');
 
     useEffect(() => {
         if (agentTask) {
             setTaskSpecs(agentTask);
+            setJsonInput(JSON.stringify(agentTask, null, 2));
         }
     }, [agentTask]);
 
@@ -28,9 +30,73 @@ export function AgentTasksPanel() {
         }
     }, [taskSpecs]);
 
+    const validateTaskSpecs = (parsed: any): boolean => {
+        // 如果输入是单个对象，将其转换为数组
+        const tasks = Array.isArray(parsed) ? parsed : [parsed];
+
+        const isValidTask = (task: any) => {
+            return typeof task === 'object' &&
+                task !== null &&
+                typeof task.name === 'string' &&
+                typeof task.description === 'string' &&
+                typeof task.resolver === 'string' &&
+                typeof task.price === 'number' &&
+                typeof task.on_chain === 'boolean' &&
+                Array.isArray(task.arguments);
+        };
+
+        if (!tasks.every(isValidTask)) {
+            toast.error('Invalid task format in JSON', {
+                position: "top-right",
+                autoClose: 2000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+            return false;
+        }
+
+        // 更新状态时使用数组形式
+        setTaskSpecs(tasks);
+        return true;
+    };
+
+    const handleJsonModeToggle = () => {
+        if (isJsonMode) {
+            try {
+                const parsed = JSON.parse(jsonInput);
+                if (validateTaskSpecs(parsed)) {
+                    setIsJsonMode(false);
+                }
+            } catch (error) {
+                toast.error('Invalid JSON format', {
+                    position: "top-right",
+                    autoClose: 2000,
+                    hideProgressBar: false,
+                    closeOnClick: true,
+                    pauseOnHover: true,
+                    draggable: true,
+                    progress: undefined,
+                    theme: "light",
+                });
+            }
+        } else {
+            setIsJsonMode(true);
+        }
+    };
+
     const handleSubmmitTask = async () => {
         try {
-            console.log(taskSpecs);
+            if (isJsonMode) {
+                const parsed = JSON.parse(jsonInput);
+                if (!validateTaskSpecs(parsed)) {
+                    return;
+                }
+            }
+
             await updateAgentTaskTask({
                 cap: caps.get(agent?.id!)!.id,
                 taskSpecs: taskSpecs,
@@ -47,6 +113,7 @@ export function AgentTasksPanel() {
                 theme: "light",
             });
             setEditingTaskIndex(null);
+            setIsJsonMode(false);
         } finally {
             refetchAgentTask();
         }
@@ -131,8 +198,9 @@ export function AgentTasksPanel() {
                                 const newTask = createEmptyTaskSpec();
                                 setTaskSpecs([...taskSpecs, newTask]);
                                 setEditingTaskIndex(taskSpecs.length);
+                                setIsJsonMode(false);
                             } else {
-                                setIsJsonMode(!isJsonMode);
+                                handleJsonModeToggle();
                             }
                         }}>
                             <button
@@ -185,16 +253,27 @@ export function AgentTasksPanel() {
                             <div className="space-y-4">
                                 <textarea
                                     className="w-full h-96 font-mono text-sm p-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                    value={JSON.stringify(taskSpecs, null, 2)}
-                                    onChange={(e) => {
-                                        try {
-                                            const parsed = JSON.parse(e.target.value);
-                                            setTaskSpecs(parsed);
-                                        } catch (error) {
-                                            // 如果 JSON 解析失败，不更新状态
-                                        }
-                                    }}
+                                    value={jsonInput}
+                                    onChange={(e) => setJsonInput(e.target.value)}
                                 />
+                                <div className="flex justify-end space-x-3">
+                                    <button
+                                        onClick={() => {
+                                            setJsonInput(JSON.stringify(agentTask || [], null, 2));
+                                            setIsJsonMode(false);
+                                        }}
+                                        className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <SessionKeyGuard onClick={handleSubmmitTask}>
+                                        <button
+                                            className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
+                                        >
+                                            Save
+                                        </button>
+                                    </SessionKeyGuard>
+                                </div>
                             </div>
                         ) : (
                             <div className="space-y-6">
