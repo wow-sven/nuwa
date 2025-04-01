@@ -286,17 +286,27 @@ export function MessageList({
         setAutoRefreshTrigger(prev => prev + 1);
     }, [channelId]);
 
-    // 添加初始加载效果
+    // 修改初始加载效果
     useEffect(() => {
         if (validChannelId) {
             // 立即触发一次加载
             setAutoRefreshTrigger(prev => prev + 1);
 
-            // 设置一个定时器，确保在 messageCount 更新后再次触发
+            // 设置一个定时器，确保在 messageCount 更新后加载所有必要的页面
             const timer = setTimeout(() => {
                 if (messageCount > 0) {
-                    const latestPage = Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
-                    setCurrentQueryPage(latestPage);
+                    // 计算需要加载的页面范围
+                    const latestPage = Math.ceil(messageCount / MESSAGES_PER_PAGE) - 1;
+                    const startPage = Math.max(0, latestPage - 2); // 加载最近3页
+
+                    // 按顺序加载页面
+                    for (let page = startPage; page <= latestPage; page++) {
+                        setTimeout(() => {
+                            if (!loadedPages.includes(page)) {
+                                setCurrentQueryPage(page);
+                            }
+                        }, (page - startPage) * 200); // 每页间隔200ms加载
+                    }
                 } else {
                     setCurrentQueryPage(0);
                 }
@@ -304,41 +314,81 @@ export function MessageList({
 
             return () => clearTimeout(timer);
         }
-    }, [validChannelId, messageCount]);
+    }, [validChannelId, messageCount, loadedPages]);
 
-    // 修改自动加载逻辑
+    // 修改滚动加载历史消息的逻辑
     useEffect(() => {
-        if (validChannelId && autoRefreshTrigger > 0) {
-            // 确保在 messageCount 更新后再设置页面
-            if (messageCount > 0) {
-                const latestPage = Math.floor((messageCount - 1) / MESSAGES_PER_PAGE);
-                setCurrentQueryPage(latestPage);
-            } else {
-                setCurrentQueryPage(0);
+        const container = messagesContainerRef.current;
+        if (!container) return;
+
+        const handleScroll = () => {
+            // 检查是否接近顶部
+            const isNearTop = container.scrollTop < 50;
+
+            // 如果接近顶部且还有更多历史消息可加载
+            if (isNearTop && !isLoadingMoreUp && !reachedTop && loadedPages.length > 0) {
+                const oldestLoadedPage = Math.min(...loadedPages);
+
+                // 如果还有更早的页面
+                if (oldestLoadedPage > 0) {
+                    const nextPageToLoad = oldestLoadedPage - 1;
+
+                    // 触发加载
+                    if (!loadedPages.includes(nextPageToLoad)) {
+                        setIsLoadingMoreUp(true);
+                        setLastScrollHeight(container.scrollHeight);
+                        setCurrentQueryPage(nextPageToLoad);
+                    }
+                } else {
+                    // 已经到达第一页
+                    setReachedTop(true);
+                }
             }
-        }
-    }, [validChannelId, autoRefreshTrigger, messageCount]);
+        };
+
+        container.addEventListener('scroll', handleScroll);
+        return () => container.removeEventListener('scroll', handleScroll);
+    }, [loadedPages, isLoadingMoreUp, reachedTop]);
 
     // 优化消息加载状态显示
     useEffect(() => {
         if (pageMessages && pageMessages.length > 0) {
-            // Add current page to loaded pages list
+            // 添加当前页面到已加载页面列表
             if (!loadedPages.includes(currentQueryPage || 0)) {
                 setLoadedPages(prev => [...prev, currentQueryPage || 0]);
             }
 
-            // Update message list, avoid duplicates
+            // 修改消息去重和排序逻辑
             setAllMessages(prev => {
                 const existingIndices = new Set(prev.map(m => m.index));
                 const newMessages = pageMessages.filter(msg => !existingIndices.has(msg.index));
-                return [...prev, ...newMessages].sort((a, b) => a.index - b.index);
+                const combinedMessages = [...prev, ...newMessages];
+                return combinedMessages.sort((a, b) => a.index - b.index);
             });
 
-            // Reset query page after loading is complete
+            // 重置查询页面
             setCurrentQueryPage(null);
             setIsLoadingMoreUp(false);
         }
     }, [pageMessages, currentQueryPage, loadedPages]);
+
+    // 添加消息加载重试逻辑
+    useEffect(() => {
+        if (isError && validChannelId) {
+            const retryTimer = setTimeout(() => {
+                if (currentQueryPage !== null) {
+                    // 重置页面查询以触发新请求
+                    setCurrentQueryPage(null);
+                    setTimeout(() => triggerPageLoad(currentQueryPage), 100);
+                } else if (messageCount > 0) {
+                    const latestPage = Math.ceil(messageCount / MESSAGES_PER_PAGE) - 1;
+                    triggerPageLoad(latestPage);
+                }
+            }, 1000);
+
+            return () => clearTimeout(retryTimer);
+        }
+    }, [isError, validChannelId, currentQueryPage, messageCount, triggerPageLoad]);
 
     // Scroll to bottom (when receiving new messages)
     useEffect(() => {
