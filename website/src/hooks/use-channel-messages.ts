@@ -2,7 +2,7 @@ import { useRoochClient } from "@roochnetwork/rooch-sdk-kit";
 import { useQuery } from "@tanstack/react-query";
 import { useNetworkVariable } from "./use-networks";
 import { Args, bcs } from "@roochnetwork/rooch-sdk";
-import { Message } from "../types/channel";
+import { Message } from "../types/message";
 
 export const ObjectIDSchema = bcs.struct("ObjectID", {
   id: bcs.vector(bcs.Address),

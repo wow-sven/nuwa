@@ -152,6 +152,8 @@ export function MessageInput({
                     // Clear mentions and reset token form
                     setMentions([]);
                     setShowTransferModal(false);
+                    // 只在消息发送成功后清空输入框
+                    setInputMessage("");
                 } catch (error: any) {
                     // check if the error is session key expired
                     if (error?.message?.includes('1012')) {
@@ -212,8 +214,7 @@ export function MessageInput({
                 return;
             }
 
-            handleSendMessage(inputMessage);
-            setInputMessage("");
+            await handleSendMessage(inputMessage);
             // 重置输入框高度
             if (inputRef.current) {
                 inputRef.current.style.height = '24px';
