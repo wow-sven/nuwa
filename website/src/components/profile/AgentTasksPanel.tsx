@@ -12,6 +12,7 @@ export function AgentTasksPanel() {
     const [taskSpecs, setTaskSpecs] = useState<TaskSpecification[]>([]);
     const [isAddingTask, setIsAddingTask] = useState(false);
     const [isJsonMode, setIsJsonMode] = useState(false);
+    const [editingTaskIndex, setEditingTaskIndex] = useState<number | null>(null);
 
     useEffect(() => {
         if (agentTask) {
@@ -29,12 +30,52 @@ export function AgentTasksPanel() {
 
     const handleSubmmitTask = async () => {
         try {
+            console.log(taskSpecs);
             await updateAgentTaskTask({
                 cap: caps.get(agent?.id!)!.id,
                 taskSpecs: taskSpecs,
             });
 
             toast.success('Tasks updated successfully!', {
+                position: "top-right",
+                autoClose: 2000,
+                hideProgressBar: false,
+                closeOnClick: true,
+                pauseOnHover: true,
+                draggable: true,
+                progress: undefined,
+                theme: "light",
+            });
+            setEditingTaskIndex(null);
+        } finally {
+            refetchAgentTask();
+        }
+    };
+
+    const handleEditTask = (index: number) => {
+        setEditingTaskIndex(index);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingTaskIndex(null);
+        setTaskSpecs(agentTask || []);
+    };
+
+    const handleSaveTask = async () => {
+        await handleSubmmitTask();
+    };
+
+    const handleDeleteTask = async (index: number) => {
+        try {
+            const newTasks = [...taskSpecs];
+            newTasks.splice(index, 1);
+            await updateAgentTaskTask({
+                cap: caps.get(agent?.id!)!.id,
+                taskSpecs: newTasks,
+            });
+            setTaskSpecs(newTasks);
+            setEditingTaskIndex(null);
+            toast.success('Task deleted successfully!', {
                 position: "top-right",
                 autoClose: 2000,
                 hideProgressBar: false,
@@ -60,7 +101,9 @@ export function AgentTasksPanel() {
                         <SessionKeyGuard onClick={() => {
                             if (!isAddingTask) {
                                 setIsAddingTask(true);
-                                setTaskSpecs([...taskSpecs, createEmptyTaskSpec()]);
+                                const newTask = createEmptyTaskSpec();
+                                setTaskSpecs([...taskSpecs, newTask]);
+                                setEditingTaskIndex(taskSpecs.length);
                             } else {
                                 setIsJsonMode(!isJsonMode);
                             }
@@ -102,7 +145,6 @@ export function AgentTasksPanel() {
                     </div>
                 ) : isOwner ? (
                     <>
-                        {/* Task List with Editor */}
                         {isJsonMode ? (
                             <div className="space-y-4">
                                 <textarea
@@ -125,214 +167,310 @@ export function AgentTasksPanel() {
                                         key={index}
                                         className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700"
                                     >
-                                        <div className="flex items-start justify-between mb-4">
-                                            <div className="flex items-center space-x-3">
-                                                <span className="text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-full">
-                                                    Task #{index + 1}
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-4">
-                                            {/* Task Name */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Name
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={task.name}
-                                                    onChange={(e) => {
-                                                        const newTasks = [...taskSpecs];
-                                                        newTasks[index] = { ...newTasks[index], name: e.target.value };
-                                                        setTaskSpecs(newTasks);
-                                                    }}
-                                                    className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                                    placeholder="Input task name"
-                                                />
-                                            </div>
-
-                                            {/* Task Description */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Description
-                                                </label>
-                                                <textarea
-                                                    value={task.description}
-                                                    onChange={(e) => {
-                                                        const newTasks = [...taskSpecs];
-                                                        newTasks[index] = { ...newTasks[index], description: e.target.value };
-                                                        setTaskSpecs(newTasks);
-                                                    }}
-                                                    className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                                    placeholder="Input task description"
-                                                    rows={3}
-                                                />
-                                            </div>
-
-                                            {/* Resolver */}
-                                            <div>
-                                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                    Resolver
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={task.resolver}
-                                                    onChange={(e) => {
-                                                        const newTasks = [...taskSpecs];
-                                                        newTasks[index] = { ...newTasks[index], resolver: e.target.value };
-                                                        setTaskSpecs(newTasks);
-                                                    }}
-                                                    className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                                    placeholder="Input resolver"
-                                                />
-                                            </div>
-
-                                            {/* Arguments */}
-                                            <div>
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        Arguments
-                                                    </label>
+                                        {editingTaskIndex === index ? (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <div className="flex items-center space-x-3">
+                                                        <span className="text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-full">
+                                                            Task #{index + 1}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={handleCancelEdit}
+                                                            className="px-3 py-1 text-sm text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteTask(index)}
+                                                            className="px-3 py-1 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                        <SessionKeyGuard onClick={handleSaveTask}>
+                                                            <button
+                                                                className="px-3 py-1 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700"
+                                                            >
+                                                                Save
+                                                            </button>
+                                                        </SessionKeyGuard>
+                                                    </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => {
-                                                        const newTasks = [...taskSpecs];
-                                                        newTasks[index] = {
-                                                            ...newTasks[index],
-                                                            arguments: [...(newTasks[index].arguments || []), { name: '', type: 'String', type_desc: '', description: '', required: false }]
-                                                        };
-                                                        setTaskSpecs(newTasks);
-                                                    }}
-                                                    className="w-full flex items-center justify-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 bg-purple-50 dark:bg-purple-900/20 py-2 rounded-lg mb-3"
-                                                >
-                                                    <PlusIcon className="w-4 h-4 mr-1" />
-                                                    Add Argument
-                                                </button>
-                                                <div className="space-y-3">
-                                                    {(task.arguments || []).map((arg, argIndex) => (
-                                                        <div key={argIndex} className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
-                                                            <div className="flex items-start justify-between mb-2">
-                                                                <div className="flex-1 space-y-2">
-                                                                    <input
-                                                                        type="text"
-                                                                        value={arg.name}
-                                                                        onChange={(e) => {
-                                                                            const newTasks = [...taskSpecs];
-                                                                            newTasks[index].arguments[argIndex] = { ...arg, name: e.target.value };
-                                                                            setTaskSpecs(newTasks);
-                                                                        }}
-                                                                        className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                                                        placeholder="Argument Name"
-                                                                    />
-                                                                    <input
-                                                                        type="text"
-                                                                        value={arg.type_desc}
-                                                                        onChange={(e) => {
-                                                                            const newTasks = [...taskSpecs];
-                                                                            newTasks[index].arguments[argIndex] = { ...arg, type_desc: e.target.value };
-                                                                            setTaskSpecs(newTasks);
-                                                                        }}
-                                                                        className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                                                        placeholder="Type Description"
-                                                                    />
-                                                                    <textarea
-                                                                        value={arg.description}
-                                                                        onChange={(e) => {
-                                                                            const newTasks = [...taskSpecs];
-                                                                            newTasks[index].arguments[argIndex] = { ...arg, description: e.target.value };
-                                                                            setTaskSpecs(newTasks);
-                                                                        }}
-                                                                        className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                                                        placeholder="Argument Description"
-                                                                        rows={2}
-                                                                    />
+
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                            Name
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={task.name}
+                                                            onChange={(e) => {
+                                                                const newTasks = [...taskSpecs];
+                                                                newTasks[index] = { ...newTasks[index], name: e.target.value };
+                                                                setTaskSpecs(newTasks);
+                                                            }}
+                                                            className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                                            placeholder="Input task name"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                            Description
+                                                        </label>
+                                                        <textarea
+                                                            value={task.description}
+                                                            onChange={(e) => {
+                                                                const newTasks = [...taskSpecs];
+                                                                newTasks[index] = { ...newTasks[index], description: e.target.value };
+                                                                setTaskSpecs(newTasks);
+                                                            }}
+                                                            className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                                            placeholder="Input task description"
+                                                            rows={3}
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                            Resolver
+                                                        </label>
+                                                        <input
+                                                            type="text"
+                                                            value={task.resolver}
+                                                            onChange={(e) => {
+                                                                const newTasks = [...taskSpecs];
+                                                                newTasks[index] = { ...newTasks[index], resolver: e.target.value };
+                                                                setTaskSpecs(newTasks);
+                                                            }}
+                                                            className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                                            placeholder="Input resolver"
+                                                        />
+                                                    </div>
+
+                                                    <div>
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                                Arguments
+                                                            </label>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => {
+                                                                const newTasks = [...taskSpecs];
+                                                                newTasks[index] = {
+                                                                    ...newTasks[index],
+                                                                    arguments: [...(newTasks[index].arguments || []), { name: '', type: 'String', type_desc: '', description: '', required: false }]
+                                                                };
+                                                                setTaskSpecs(newTasks);
+                                                            }}
+                                                            className="w-full flex items-center justify-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 bg-purple-50 dark:bg-purple-900/20 py-2 rounded-lg mb-3"
+                                                        >
+                                                            <PlusIcon className="w-4 h-4 mr-1" />
+                                                            Add Argument
+                                                        </button>
+                                                        <div className="space-y-3">
+                                                            {(task.arguments || []).map((arg, argIndex) => (
+                                                                <div key={argIndex} className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                                                    <div className="flex items-start justify-between mb-2">
+                                                                        <div className="flex-1 space-y-2">
+                                                                            <input
+                                                                                type="text"
+                                                                                value={arg.name}
+                                                                                onChange={(e) => {
+                                                                                    const newTasks = [...taskSpecs];
+                                                                                    newTasks[index].arguments[argIndex] = { ...arg, name: e.target.value };
+                                                                                    setTaskSpecs(newTasks);
+                                                                                }}
+                                                                                className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                                                                placeholder="Argument Name"
+                                                                            />
+                                                                            <input
+                                                                                type="text"
+                                                                                value={arg.type_desc}
+                                                                                onChange={(e) => {
+                                                                                    const newTasks = [...taskSpecs];
+                                                                                    newTasks[index].arguments[argIndex] = { ...arg, type_desc: e.target.value };
+                                                                                    setTaskSpecs(newTasks);
+                                                                                }}
+                                                                                className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                                                                placeholder="Type Description"
+                                                                            />
+                                                                            <textarea
+                                                                                value={arg.description}
+                                                                                onChange={(e) => {
+                                                                                    const newTasks = [...taskSpecs];
+                                                                                    newTasks[index].arguments[argIndex] = { ...arg, description: e.target.value };
+                                                                                    setTaskSpecs(newTasks);
+                                                                                }}
+                                                                                className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                                                                placeholder="Argument Description"
+                                                                                rows={2}
+                                                                            />
+                                                                        </div>
+                                                                        <div className="flex items-center space-x-2 ml-2">
+                                                                            <label className="flex items-center">
+                                                                                <input
+                                                                                    type="checkbox"
+                                                                                    checked={arg.required}
+                                                                                    onChange={(e) => {
+                                                                                        const newTasks = [...taskSpecs];
+                                                                                        newTasks[index].arguments[argIndex] = { ...arg, required: e.target.checked };
+                                                                                        setTaskSpecs(newTasks);
+                                                                                    }}
+                                                                                    className="w-4 h-4 text-purple-600 dark:text-purple-400 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 dark:focus:ring-purple-400"
+                                                                                />
+                                                                                <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Required</span>
+                                                                            </label>
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                                <div className="flex items-center space-x-2 ml-2">
-                                                                    <label className="flex items-center">
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            checked={arg.required}
-                                                                            onChange={(e) => {
-                                                                                const newTasks = [...taskSpecs];
-                                                                                newTasks[index].arguments[argIndex] = { ...arg, required: e.target.checked };
-                                                                                setTaskSpecs(newTasks);
-                                                                            }}
-                                                                            className="w-4 h-4 text-purple-600 dark:text-purple-400 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 dark:focus:ring-purple-400"
-                                                                        />
-                                                                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Required</span>
-                                                                    </label>
-                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                                Price (RGas)
+                                                            </label>
+                                                            <input
+                                                                type="number"
+                                                                value={task.price}
+                                                                onChange={(e) => {
+                                                                    const newTasks = [...taskSpecs];
+                                                                    newTasks[index] = { ...newTasks[index], price: e.target.value };
+                                                                    setTaskSpecs(newTasks);
+                                                                }}
+                                                                className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                                                placeholder="Input price"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                                Type
+                                                            </label>
+                                                            <select
+                                                                value={task.on_chain ? "on-chain" : "off-chain"}
+                                                                onChange={(e) => {
+                                                                    const newTasks = [...taskSpecs];
+                                                                    newTasks[index] = { ...newTasks[index], on_chain: e.target.value === "on-chain" };
+                                                                    setTaskSpecs(newTasks);
+                                                                }}
+                                                                className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                                            >
+                                                                <option value="on-chain">On-Chain</option>
+                                                                <option value="off-chain">Off-Chain</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <span className="text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-full">
+                                                            Task #{index + 1}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => handleEditTask(index)}
+                                                            className="flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+                                                        >
+                                                            <PencilIcon className="w-4 h-4 mr-1" />
+                                                            Edit
+                                                        </button>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <div>
+                                                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                                                                Name
+                                                            </label>
+                                                            <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                                                                {task.name || 'No name specified'}
+                                                            </h4>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                                                                Description
+                                                            </label>
+                                                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                                {task.description || 'No description'}
+                                                            </p>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                                                                Resolver
+                                                            </label>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-sm rounded-lg">
+                                                                    {task.resolver || 'No resolver specified'}
+                                                                </span>
                                                             </div>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </div>
 
-                                            {/* Task Details */}
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                        Price (RGas)
-                                                    </label>
-                                                    <input
-                                                        type="number"
-                                                        value={task.price}
-                                                        onChange={(e) => {
-                                                            const newTasks = [...taskSpecs];
-                                                            newTasks[index] = { ...newTasks[index], price: e.target.value };
-                                                            setTaskSpecs(newTasks);
-                                                        }}
-                                                        className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                                        placeholder="Input price"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                                        Type
-                                                    </label>
-                                                    <select
-                                                        value={task.on_chain ? "on-chain" : "off-chain"}
-                                                        onChange={(e) => {
-                                                            const newTasks = [...taskSpecs];
-                                                            newTasks[index] = { ...newTasks[index], on_chain: e.target.value === "on-chain" };
-                                                            setTaskSpecs(newTasks);
-                                                        }}
-                                                        className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
-                                                    >
-                                                        <option value="on-chain">On-Chain</option>
-                                                        <option value="off-chain">Off-Chain</option>
-                                                    </select>
+                                                        <div>
+                                                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                                                                Arguments
+                                                            </label>
+                                                            {task.arguments && task.arguments.length > 0 ? (
+                                                                <div className="space-y-2">
+                                                                    {task.arguments.map((arg, argIndex) => (
+                                                                        <div key={argIndex} className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                                                                    {arg.name}
+                                                                                </span>
+                                                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                                                    ({arg.type_desc})
+                                                                                </span>
+                                                                                {arg.required && (
+                                                                                    <span className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
+                                                                                        Required
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                                                                {arg.description || 'No description'}
+                                                                            </p>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                                                                    No arguments defined
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="flex flex-wrap gap-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm text-gray-500 dark:text-gray-400">Price:</span>
+                                                                <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm rounded-lg">
+                                                                    {task.price || 0} RGas
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm text-gray-500 dark:text-gray-400">Type:</span>
+                                                                <span className="px-3 py-1 bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 text-sm rounded-lg">
+                                                                    {task.on_chain ? "On-Chain" : "Off-Chain"}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         )}
-
-                        {isAddingTask && (
-                            <div className="flex justify-end mt-6 gap-4">
-                                <button
-                                    onClick={() => {
-                                        setIsAddingTask(false);
-                                        setTaskSpecs(agentTask || []);
-                                    }}
-                                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={handleSubmmitTask}
-                                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
-                                >
-                                    Save
-                                </button>
-                            </div>
-                        )}
                     </>
                 ) : (
-                    // Read-only view for non-owners
                     <div className="space-y-4">
                         {taskSpecs.map((task, index) => (
                             <div
@@ -347,7 +485,6 @@ export function AgentTasksPanel() {
                                             </span>
                                         </div>
 
-                                        {/* Task Name */}
                                         <div className="mb-3">
                                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
                                                 Name
@@ -357,7 +494,6 @@ export function AgentTasksPanel() {
                                             </h4>
                                         </div>
 
-                                        {/* Task Description */}
                                         <div className="mb-4">
                                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
                                                 Description
@@ -367,7 +503,6 @@ export function AgentTasksPanel() {
                                             </p>
                                         </div>
 
-                                        {/* Resolver */}
                                         <div className="mb-4">
                                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
                                                 Resolver
@@ -379,7 +514,6 @@ export function AgentTasksPanel() {
                                             </div>
                                         </div>
 
-                                        {/* Arguments Section */}
                                         <div className="mb-4">
                                             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">
                                                 Arguments
@@ -414,7 +548,6 @@ export function AgentTasksPanel() {
                                             )}
                                         </div>
 
-                                        {/* Task Details */}
                                         <div className="flex flex-wrap gap-3">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-sm text-gray-500 dark:text-gray-400">Price:</span>

@@ -71,7 +71,6 @@ export function useAgentMemories({
                 target: targetFunction,
                 args: args,
             });
-            console.log("Debug - Raw response:", response);
 
             return deserializeMemories(response);
         },
