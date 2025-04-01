@@ -1,9 +1,10 @@
 import { AgentCard } from '../components/AgentCard'
 import useAllAgents from '../hooks/use-all-agents'
 import { SEO } from '../components/layout/SEO'
+// import { AgentLoadMore } from '../components/AgentLoadMore'
 
 export const AllAgents = () => {
-    const { agents, isPending, isError } = useAllAgents()
+    const { agents, isPending, isError} = useAllAgents()
 
     if (isPending) {
         return (
@@ -35,6 +36,9 @@ export const AllAgents = () => {
                         {agents.map(ai => (
                             <AgentCard key={ai.agent_address} agent={ai} />
                         ))}
+                        {/* {hasNext && (<AgentLoadMore callBack={() => {
+                            console.log('loadmor')
+                        }}/>)} */}
                     </div>
                 </div>
             </div>
