@@ -1,7 +1,5 @@
 import { Agent } from '../types/agent'
 import { useNavigate } from 'react-router-dom'
-import { HeartIcon, ChatBubbleLeftIcon, FireIcon, ClockIcon, StarIcon } from '@heroicons/react/24/outline'
-import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid'
 import { useState } from 'react'
 
 interface AgentCardProps {
