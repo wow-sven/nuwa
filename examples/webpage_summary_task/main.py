@@ -125,6 +125,8 @@ class TaskHandler:
                 2. Key Points
                 3. Main Arguments
                 4. Important Details
+                5. AI Agent's related information
+                6. Give a score for the content quality in 1-100 scale
                 
                 Format the output in markdown.""",
             llm=ChatOpenAI(
@@ -267,7 +269,7 @@ class TaskHandler:
             command = [
                 "rooch", "move", "run",
                 "--sender", self.default_account,
-                "--function", f"{self.config['package_id']}::task_entry::resolve_task",
+                "--function", f"{self.config['package_id']}::task_entry::resolve_task_and_call_agent",
                 "--args", f"object:{task_id}",
                 "--args", f"string:{result}",
                 "--json"
