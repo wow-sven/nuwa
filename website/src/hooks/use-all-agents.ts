@@ -6,9 +6,9 @@ import { Agent } from "../types/agent.ts";
 import { FEATURED_AGENTS, TRENDING_AGENTS } from "../config/featured-agents";
 
 export default function useAllAgents(
-  input?:{
+  input?: {
     limit?: string,
-  cursor?: IndexerStateIDView
+    cursor?: IndexerStateIDView
   }
 ) {
   const client = useRoochClient();
@@ -20,7 +20,7 @@ export default function useAllAgents(
     isError,
     refetch,
   } = useQuery({
-    queryKey: ["useAllAgents"],
+    queryKey: ["useAllAgents", input?.limit, input?.cursor],
     queryFn: async () => {
       const agentsResponse = await client.queryObjectStates({
         filter: {
@@ -37,8 +37,8 @@ export default function useAllAgents(
           const agentData = obj.decoded_value?.value || {};
           const agentAddress = agentData.agent_address
             ? new RoochAddress(
-                String(agentData.agent_address)
-              ).toBech32Address()
+              String(agentData.agent_address)
+            ).toBech32Address()
             : "";
           const username = String(agentData.username || "unnamed");
 
@@ -49,8 +49,8 @@ export default function useAllAgents(
             name: String(agentData.name || "Unnamed Agent"),
             avatar: String(
               agentData.avatar ||
-                "https://api.dicebear.com/7.x/bottts/svg?seed=" +
-                  agentData.username
+              "https://api.dicebear.com/7.x/bottts/svg?seed=" +
+              agentData.username
             ),
             description: String(
               agentData.description || "No description available"
