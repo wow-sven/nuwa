@@ -9,8 +9,8 @@ import { useNetworkVariable } from "../../../../hooks/use-networks";
 import { useAgentChat } from "../../../../contexts/AgentChatContext";
 import { RoochAddress, toShortStr } from "@roochnetwork/rooch-sdk";
 import { toast } from "react-hot-toast";
-import { ActionMenu } from "./ActionMenu";
 import { TransferModal } from "./TransferModal";
+import { ActionPanel } from "./ActionPanel";
 
 /**
  * Props for the MessageInput component
@@ -435,21 +435,17 @@ export function MessageInput({
         }
     };
 
+    const handleAutoMentionToggle = () => {
+        setAutoMentionAI(!autoMentionAI);
+    };
+
     if (!agent || !selectedChannel) {
         return null;
     }
 
     return (
-        <div className="shrink-0 p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="shrink-0 px-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex space-x-2">
-                {/* Action Menu - only shown when joined */}
-                {isJoined && (
-                    <ActionMenu
-                        onTransferClick={() => setShowTransferModal(true)}
-                        autoMentionAI={autoMentionAI}
-                        onAutoMentionToggle={() => setAutoMentionAI(!autoMentionAI)}
-                    />
-                )}
 
                 {/* Message input field - only shown when joined */}
                 {isJoined && (
@@ -540,6 +536,15 @@ export function MessageInput({
                     </LoadingButton>
                 </SessionKeyGuard>
             </div>
+
+            {/* Action Panel */}
+            {isJoined && (
+                <ActionPanel
+                    onTransferClick={() => setShowTransferModal(true)}
+                    autoMentionAI={autoMentionAI}
+                    onAutoMentionToggle={handleAutoMentionToggle}
+                />
+            )}
 
             {/* Transfer Modal */}
             {showTransferModal && agent && (
