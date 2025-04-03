@@ -81,15 +81,20 @@ function AgentChatContent({ initialChannelTitle }: AgentChatContentProps) {
     return <LoadingScreen agentName={agent?.name} />;
   }
 
+
+
   // 修改错误处理的逻辑
   if (channels && initialChannelTitle) {
-    const channelExists = channels.some(c => c.title === initialChannelTitle);
+    const channelExists = channels.some(c =>
+      c.title === initialChannelTitle ||
+      c.title === initialChannelTitle.replace(/\s+/g, '_')
+    );
     if (!channelExists) {
       return (
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
-            <h2 className="text-xl font-semibold mb-2">找不到指定的对话</h2>
-            <p className="text-gray-600 dark:text-gray-400">请检查 URL 是否正确，或者选择其他对话。</p>
+            <h2 className="text-xl font-semibold mb-2">Can't find the specified dialog</h2>
+            <p className="text-gray-600 dark:text-gray-400">Please check the URL is correct, or choose another dialog.</p>
           </div>
         </div>
       );
