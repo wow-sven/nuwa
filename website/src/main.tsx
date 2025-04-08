@@ -27,7 +27,7 @@ createRoot(document.getElementById('root')!).render(
             maxInactiveInterval: 3600,
           }}
         >
-          <WalletProvider preferredWallets={['UniSat']} chain="bitcoin" autoConnect>
+          <WalletProvider enableLocal preferredWallets={['UniSat']} chain="bitcoin" autoConnect>
             <ErrorGuard />
             <App />
           </WalletProvider>
