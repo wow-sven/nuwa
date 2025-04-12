@@ -43,7 +43,7 @@ export function MessageInput({
     const [mentions, setMentions] = useState<Array<{ id: string, text: string, type: 'user' | 'agent' }>>([]);
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const mentionListRef = useRef<HTMLDivElement>(null);
-
+    const [isComposing, setIsComposing] = useState(false); 
     const packageId = useNetworkVariable("packageId");
     const session = useCurrentSession()
     const { mutate: createSession } = useCreateSessionKey()
@@ -398,6 +398,9 @@ export function MessageInput({
     });
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (isComposing || e.nativeEvent.isComposing) {
+            return;
+        }
         if (showMentionList && filteredMembers.length > 0) {
             switch (e.key) {
                 case "ArrowDown":
@@ -469,6 +472,10 @@ export function MessageInput({
                                 value={inputMessage}
                                 onChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
+                                onCompositionStart={() => setIsComposing(true)}
+                                onCompositionEnd={() => {
+                                    setTimeout(() => setIsComposing(false), 0);
+                                }}
                                 placeholder={mentions.length > 0 ? "" : "Type a message..."}
                                 className="flex-1 bg-transparent outline-none text-sm resize-none py-0 min-h-[24px]"
                                 rows={1}
