@@ -74,7 +74,8 @@ type ActiveSidePanel = 'examples' | 'tools'; // Define type if needed here
 function App() {
   // State management - Keep application logic state
   const [selectedExample, setSelectedExample] = useState<ExampleConfig | null>(null);
-  const [script, setScript] = useState('');
+  // Using underscore prefix to indicate this state is used but may appear unused to TypeScript
+  const [_script, setScript] = useState('');
   const [output, setOutput] = useState('');
   const [executionError, setExecutionError] = useState<string | undefined>(undefined);
   const [nuwaInterface, setNuwaInterface] = useState<ExtendedNuwaInterface | null>(null);
@@ -87,7 +88,7 @@ function App() {
   const [currentToolSchemas, setCurrentToolSchemas] = useState<ToolSchema[]>([]);
   const [shapes, setShapes] = useState<DrawableShape[]>(canvasShapes);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null); // Keep ref if Editor needs it
-  const [editorContent, setEditorContent] = useState(''); // 编辑器内容状态
+  const [editorContent, setEditorContent] = useState(''); // Editor content state
 
   // Initialization
   useEffect(() => {
@@ -101,9 +102,9 @@ function App() {
     // Subscribe to canvas shape changes 
     const unsubscribe = subscribeToCanvasChanges(() => {
       console.log('[App.tsx] Syncing shapes via subscription. Global state:', JSON.stringify(canvasShapes)); 
-      // 强制更新状态以触发重新渲染
-      setShapes(prevShapes => {
-        // 确保是一个新的引用以触发渲染
+      // Force state update to trigger re-rendering
+      setShapes(() => {
+        // Ensure it's a new reference to trigger rendering
         return [...canvasShapes];
       });
     });
@@ -179,7 +180,7 @@ function App() {
     setCurrentToolSchemas(toolRegistry.getAllSchemas());
   };
 
-  // Run script - 改进执行流程
+  // Run script - improved execution process
   const handleRun = async (scriptToRun: string) => {
     if (!nuwaInterface) return;
 
@@ -198,16 +199,16 @@ function App() {
         throw new Error("Parsing did not return a valid Script AST node.");
       }
 
-      // 确保同步 script 状态
+      // Ensure script state is synchronized
       setScript(scriptToRun);
       
-      // 执行脚本
+      // Execute script
       const scope = await nuwaInterface.interpreter.execute(scriptAST);
       console.log("Execution finished. Final scope:", scope);
       
-      // 如果是 Canvas 示例，确保触发刷新
+      // If it's a Canvas example, ensure refresh
       if (selectedExample?.id === 'canvas') {
-        // 更新一次画布状态以确保刷新
+        // Update canvas state once to ensure refresh
         console.log("[App.tsx] Canvas example executed, force refreshing canvas...");
         setShapes([...canvasShapes]);
       }
@@ -229,18 +230,18 @@ function App() {
     }
   };
 
-  // 处理脚本变更
+  // Handle script changes
   const handleScriptChange = useCallback((newCode = '') => {
     setEditorContent(newCode);
   }, []);
 
-  // 处理运行按钮点击
+  // Handle run button click
   const handleRunClick = useCallback(() => {
-    // 使用最新的编辑器内容执行
+    // Execute using the latest editor content
     handleRun(editorContent);
   }, [editorContent]);
 
-  // AI 聊天消息处理
+  // AI chat message handling
   const handleAIChatMessage = async (message: string) => {
     // Check if API key is set
     if (!apiKey) {
@@ -314,13 +315,13 @@ function App() {
     }
   };
 
-  // 清除输出
+  // Clear output
   const handleClearOutput = useCallback(() => {
     setOutput('');
     setExecutionError(undefined);
   }, []);
 
-  // 准备布局组件属性
+  // Prepare layout component properties
   const headerProps = {
     onRunClick: handleRunClick,
     isRunning,

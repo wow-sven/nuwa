@@ -207,23 +207,23 @@ const Editor: React.FC<EditorProps> = ({
     }
   }, [defaultValue]);
   
-  // 创建或重新创建编辑器实例
+
   const createEditor = () => {
     const dark = isDarkMode();
     const currentValue = viewRef.current?.state.doc.toString() || defaultValue;
     
     if (viewRef.current) {
-      // 保存重要状态
-      const hasFocus = document.activeElement === viewRef.current.contentDOM;
-      const scrollInfo = {
-        top: viewRef.current.scrollDOM.scrollTop,
-        left: viewRef.current.scrollDOM.scrollLeft
-      };
+ 
+      // const hasFocus = document.activeElement === viewRef.current.contentDOM;
+      // const scrollInfo = {
+      //   top: viewRef.current.scrollDOM.scrollTop,
+      //   left: viewRef.current.scrollDOM.scrollLeft
+      // };
       
       viewRef.current.destroy();
       viewRef.current = undefined;
       
-      // 在销毁后确保元素存在
+   
       if (!editorRef.current) return;
     }
     
@@ -260,7 +260,6 @@ const Editor: React.FC<EditorProps> = ({
 
       viewRef.current = view;
 
-      // 提供API方法
       if (editorInstanceRef) {
         editorInstanceRef.current = {
           setValue: (value: string) => {
@@ -268,21 +267,18 @@ const Editor: React.FC<EditorProps> = ({
             
             isChangingRef.current = true;
             
-            // 保存状态
             const hasFocus = document.activeElement === view.contentDOM;
             const scrollInfo = {
               top: view.scrollDOM.scrollTop,
               left: view.scrollDOM.scrollLeft
             };
-            
-            // 更新内容
+          
             const transaction = view.state.update({
               changes: { from: 0, to: view.state.doc.length, insert: value }
             });
             view.dispatch(transaction);
             lastKnownValueRef.current = value;
             
-            // 恢复状态
             if (hasFocus) view.focus();
             
             setTimeout(() => {
@@ -296,7 +292,6 @@ const Editor: React.FC<EditorProps> = ({
     }
   };
   
-  // 监听暗黑模式变化
   useEffect(() => {
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -305,7 +300,6 @@ const Editor: React.FC<EditorProps> = ({
           mutation.attributeName === 'class' &&
           mutation.target === document.documentElement
         ) {
-          // 暗黑模式变化时保存编辑器状态，然后重新创建
           const hasFocus = viewRef.current && document.activeElement === viewRef.current.contentDOM;
           createEditor();
           if (hasFocus && viewRef.current) {
