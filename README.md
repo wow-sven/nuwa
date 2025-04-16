@@ -203,6 +203,7 @@ rooch move test -d
 ## 📚 Resources
 
 - [Nuwa Website(testnet)](https://test.nuwa.dev)
+- [NuwaScript Playground](https://playground.nuwa.dev/)
 - [Rooch](https://github.com/rooch-network/rooch)
 - [Nuwa Examples](./examples)
 

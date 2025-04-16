@@ -122,6 +122,12 @@ Read the detailed discussion in the [**Security Model Specification**](./spec/se
 
 ---
 
+## 🎮 Try NuwaScript
+
+Experience NuwaScript interactively in the [**NuwaScript Playground**](https://playground.nuwa.dev/).
+
+---
+
 ## 📜 License
 
 This project is licensed under the Apache License v2.0. See the [LICENSE](../LICENSE) file for details.

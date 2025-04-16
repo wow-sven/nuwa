@@ -2,6 +2,8 @@
 
 Welcome to the NuwaScript Playground! This is an interactive web application designed for exploring, testing, and demonstrating the NuwaScript language and its TypeScript implementation.
 
+**You can access the live Playground at: [https://playground.nuwa.dev/](https://playground.nuwa.dev/)**
+
 It provides a hands-on environment to:
 
 *   Learn NuwaScript syntax interactively.
