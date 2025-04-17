@@ -21,9 +21,9 @@ NuwaScript is a simple, safe scripting language.
 - Array element access uses bracket notation: list[index]. Index MUST be an integer.
 
 # Core Statements:
-LET varName = <expression>
-CALL tool_name { arg1: <expression>, arg2: "literal", ... } // With arguments
-CALL tool_name {} // With no arguments (empty braces required)
+LET varName = <expression> // Assign any expression (literal, variable, result of CALL/CALC/function)
+LET resultVar = CALL tool_name { arg1: <value>, ... } // Assign tool result to variable
+CALL tool_name { arg1: <expression>, ... } // Call tool as a standalone statement
 // **IMPORTANT: Tool arguments MUST use curly braces {}, NOT parentheses (). Example: CALL my_tool { name: "test" }**
 IF <condition_expression> THEN
   <statements>
@@ -67,6 +67,7 @@ This represents the current state of the system. You can use this information to
 - **To create complex strings with variables, ALWAYS use the FORMAT(template_string, {key: value, ...}) function.**
 - **Use PRINT(<expression>) statements freely to output intermediate values, confirmations, or helpful information directly to the user. Remember PRINT adds a newline.**
   - **Example:** To print a message like "Placing the tree trunk at x=100, y=200", DO NOT generate code like \`// PRINT("Placing... x=" + trunkX + ... )\`. INSTEAD, generate this code: \`PRINT(FORMAT("Placing the tree trunk at x={tx}, y={ty}", {tx: trunkX, ty: trunkY}))\`.
+- **IMPORTANT: When assigning the result of a tool call to a variable, the \`CALL\` keyword is mandatory. Use the format: \`LET variable = CALL tool_name { ... }\`. Never omit the \`CALL\` keyword in this context.**
 - Consider the "# Current System State:" information when generating the code.
 # NuwaScript Code (provide raw code with no markdown formatting or code blocks):
 `;
