@@ -9,6 +9,33 @@ export class StorageService {
     return localStorage.getItem(`${this.PREFIX}api_key`) || '';
   }
 
+  saveBaseUrl(baseUrl: string): void {
+    localStorage.setItem(`${this.PREFIX}base_url`, baseUrl);
+  }
+
+  getBaseUrl(): string | null {
+    return localStorage.getItem(`${this.PREFIX}base_url`);
+  }
+
+  saveModel(model: string): void {
+    localStorage.setItem(`${this.PREFIX}model`, model);
+  }
+
+  getModel(): string | null {
+    return localStorage.getItem(`${this.PREFIX}model`);
+  }
+
+  saveTemperature(temperature: number): void {
+    localStorage.setItem(`${this.PREFIX}temperature`, temperature.toString());
+  }
+
+  getTemperature(): number | null {
+    const tempStr = localStorage.getItem(`${this.PREFIX}temperature`);
+    if (tempStr === null) return null;
+    const tempNum = parseFloat(tempStr);
+    return isNaN(tempNum) ? null : tempNum;
+  }
+
   saveCustomScript(id: string, script: string): void {
     const customScripts = this.getCustomScripts();
     customScripts[id] = script;

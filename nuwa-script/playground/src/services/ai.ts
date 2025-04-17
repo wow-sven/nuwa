@@ -7,6 +7,7 @@ export interface AIServiceOptions {
   maxTokens?: number;
   temperature?: number;
   appSpecificGuidance?: string;
+  baseUrl?: string;
 }
 
 export class AIService {
@@ -14,11 +15,15 @@ export class AIService {
 
   constructor(options: AIServiceOptions) {
     this.options = {
-      model: 'gpt-4o',
-      maxTokens: 2000,
-      temperature: 0.7,
+      model: options.model || 'gpt-4o',
+      maxTokens: 4000,
+      temperature: 0.3,
+      baseUrl: options.baseUrl || 'https://api.openai.com',
       ...options,
     };
+    if (this.options.baseUrl!.endsWith('/')) {
+      this.options.baseUrl = this.options.baseUrl!.slice(0, -1);
+    }
   }
 
   async generateNuwaScript(prompt: string, toolRegistry: ToolRegistry): Promise<string> {
@@ -26,8 +31,20 @@ export class AIService {
       throw new Error('API key is required');
     }
 
+    let fullUrl: string;
+    const normalizedBaseUrl = this.options.baseUrl!;
+    if (normalizedBaseUrl.endsWith('/v1')) {
+      fullUrl = `${normalizedBaseUrl}/chat/completions`;
+    } else {
+      fullUrl = `${normalizedBaseUrl}/v1/chat/completions`;
+    }
+
+    console.log(`Constructed API URL: ${fullUrl}`);
+
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const final_prompt = buildPrompt(toolRegistry, prompt, { appSpecificGuidance: this.options.appSpecificGuidance });
+      console.log(`Final prompt: ${final_prompt}`);
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,7 +53,7 @@ export class AIService {
         body: JSON.stringify({
           model: this.options.model,
           messages: [
-            { role: "system", content: buildPrompt(toolRegistry, prompt, { appSpecificGuidance: this.options.appSpecificGuidance })},
+            { role: "system", content: final_prompt},
           ],
           max_tokens: this.options.maxTokens,
           temperature: this.options.temperature,
@@ -59,7 +76,7 @@ export class AIService {
       const match = content.match(codeBlockRegex);
       return match ? match[1].trim() : content.trim();
     } catch (error) {
-      console.error('Error calling OpenAI API:', error);
+      console.error('Error calling API:', error);
       throw error;
     }
   }
@@ -69,8 +86,18 @@ export class AIService {
       throw new Error('API key is required');
     }
 
+    let fullUrl: string;
+    const normalizedBaseUrl = this.options.baseUrl!;
+    if (normalizedBaseUrl.endsWith('/v1')) {
+      fullUrl = `${normalizedBaseUrl}/chat/completions`;
+    } else {
+      fullUrl = `${normalizedBaseUrl}/v1/chat/completions`;
+    }
+
+    console.log(`Constructed API URL for explanation: ${fullUrl}`);
+
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +112,9 @@ export class AIService {
             },
             {
               role: 'user',
-              content: `Explain the following NuwaScript code:\n\n${code}`
+              content: `Explain the following NuwaScript code:
+
+${code}`
             }
           ],
           max_tokens: this.options.maxTokens,
@@ -107,7 +136,7 @@ export class AIService {
 
       return content.trim();
     } catch (error) {
-      console.error('Error calling OpenAI API:', error);
+      console.error('Error calling API:', error);
       throw error;
     }
   }

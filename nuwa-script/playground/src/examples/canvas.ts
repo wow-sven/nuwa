@@ -11,6 +11,43 @@ import type {
 } from '../services/interpreter';
 import type { DrawableShape } from '../components/DrawingCanvas';
 
+// Define the shared description string as a constant
+// Updated description reflecting the actual nested JSON structure, removing escapes
+const CANVAS_JSON_DESCRIPTION = `JSON representation of the canvas using a nested structure.
+  Structure Overview:
+    - Top level object: Represents the Stage (canvas).
+    - attrs: Contains stage attributes like 'width' (500) and 'height' (400).
+    - className: "Stage"
+    - children: An array containing Layer objects.
+
+    - Layer object: Represents a drawing layer within the stage.
+      - attrs: Layer specific attributes (usually empty).
+      - className: "Layer"
+      - children: An array containing the actual Shape objects drawn on this layer.
+
+    - Shape object: Represents a single shape (Rect, Path, Circle, etc.).
+      - className: Specifies the shape type (e.g., "Rect", "Path", "Circle").
+      - attrs: Shape specific attributes.
+        - For Rect:
+          - x: Top-left X coordinate
+          - y: Top-left Y coordinate
+          - width: Rectangle width
+          - height: Rectangle height
+          - color: Border color
+          - fill: Fill color
+        - For Circle:
+          - x: Center X coordinate
+          - y: Center Y coordinate
+          - radius: Circle radius
+          - color: Border color
+          - fill: Fill color
+        - For Path:
+          - d: SVG path data string
+          - color: Path color
+          - fill: Fill color
+          - width: Path stroke width
+`;
+
 // --- Canvas State Interface ---
 export interface CanvasState {
   shapes: DrawableShape[];
@@ -25,7 +62,7 @@ export interface CanvasState {
 // In a real app, consider Zustand, Context API, or other state management.
 export const canvasShapes: DrawableShape[] = [];
 // Store canvas JSON representation
-export let canvasJSON: object | null = null;
+let canvasJSON: object = {};
 
 // Initialize canvas state
 export const canvasState: CanvasState = {
@@ -37,39 +74,36 @@ export const canvasState: CanvasState = {
 };
 
 // Function for React components to subscribe to changes (simple approach)
-let changeListeners: (() => void)[] = [];
-export const subscribeToCanvasChanges = (listener: () => void): (() => void) => {
-  changeListeners.push(listener);
+const canvasChangeSubscribers: Set<() => void> = new Set();
+export const subscribeToCanvasChanges = (listener: () => void): () => void => {
+  canvasChangeSubscribers.add(listener);
   // Return an unsubscribe function
   return () => {
-    changeListeners = changeListeners.filter(l => l !== listener);
+    canvasChangeSubscribers.delete(listener);
   };
 };
 const notifyCanvasChange = () => {
   // Update lastModified timestamp
   canvasState.lastModified = Date.now();
   // Notify all listeners
-  changeListeners.forEach(listener => listener());
+  canvasChangeSubscribers.forEach(listener => listener());
 };
 
+// Global reference to the ToolRegistry (set from App.tsx)
+const globalRegistryRef: ToolRegistry | null = null;
+
 // Update canvas JSON representation
-export const updateCanvasJSON = (json: object) => {
+export function updateCanvasJSON(json: object) {
   canvasJSON = json;
-  canvasState.canvasJSON = json;
-  
-  // Get tool registry
-  const globalObj = typeof window !== 'undefined' ? window : (typeof global !== 'undefined' ? global : {});
-  const registry = (globalObj as { __toolRegistry?: ToolRegistry }).__toolRegistry;
+  // Use the global registry reference if available
+  const registry = (typeof window !== 'undefined' && (window as Window & typeof globalThis & { __toolRegistry?: ToolRegistry }).__toolRegistry) || globalRegistryRef;
   if (registry) {
     registry.setState('canvas_json', createState(
-      JSON.stringify(json),
-      `JSON representation of the canvas for better spatial understanding.\nThis contains detailed information about all shapes and their positions on the canvas.\nFormat:\n- canvas dimensions (width: 500, height: 400)\n- shapes array containing all objects with their precise coordinates\n- each shape has properties like:\n  * x, y: position coordinates (origin is top-left)\n  * width, height: dimensions of rectangles\n  * radius: size of circles\n  * points: coordinates for lines [x1,y1,x2,y2]\n  * color: stroke color\n  * fill: fill color if present\n\nSpatial Guidelines:\n- x increases from left to right (0 at left edge, 500 at right edge)\n- y increases from top to bottom (0 at top edge, 400 at bottom edge)\n- shapes may overlap if their coordinates and dimensions intersect\n- to place objects "next to" others, ensure their boundaries don't overlap\n- typically, maintain at least 20-50 pixels spacing between objects\n- center of canvas is approximately at x: 250, y: 200`
+      json,
+      CANVAS_JSON_DESCRIPTION
     ));
   }
-  
-  // // Notify change - REMOVED: This should only be notified when canvasShapes itself changes
-  // notifyCanvasChange();
-};
+}
 // --- End Shared State ---
 
 // --- Helper for State Management ---
@@ -147,8 +181,8 @@ function updateCanvasStateWithRegistry(registry: ToolRegistry): void {
   // If there's a JSON representation, store it in state
   if (canvasJSON) {
     registry.setState('canvas_json', createState(
-      JSON.stringify(canvasJSON),
-      `JSON representation of the canvas for better spatial understanding.\nThis contains detailed information about all shapes and their positions on the canvas.\nFormat:\n- canvas dimensions (width: 500, height: 400)\n- shapes array containing all objects with their precise coordinates\n- each shape has properties like:\n  * x, y: position coordinates (origin is top-left)\n  * width, height: dimensions of rectangles\n  * radius: size of circles\n  * points: coordinates for lines [x1,y1,x2,y2]\n  * color: stroke color\n  * fill: fill color if present\n\nSpatial Guidelines:\n- x increases from left to right (0 at left edge, 500 at right edge)\n- y increases from top to bottom (0 at top edge, 400 at bottom edge)\n- shapes may overlap if their coordinates and dimensions intersect\n- to place objects "next to" others, ensure their boundaries don't overlap\n- typically, maintain at least 20-50 pixels spacing between objects\n- center of canvas is approximately at x: 250, y: 200`
+      canvasJSON,
+      CANVAS_JSON_DESCRIPTION
     ));
   }
   

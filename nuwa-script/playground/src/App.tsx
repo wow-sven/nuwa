@@ -74,12 +74,13 @@ type ActiveSidePanel = 'examples' | 'tools'; // Define type if needed here
 function App() {
   // State management - Keep application logic state
   const [selectedExample, setSelectedExample] = useState<ExampleConfig | null>(null);
-  // Using underscore prefix to indicate this state is used but may appear unused to TypeScript
-  const [_script, setScript] = useState('');
   const [output, setOutput] = useState('');
   const [executionError, setExecutionError] = useState<string | undefined>(undefined);
   const [nuwaInterface, setNuwaInterface] = useState<ExtendedNuwaInterface | null>(null);
   const [apiKey, setApiKey] = useState(storageService.getApiKey());
+  const [baseUrl, setBaseUrl] = useState(storageService.getBaseUrl() || 'https://api.openai.com');
+  const [modelName, setModelName] = useState(storageService.getModel() || 'gpt-4o');
+  const [temperature, setTemperature] = useState<number>(storageService.getTemperature() ?? 0.3);
   const [isRunning, setIsRunning] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   // State moved to Layout: activeSidePanel, scriptPanelHeight, isDragging
@@ -89,6 +90,33 @@ function App() {
   const [shapes, setShapes] = useState<DrawableShape[]>(canvasShapes);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null); // Keep ref if Editor needs it
   const [editorContent, setEditorContent] = useState(''); // Editor content state
+
+
+
+  // Memoize the onCanvasChange callback to prevent unnecessary re-renders
+  const handleCanvasChange = useCallback((json: object) => {
+    console.log('[App.tsx] Canvas JSON updated (via callback):', json);
+    updateCanvasJSON(json); // Update global JSON state and tool registry state
+  }, []);
+
+  // Select example and setup the interpreter
+  const handleSelectExample = useCallback((example: ExampleConfig) => {
+    setSelectedExample(example);
+    setEditorContent(example.script);
+    setOutput('');
+    setExecutionError(undefined);
+    storageService.saveLastSelectedExample(example.id);
+    
+    // Reset canvas state for canvas example
+    if (example.id === 'canvas') {
+      console.log('[App.tsx] Canvas example selected. Clearing shapes.');
+      canvasShapes.length = 0; // Clear global array
+      updateCanvasJSON({}); // Notify registry about empty canvas
+    }
+
+    // Setup interpreter AFTER potentially clearing state
+    setupInterpreter(example);
+  }, []);
 
   // Initialization
   useEffect(() => {
@@ -111,33 +139,8 @@ function App() {
 
     // Cleanup subscription 
     return () => unsubscribe();
-  }, []); // Runs once on mount
+  }, [handleSelectExample]); // Runs once on mount
 
-  // Memoize the onCanvasChange callback to prevent unnecessary re-renders
-  const handleCanvasChange = useCallback((json: object) => {
-    console.log('[App.tsx] Canvas JSON updated (via callback):', json);
-    updateCanvasJSON(json); // Update global JSON state and tool registry state
-  }, []);
-
-  // Select example and setup the interpreter
-  const handleSelectExample = useCallback((example: ExampleConfig) => {
-    setSelectedExample(example);
-    setScript(example.script);
-    setEditorContent(example.script);
-    setOutput('');
-    setExecutionError(undefined);
-    storageService.saveLastSelectedExample(example.id);
-    
-    // Reset canvas state for canvas example
-    if (example.id === 'canvas') {
-      console.log('[App.tsx] Canvas example selected. Clearing shapes.');
-      canvasShapes.length = 0; // Clear global array
-      updateCanvasJSON({}); // Notify registry about empty canvas
-    }
-
-    // Setup interpreter AFTER potentially clearing state
-    setupInterpreter(example);
-  }, []);
 
   // Setup interpreter and tools
   const setupInterpreter = (example: ExampleConfig) => {
@@ -180,8 +183,8 @@ function App() {
     setCurrentToolSchemas(toolRegistry.getAllSchemas());
   };
 
-  // Run script - improved execution process
-  const handleRun = async (scriptToRun: string) => {
+  // Run script - improved execution process - Wrap in useCallback
+  const handleRun = useCallback(async (scriptToRun: string) => {
     if (!nuwaInterface) return;
 
     setIsRunning(true);
@@ -200,7 +203,7 @@ function App() {
       }
 
       // Ensure script state is synchronized
-      setScript(scriptToRun);
+      setEditorContent(scriptToRun);
       
       // Execute script
       const scope = await nuwaInterface.interpreter.execute(scriptAST);
@@ -228,7 +231,7 @@ function App() {
     } finally {
       setIsRunning(false);
     }
-  };
+  }, [nuwaInterface, selectedExample, setIsRunning, setOutput, setExecutionError, setEditorContent, setShapes, setMessages]);
 
   // Handle script changes
   const handleScriptChange = useCallback((newCode = '') => {
@@ -239,81 +242,94 @@ function App() {
   const handleRunClick = useCallback(() => {
     // Execute using the latest editor content
     handleRun(editorContent);
-  }, [editorContent]);
+  }, [editorContent, handleRun]);
 
-  // AI chat message handling
-  const handleAIChatMessage = async (message: string) => {
+  // AI chat message handling - Wrap in useCallback
+  const handleAIChatMessage = useCallback(async (message: string) => {
     // Check if API key is set
     if (!apiKey) {
       // If message looks like an API key
       if (message.startsWith('sk-') && message.length > 20) {
         setApiKey(message);
         storageService.saveApiKey(message);
-        // Add system notification
-        setMessages(prev => [...prev, { 
-          role: 'system', 
-          content: 'API key has been successfully set, now you can start asking questions!' 
-        }]);
-        return;
-      } else {
-        // Prompt user to enter API key
-        setMessages(prev => [...prev, { 
-          role: 'system', 
-          content: 'Please enter your OpenAI API key (starting with sk-) to use the AI assistant.' 
-        }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: 'API Key saved.' }]);
         return;
       }
+      // Ask for API key if not set
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Please provide your OpenAI API key to use the AI features.' }]);
+      return;
     }
-    
-    // Add user message
+
+    if (!nuwaInterface) {
+      setMessages(prev => [...prev, { role: 'assistant', content: 'Interpreter not initialized. Please select an example first.' }]);
+      return;
+    }
+
+    // Add user message to chat
     setMessages(prev => [...prev, { role: 'user', content: message }]);
-    
     setIsGenerating(true);
-    // Clear previous errors and output when starting a new generation
-    setExecutionError(undefined);
-    setOutput('');
+    setOutput(''); // Clear output
+    setExecutionError(undefined); // Clear errors
 
     try {
-      if (!selectedExample || !nuwaInterface || !nuwaInterface.toolRegistry) {
-        throw new Error('Missing example or interpreter/toolRegistry not initialized');
-      }
-      
-      // Use example's aiPrompt field as appSpecificGuidance
-      const appSpecificGuidance = selectedExample.aiPrompt || "";
-      
-      const aiService = new AIService({ 
-        apiKey,
-        appSpecificGuidance 
+      // Create AIService instance with apiKey, baseUrl, modelName, appSpecificGuidance, and temperature
+      const aiService = new AIService({
+        apiKey: apiKey,
+        baseUrl: baseUrl,
+        model: modelName,
+        appSpecificGuidance: selectedExample?.aiPrompt,
+        temperature: temperature,
       });
-      const generatedCode = await aiService.generateNuwaScript(
-        message,
-        nuwaInterface.toolRegistry 
-      );
-      
-      // Update the editor content
-      setEditorContent(generatedCode);
-      setScript(generatedCode);
+      const toolRegistry = nuwaInterface!.toolRegistry;
+      const generatedScript = await aiService.generateNuwaScript(message, toolRegistry);
 
-      if (editorRef.current) {
-        editorRef.current.setValue(generatedCode);
-      }
+      setEditorContent(generatedScript);
 
-      // Immediately run the generated script
-      await handleRun(generatedCode);
+      await handleRun(generatedScript);
 
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      // Set execution error state
-      setExecutionError(errorMsg);
-      // Add error message to chat
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: `Error generating or executing code: ${errorMsg}`
-      }]);
+    } catch (error) {
+      console.error("AI Generation error:", error);
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      // Display detailed error message to the user
+      setMessages(prev => [...prev, { role: 'assistant', content: `Error generating script:\n\`\`\`\n${errorMsg}\n\`\`\`` }]);
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [apiKey, nuwaInterface, baseUrl, modelName, selectedExample?.aiPrompt, temperature, handleRun]);
+
+  // Handle API Key change from input - Wrap in useCallback
+  const handleApiKeyChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newKey = event.target.value;
+    setApiKey(newKey);
+    storageService.saveApiKey(newKey); // Save on change
+    // Dependency: setApiKey (storageService is constant)
+  }, [setApiKey]);
+
+  // Rename handler for Base URL change - Wrap in useCallback
+  const handleBaseUrlChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newBaseUrl = event.target.value;
+    setBaseUrl(newBaseUrl);
+    storageService.saveBaseUrl(newBaseUrl); // Save on change
+    // Dependency: setBaseUrl
+  }, [setBaseUrl]);
+
+  // Add handler for Model Name change - Wrap in useCallback
+  const handleModelChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newModel = event.target.value;
+    setModelName(newModel);
+    storageService.saveModel(newModel); // Save on change
+    // Dependency: setModelName
+  }, [setModelName]);
+
+  // Add handler for Temperature change - Wrap in useCallback
+  const handleTemperatureChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const newTempStr = event.target.value;
+    const newTempNum = parseFloat(newTempStr);
+    if (!isNaN(newTempNum) && newTempNum >= 0 && newTempNum <= 2) { // Basic validation
+      setTemperature(newTempNum);
+      storageService.saveTemperature(newTempNum); // Save on change
+    }
+  }, [setTemperature]);
 
   // Clear output
   const handleClearOutput = useCallback(() => {
@@ -409,13 +425,64 @@ function App() {
   ), [selectedExample?.id, isRunning, handleScriptChange, editorContent]);
 
   const chatPanelContent = useMemo(() => (
-    <AIChat 
-      onSendMessage={handleAIChatMessage}
-      messages={messages}
-      isProcessing={isGenerating}
-      apiKeySet={!!apiKey}
-    />
-  ), [handleAIChatMessage, messages, isGenerating, apiKey]);
+    <div className="aichat-container h-full flex flex-col">
+      <div className="api-key-input-container p-2 border-b border-gray-200 dark:border-gray-700">
+        <div className="mb-2">
+          <label htmlFor="apiKeyInput" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">API Key:</label>
+          <input 
+            id="apiKeyInput" 
+            type="password" 
+            value={apiKey || ''}
+            onChange={handleApiKeyChange}
+            placeholder="Enter API Key (e.g., sk-...)"
+            className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+        <div className="mb-2">
+          <label htmlFor="baseUrlInput" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Base URL:</label>
+          <input 
+            id="baseUrlInput" 
+            type="text" 
+            value={baseUrl}
+            onChange={handleBaseUrlChange}
+            placeholder="e.g., https://api.openai.com"
+            className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+        <div>
+          <label htmlFor="modelNameInput" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Model:</label>
+          <input 
+            id="modelNameInput" 
+            type="text" 
+            value={modelName}
+            onChange={handleModelChange}
+            placeholder="e.g., gpt-4o"
+            className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+        <div>
+          <label htmlFor="temperatureInput" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Temperature:</label>
+          <input 
+            id="temperatureInput" 
+            type="number" 
+            value={temperature}
+            onChange={handleTemperatureChange}
+            min="0"
+            max="2"
+            step="0.1"
+            placeholder="e.g., 0.7"
+            className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          />
+        </div>
+      </div>
+      <AIChat 
+        messages={messages} 
+        onSendMessage={handleAIChatMessage} 
+        isProcessing={isGenerating}
+        apiKeySet={!!apiKey}
+      />
+    </div>
+  ), [handleAIChatMessage, messages, isGenerating, apiKey, baseUrl, modelName, temperature, handleApiKeyChange, handleBaseUrlChange, handleModelChange, handleTemperatureChange]);
 
   // Build dynamic title for main panel based on selected example
   const getMainPanelTitle = () => {
@@ -434,13 +501,12 @@ function App() {
       sidebarContent={sidebarContent}
       mainPanelTitle={getMainPanelTitle()}
       mainPanelContent={mainPanelContent}
-      scriptPanelTitle="NuwaScript"
+      scriptPanelTitle="NuwaScript Editor"
       scriptPanelContent={scriptPanelContent}
       chatPanelContent={chatPanelContent}
       onSelectSidebarTab={setActiveSidePanel}
       initialActiveSidePanel={activeSidePanel}
-    >
-    </Layout>
+    />
   );
 }
 
