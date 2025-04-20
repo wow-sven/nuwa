@@ -12,6 +12,52 @@ import {
     IndexOutOfBoundsError
 } from './errors';
 import { isArrayIndexExpression, isMemberAccessExpression, isListLiteralExpr, isObjectLiteralExpr } from './ast';
+import { parse } from './parser';
+
+// --- Scope Class Definition ---
+export class Scope {
+    private values: Map<string, JsonValue>;
+    private parent?: Scope; // Reference to the parent scope
+
+    constructor(parent?: Scope) {
+        this.values = new Map();
+        this.parent = parent;
+    }
+
+    // Define or update a variable in the CURRENT scope
+    set(name: string, value: JsonValue): void {
+        this.values.set(name, value);
+    }
+
+    // Look up a variable, checking current scope then parent(s) recursively
+    get(name: string): JsonValue | undefined {
+        if (this.values.has(name)) {
+            const val = this.values.get(name);
+            return val;
+        }
+        if (this.parent) {
+            return this.parent.get(name); // Delegate lookup to parent
+        }
+        return undefined;
+    }
+
+    // Check if a variable exists in this scope or any parent scope
+    has(name: string): boolean {
+        if (this.values.has(name)) {
+            return true;
+        }
+        if (this.parent) {
+            return this.parent.has(name); // Delegate check to parent
+        }
+        return false;
+    }
+
+    // Deletes a variable ONLY from the current scope.
+    // Returns true if the variable existed and was deleted, false otherwise.
+    delete(name: string): boolean {
+        return this.values.delete(name);
+    }
+}
 
 // Type for built-in function implementations
 // They receive evaluated arguments and the original AST node for error reporting
@@ -23,7 +69,7 @@ type BuiltinFunctionImplementation = (
 ) => JsonValue | Promise<JsonValue>;
 
 // Type for the variable scope
-export type Scope = Map<string, JsonValue>;
+// REMOVED: export type Scope = Map<string, JsonValue>;
 // Type for the output handler (e.g., for PRINT)
 export type OutputHandler = (output: string) => void;
 
@@ -71,17 +117,39 @@ export class Interpreter {
     }
 
     /**
+     * Parses and executes a NuwaScript string directly.
+     * @param scriptText The NuwaScript code string.
+     * @param initialScopeData Optional initial variable scope data.
+     * @returns A Promise resolving to the final variable scope.
+     * @throws LexerError or ParserError if parsing fails.
+     * @throws InterpreterError or subclasses if execution fails.
+     */
+    async executeScript(scriptText: string, initialScopeData?: Record<string, JsonValue>): Promise<Scope> {
+        // 1. Parse the script text into an AST
+        const ast = parse(scriptText);
+
+        // 2. Call the existing execute method with the parsed AST
+        return this.execute(ast, initialScopeData);
+    }
+
+    /**
      * Executes a complete NuwaScript AST.
      * @param script The Script AST node.
-     * @param initialScope Optional initial variable scope.
+     * @param initialScopeData Optional initial variable scope data.
      * @returns A Promise resolving to the final variable scope.
      */
-    async execute(script: AST.Script, initialScope?: Scope): Promise<Scope> {
+    async execute(script: AST.Script, initialScopeData?: Record<string, JsonValue>): Promise<Scope> {
         if (script.kind !== 'Script') {
             throw new InterpreterError("Invalid AST root: expected 'Script'");
         }
-        // Create the top-level scope for this execution
-        const scope: Scope = initialScope ? new Map(initialScope) : new Map();
+        // Create the top-level scope for this execution using the new class
+        const scope = new Scope();
+        // Populate the initial scope if provided
+        if (initialScopeData) {
+            for (const [key, value] of Object.entries(initialScopeData)) {
+                scope.set(key, value);
+            }
+        }
         await this.executeStatements(script.statements, scope);
         return scope;
     }
@@ -203,25 +271,17 @@ export class Interpreter {
 
         // Loop through the items
         for (const item of iterableValue) {
-            // Create a temporary inner scope for the loop variable to avoid overwriting
-            // variables from outer scopes if names clash, and to handle shadowing correctly.
-            // For simplicity now, we just set/unset on the current scope.
-            // A more robust implementation uses nested scopes.
-            const old_value: JsonValue | undefined = scope.get(stmt.iteratorVariable);
-            scope.set(stmt.iteratorVariable, item);
+            // Create a NEW child scope for EACH iteration. Pass the parent scope.
+            const loopScope = new Scope(scope); // scope is the parent scope here
 
-            try {
-                // Execute loop block with the iterator variable set
-                await this.executeStatements(stmt.loopBlock, scope);
-                // TODO: Add BREAK/CONTINUE handling here
-            } finally {
-                // Restore the previous value (or undefined if it didn't exist)
-                if (old_value !== undefined) {
-                    scope.set(stmt.iteratorVariable, old_value);
-                } else {
-                    scope.delete(stmt.iteratorVariable);
-                }
-            }
+            // Set the iterator variable ONLY in the new loop scope
+            loopScope.set(stmt.iteratorVariable, item);
+
+            // Execute the loop block using the NEW loop scope
+            await this.executeStatements(stmt.loopBlock, loopScope);
+            // TODO: Add BREAK/CONTINUE handling here (would need to break out of this inner loop)
+
+            // No need for 'finally' block or restoring old_value, as loopScope is discarded automatically.
         }
     }
 
@@ -333,8 +393,9 @@ export class Interpreter {
             case '-':
             case '*':
             case '/':
+            case '%': // Add case for modulo
                  if (!isNumber(left) || !isNumber(right)) {
-                    throw new TypeError(`Arithmetic operator '${op}' requires number operands, got ${typeof left} and ${typeof right}.`, {leftValue: left, rightValue: right, operator: op, node: expr});
+                    throw new TypeError(`Arithmetic operator '${op}' requires number operands, got ${typeof left} and ${typeof right}.`, { leftValue: left, rightValue: right, operator: op, node: expr });
                 }
                 if (op === '+') return left + right;
                 if (op === '-') return left - right;
@@ -344,6 +405,12 @@ export class Interpreter {
                         throw new DivisionByZeroError(expr);
                     }
                     return left / right;
+                }
+                if (op === '%') { // Add modulo logic
+                    if (right === 0) {
+                        throw new DivisionByZeroError(expr); // Cannot perform modulo by zero
+                    }
+                    return left % right;
                 }
                 break; // Should not be reached
         }
