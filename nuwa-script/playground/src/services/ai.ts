@@ -1,6 +1,12 @@
 import { ToolRegistry } from 'nuwa-script';
 import { buildPrompt } from 'nuwa-script';
 
+// Define a type for message history
+export interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface AIServiceOptions {
   apiKey: string;
   model?: string;
@@ -26,7 +32,11 @@ export class AIService {
     }
   }
 
-  async generateNuwaScript(prompt: string, toolRegistry: ToolRegistry): Promise<string> {
+  async generateNuwaScript(
+    prompt: string, 
+    toolRegistry: ToolRegistry,
+    history: Message[] = [] // Add optional history parameter
+  ): Promise<string> {
     if (!this.options.apiKey) {
       throw new Error('API key is required');
     }
@@ -42,8 +52,28 @@ export class AIService {
     console.log(`Constructed API URL: ${fullUrl}`);
 
     try {
-      const final_prompt = buildPrompt(toolRegistry, prompt, { appSpecificGuidance: this.options.appSpecificGuidance });
-      console.log(`Final prompt: ${final_prompt}`);
+      // 1. Get NuwaScript-specific instructions (syntax, tools, state format)
+      const nuwaScriptInstructions = buildPrompt(toolRegistry, { 
+        includeState: true // Or based on some logic if needed
+      });
+
+      // 2. Get Application-specific guidance (passed during AIService initialization)
+      const appGuidance = this.options.appSpecificGuidance || ""; // Default to empty string if not provided
+
+      // 3. Combine Application Guidance and NuwaScript Instructions for the system prompt
+      let finalSystemPrompt: string;
+      const placeholder = '__NUWA_SCRIPT_INSTRUCTIONS_PLACEHOLDER__';
+      if (appGuidance.includes(placeholder)) {
+        finalSystemPrompt = appGuidance.replace(placeholder, nuwaScriptInstructions);
+      } else {
+        console.warn(`Warning: appSpecificGuidance does not contain the placeholder '${placeholder}'. Appending NuwaScript instructions at the end.`);
+        finalSystemPrompt = `${appGuidance}
+
+--- NuwaScript Generation Rules ---
+${nuwaScriptInstructions}`;
+      }
+      console.log(`Final System Prompt: ${finalSystemPrompt}`);
+      
       const response = await fetch(fullUrl, {
         method: 'POST',
         headers: {
@@ -53,7 +83,9 @@ export class AIService {
         body: JSON.stringify({
           model: this.options.model,
           messages: [
-            { role: "system", content: final_prompt},
+            { role: "system", content: finalSystemPrompt }, 
+            ...history, // Spread the history messages
+            { role: "user", content: prompt } // Current user prompt at the end
           ],
           max_tokens: this.options.maxTokens,
           temperature: this.options.temperature,
@@ -72,9 +104,7 @@ export class AIService {
         throw new Error('No content returned from API');
       }
 
-      const codeBlockRegex = /```(?:nuwa|nuwascript)?\n([\s\S]+?)```/;
-      const match = content.match(codeBlockRegex);
-      return match ? match[1].trim() : content.trim();
+      return content.trim();
     } catch (error) {
       console.error('Error calling API:', error);
       throw error;

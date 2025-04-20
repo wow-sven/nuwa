@@ -27,7 +27,7 @@ import type * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 
 // Define some types to supplement original component interfaces
 interface CustomMessage {
-  role: string;
+  role: 'user' | 'assistant'; // Align with Message type in ai.ts
   content: string;
 }
 
@@ -105,14 +105,12 @@ function App() {
     setEditorContent(example.script);
     setOutput('');
     setExecutionError(undefined);
+    setMessages([]); // Clear chat history when changing examples
     storageService.saveLastSelectedExample(example.id);
     
-    // Reset canvas state for canvas example
-    if (example.id === 'canvas') {
-      console.log('[App.tsx] Canvas example selected. Clearing shapes.');
-      canvasShapes.length = 0; // Clear global array
-      updateCanvasJSON({}); // Notify registry about empty canvas
-    }
+    // Call the example's resetState method if it exists
+    console.log(`[App.tsx] Calling resetState for ${example.id}...`);
+    example.stateManager?.resetState?.();
 
     // Setup interpreter AFTER potentially clearing state
     setupInterpreter(example);
@@ -184,8 +182,12 @@ function App() {
   };
 
   // Run script - improved execution process - Wrap in useCallback
-  const handleRun = useCallback(async (scriptToRun: string) => {
-    if (!nuwaInterface) return;
+  const handleRun = useCallback(async (scriptToRun: string): Promise<{ 
+    success: boolean; 
+    errorMessage?: string; 
+    capturedOutput?: string | null 
+  }> => {
+    if (!nuwaInterface) return { success: false, errorMessage: "Interpreter not initialized." };
 
     setIsRunning(true);
     setOutput(''); // Clear Output panel before run
@@ -217,21 +219,25 @@ function App() {
       }
 
       const capturedOutput = bufferingHandler.flush();
-      if (capturedOutput !== null) { 
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: capturedOutput
-        }]);
-      }
+      // Add output to messages state - MOVED TO handleAIChatMessage based on return value
+      // if (capturedOutput !== null) { 
+      //   setMessages(prev => [...prev, {
+      //     role: 'assistant',
+      //     content: capturedOutput
+      //   }]);
+      // }
+
+      return { success: true, capturedOutput: capturedOutput };
 
     } catch (err) {
       console.error("Execution or Parsing error:", err);
       const errorMsg = err instanceof Error ? err.message : String(err);
       setExecutionError(errorMsg);
+      return { success: false, errorMessage: errorMsg };
     } finally {
       setIsRunning(false);
     }
-  }, [nuwaInterface, selectedExample, setIsRunning, setOutput, setExecutionError, setEditorContent, setShapes, setMessages]);
+  }, [nuwaInterface, selectedExample, setIsRunning, setOutput, setExecutionError, setEditorContent, setShapes]); // Removed setMessages dependency
 
   // Handle script changes
   const handleScriptChange = useCallback((newCode = '') => {
@@ -281,11 +287,31 @@ function App() {
         temperature: temperature,
       });
       const toolRegistry = nuwaInterface!.toolRegistry;
-      const generatedScript = await aiService.generateNuwaScript(message, toolRegistry);
+      const generatedScript = await aiService.generateNuwaScript(
+        message,
+        toolRegistry,
+        messages
+      );
 
       setEditorContent(generatedScript);
 
-      await handleRun(generatedScript);
+      // Run the generated script and get the result
+      const runResult = await handleRun(generatedScript);
+
+      // Add output or error to chat history based on run result
+      if (runResult.success) {
+        // Process successful run output
+        const outputContent = runResult.capturedOutput;
+        if (typeof outputContent === 'string' && outputContent.trim() !== '') {
+          setMessages(prev => [...prev, { role: 'assistant', content: outputContent }]);
+        }
+        // Optionally add a generic success message if no output?
+        // else { setMessages(prev => [...prev, { role: 'assistant', content: "Script executed successfully." }]) }
+      } else {
+        // Add error message to history for AI feedback
+        const errorMessageContent = `Execution failed with error:\\n\`\`\`\\n${runResult.errorMessage}\\n\`\`\`\``;
+        setMessages(prev => [...prev, { role: 'assistant', content: errorMessageContent }]);
+      }
 
     } catch (error) {
       console.error("AI Generation error:", error);
@@ -295,7 +321,7 @@ function App() {
     } finally {
       setIsGenerating(false);
     }
-  }, [apiKey, nuwaInterface, baseUrl, modelName, selectedExample?.aiPrompt, temperature, handleRun]);
+  }, [apiKey, nuwaInterface, baseUrl, modelName, selectedExample?.aiPrompt, temperature, handleRun, messages]);
 
   // Handle API Key change from input - Wrap in useCallback
   const handleApiKeyChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
