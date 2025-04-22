@@ -431,6 +431,8 @@ export function MessageList({
         return combinedMessages.sort((a, b) => a.index - b.index);
       });
 
+      scrollToBottom();
+
       // 重置查询页面
       setCurrentQueryPage(null);
       setIsLoadingMoreUp(false);
