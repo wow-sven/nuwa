@@ -1,17 +1,18 @@
 import { AnimatePresence, motion } from "framer-motion";
 import React from "react";
+import Image from "next/image";
 import { Button } from "../shared/Button";
 
 export const FeatureDisplay = ({
   selected,
   cardTitle,
   cardSubtitle,
-  svgUrl,
+  imagePath,
 }: {
   selected: number;
   cardTitle: string;
   cardSubtitle: string;
-  svgUrl: string;
+  imagePath: string;
 }) => {
   return (
     <div className="grid h-fit w-full grid-cols-1 overflow-hidden rounded-xl border-2 border-zinc-900 bg-white md:h-96 md:grid-cols-12">
@@ -37,8 +38,8 @@ export const FeatureDisplay = ({
               }}
               key={selected}
             >
-              <h3 className="mb-4 text-3xl font-bold">{cardTitle}</h3>
-              <p className="mb-12 max-w-lg text-base leading-relaxed md:text-xl md:leading-relaxed">
+              <h3 className="mb-4 text-3xl font-bold text-left">{cardTitle}</h3>
+              <p className="mb-12 max-w-lg text-base leading-relaxed md:text-xl md:leading-relaxed text-left">
                 {cardSubtitle}
               </p>
             </motion.div>
@@ -74,10 +75,12 @@ export const FeatureDisplay = ({
             className="pointer-events-none absolute bottom-0 left-8 right-0 top-8 overflow-hidden rounded-tl-2xl border-l-2 border-t-2 border-zinc-900 bg-white shadow-2xl"
           >
             <div className="flex h-full w-full items-center justify-center">
-              <img
-                src={svgUrl}
+              <Image
+                src={imagePath}
                 alt={cardTitle}
-                className="h-full w-full object-contain p-4"
+                width={600}
+                height={600}
+                className="h-full w-full object-contain"
               />
             </div>
           </motion.div>

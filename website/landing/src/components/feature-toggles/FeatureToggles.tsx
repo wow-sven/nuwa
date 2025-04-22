@@ -40,7 +40,7 @@ export const FeatureToggles = () => {
               selected={selected}
               cardTitle={el!.cardTitle}
               cardSubtitle={el!.cardSubtitle}
-              svgUrl={el!.svgUrl}
+              imagePath={el!.imagePath}
             />
           </div>
         </div>

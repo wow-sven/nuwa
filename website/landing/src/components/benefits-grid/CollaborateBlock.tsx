@@ -4,14 +4,17 @@ import { Block } from "./Block";
 import { twMerge } from "tailwind-merge";
 import { CardTitle } from "./CardTitle";
 import { CardSubtitle } from "./CardSubtitle";
+import Image from "next/image";
 
 export const CollaborateBlock = () => (
   <Block className="col-span-3 overflow-hidden md:col-span-1">
     <div className="flex h-full flex-col justify-between gap-6">
-      <div className="relative -mx-6 -mt-6 grid h-full place-content-center overflow-hidden border-b-2 border-zinc-900 bg-zinc-100 shadow-inner shadow-zinc-500">
-        <img
-          src="https://api.dicebear.com/8.x/shapes/svg?seed=A2SC"
+      <div className="relative -mx-6 -mt-6 grid h-full place-content-center overflow-hidden border-b-2 border-zinc-900 bg-white shadow-inner shadow-zinc-500">
+        <Image
+          src="/images/landing/Security Governance.png"
           alt="Collaboration illustration"
+          width={600}
+          height={600}
           className="mx-auto h-48 w-48"
         />
       </div>
