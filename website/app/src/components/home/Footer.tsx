@@ -1,3 +1,6 @@
+import { SiGithub } from "@icons-pack/react-simple-icons";
+import { SiX } from "@icons-pack/react-simple-icons";
+
 export function Footer() {
   return (
     <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
@@ -9,12 +12,20 @@ export function Footer() {
             href="https://github.com/rooch-network/nuwa"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+            className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-1"
           >
-            GitHub
+            <SiGithub className="w-5 h-5 text-black hover:text-purple-600" />
+          </a>
+          <a
+            href="https://x.com/NuwaDev"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-purple-600 dark:hover:text-purple-400 transition-colors flex items-center gap-1"
+          >
+            <SiX className="w-5 h-5 text-black hover:text-purple-600" />
           </a>
         </div>
       </div>
     </footer>
-  )
-} 
+  );
+}

@@ -5,12 +5,11 @@ import { useNetworkVariable } from "@/hooks/useNetworks";
 import { PaperAirplaneIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { RoochAddress, toShortStr } from "@roochnetwork/rooch-sdk";
 import {
-  SessionKeyGuard,
   useCreateSessionKey,
   useCurrentSession,
 } from "@roochnetwork/rooch-sdk-kit";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 import { ActionPanel } from "./ActionPanel";
 import { LoadingButton } from "./LoadingButton";
 import { TransferModal } from "./TransferModal";
@@ -49,7 +48,12 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
   const [isComposing, setIsComposing] = useState(false);
   const packageId = useNetworkVariable("packageId");
   const session = useCurrentSession();
-  const { mutate: createSession } = useCreateSessionKey();
+  const { mutate: createSession, isPending: isCreateSessionPending } =
+    useCreateSessionKey();
+  console.log(
+    "🚀 ~ MessageInput.tsx:54 ~ MessageInput ~ isCreateSessionPending:",
+    isCreateSessionPending
+  );
   const {
     agent,
     selectedChannel,
@@ -190,6 +194,7 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
   };
 
   const handleAction = async () => {
+    console.log("🚀 ~ MessageInput.tsx:199 ~ handleAction ~ session:", session);
     if (!session) {
       createSession(sessionCfg);
       return;
@@ -487,7 +492,7 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
   }
 
   return (
-    <div className="shrink-0 px-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+    <div className="shrink-0 px-4 pt-4   border-gray-200 dark:border-gray-700 mb-2">
       <div className="flex space-x-2">
         {/* Message input field - only shown when joined */}
         {isJoined && (
@@ -582,20 +587,22 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
         )}
 
         {/* Send/Join button with session key guard */}
-        <SessionKeyGuard onClick={handleAction}>
-          <LoadingButton
-            isPending={sendingMessage || joiningChannel}
-            className={`${
-              isJoined
-                ? "h-[40px] w-[40px] flex items-center justify-center !p-0"
-                : "w-full h-[40px]"
-            }`}
-            onClick={() => {}}
-            disabled={isJoined && !inputMessage.trim() && mentions.length === 0}
-          >
-            {isJoined ? <PaperAirplaneIcon className="w-7 h-7" /> : <>Join</>}
-          </LoadingButton>
-        </SessionKeyGuard>
+        {/* <SessionKeyGuard onClick={handleAction}> */}
+        <LoadingButton
+          isPending={sendingMessage || joiningChannel || isCreateSessionPending}
+          className={`${
+            isJoined
+              ? "h-[40px] w-[40px] flex items-center justify-center !p-0"
+              : "w-full h-[40px]"
+          }`}
+          onClick={() => {
+            handleAction();
+          }}
+          disabled={isJoined && !inputMessage.trim() && mentions.length === 0}
+        >
+          {isJoined ? <PaperAirplaneIcon className="w-7 h-7" /> : <>Join</>}
+        </LoadingButton>
+        {/* </SessionKeyGuard> */}
       </div>
 
       {/* Action Panel */}

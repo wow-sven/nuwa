@@ -53,20 +53,18 @@ export function ChatMessage({
   const isActionEvent = message.message_type === MESSAGE_TYPE.ACTION_EVENT;
   const senderAddress = new RoochAddress(message.sender).toBech32Address();
 
-  // 获取接收者地址
-  const recipientAddress = React.useMemo(() => {
-    if (!isActionEvent) return null;
-    try {
-      const actionEvent = JSON.parse(message.content);
-      const args = JSON.parse(actionEvent.args);
-      return args.to;
-    } catch (error) {
-      console.error("Failed to parse action event:", error);
-      return null;
-    }
-  }, [isActionEvent, message.content]);
-
-  const { userInfo: recipientUserInfo } = useUserInfo(recipientAddress || "");
+  // // 获取接收者地址
+  // const recipientAddress = React.useMemo(() => {
+  //   if (!isActionEvent) return null;
+  //   try {
+  //     const actionEvent = JSON.parse(message.content);
+  //     const args = JSON.parse(actionEvent.args);
+  //     return args.to;
+  //   } catch (error) {
+  //     console.error("Failed to parse action event:", error);
+  //     return null;
+  //   }
+  // }, [isActionEvent, message.content]);
 
   // 检查消息是否包含转账附件
   const hasTransferAttachment = React.useMemo(() => {
@@ -340,7 +338,7 @@ export function ChatMessage({
           </div>
         )}
         <div
-          className={`flex flex-col flex-1 ${
+          className={`flex flex-col flex-1 w-[calc(100%-48px)] ${
             isCurrentUser ? "items-end" : "items-start"
           }`}
         >
@@ -406,9 +404,9 @@ export function ChatMessage({
               </div>
             </div>
           )}
-          <div className="relative group">
+          <div className="relative group max-w-full w-fit">
             <div
-              className={`rounded-lg px-2 py-0.5 ${
+              className={`rounded-lg px-2 py-0.5 w-full ${
                 isAI
                   ? "bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-white"
                   : hasTransferAttachment
@@ -449,11 +447,11 @@ export function ChatMessage({
                 </div>
               )}
               {
-                <div className="flex flex-col justify-between items-start">
-                  <div className="text-sm leading-tight">
+                <div className="flex flex-col justify-between items-start w-full text-wrap">
+                  <div className="text-sm leading-tight w-fit max-w-full text-wrap">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
-                      className="prose prose-sm max-w-none dark:prose-invert prose-p:m-0 prose-ul:m-0 prose-ol:m-0 prose-li:m-0 prose-pre:m-0 prose-headings:m-0 prose-hr:m-0 prose-blockquote:m-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:mb-0"
+                      className="text-wrap w-full prose prose-sm max-w-none dark:prose-invert prose-p:m-0 prose-ul:m-0 prose-ol:m-0 prose-li:m-0 prose-pre:m-0 prose-headings:m-0 prose-hr:m-0 prose-blockquote:m-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:mb-0 chart-area-markdown"
                       components={{
                         pre: ({ children }) => children,
                         code: ({
@@ -468,7 +466,7 @@ export function ChatMessage({
                           const language = match ? match[1] : "";
 
                           return !inline ? (
-                            <div className="my-1">
+                            <div className="my-1 text-wrap">
                               <SyntaxHighlighter
                                 language={language}
                                 style={oneLight}
@@ -488,7 +486,7 @@ export function ChatMessage({
                             </div>
                           ) : (
                             <code
-                              className={`px-1.5 py-0.5 rounded ${
+                              className={`px-1.5 py-0.5 rounded text-wrap ${
                                 isCurrentUser
                                   ? "bg-blue-200/70 text-blue-800 dark:bg-blue-500/30 dark:text-white"
                                   : "bg-gray-200/70 text-gray-800 dark:bg-gray-500/30 dark:text-white"
@@ -533,7 +531,7 @@ export function ChatMessage({
         </div>
         {isCurrentUser && (
           <div className="flex-shrink-0 w-8 h-8">
-            {/* Add Roochscan link for current user's avatar too */}
+            {/* Add RoochScan link for current user's avatar too */}
             {senderAddress && (
               <Link
                 to={`/profile/${senderAddress}`}

@@ -4,7 +4,6 @@ import {
   Route,
   useLocation,
 } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Home } from "./pages/Home";
 import { AIStudio } from "./pages/AIStudio";
@@ -23,6 +22,8 @@ import { useConnectionStatus } from "@roochnetwork/rooch-sdk-kit";
 import { LoadingScreen } from "./components/layout/LoadingScreen";
 import { NotFound } from "./pages/NotFound";
 import { AgentDebugger } from "./pages/AgentDebugger";
+import { ToastContainer, Slide } from "react-toastify";
+import { useLocalStorageState } from "ahooks";
 
 // preload AgentChat component
 const AgentChat = lazy(() =>
@@ -42,10 +43,17 @@ const AgentChat = lazy(() =>
 
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
-  const { isDarkMode } = useTheme();
+  const { theme } = useTheme();
   const location = useLocation();
   const connectionStatus = useConnectionStatus();
   const [showRiskWarning, setShowRiskWarning] = useState(false);
+
+  const [hasSeenRiskWarning] = useLocalStorageState<boolean | undefined>(
+    "nuwa-hasSeenRiskWarning",
+    {
+      defaultValue: false,
+    }
+  );
 
   // Scroll to top when route changes
   useEffect(() => {
@@ -55,12 +63,11 @@ function AppContent() {
   // Show risk warning when wallet is connected
   useEffect(() => {
     if (connectionStatus === "connected") {
-      const hasSeenWarning = localStorage.getItem("hasSeenRiskWarning");
-      if (!hasSeenWarning) {
+      if (!hasSeenRiskWarning) {
         setShowRiskWarning(true);
       }
     }
-  }, [connectionStatus]);
+  }, [connectionStatus, hasSeenRiskWarning]);
 
   // preload agent data
   useEffect(() => {
@@ -73,7 +80,7 @@ function AppContent() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
-      <Header isDarkMode={isDarkMode} />
+      <Header isDarkMode={theme === "dark"} />
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden pt-16">
@@ -96,8 +103,10 @@ function AppContent() {
                 element={<AgentChat />}
               />
               <Route path="/profile/:identifier" element={<ProfileRouter />} />
+              {/* cSpell:ignore allagents */}
               <Route path="/allagents" element={<AllAgents />} />
               <Route path="/docs/:docId" element={<DocPage />} />
+              {/* cSpell:ignore getrgas */}
               <Route path="/getrgas" element={<GetRGAS />} />
               <Route path="/getrgas-testnet" element={<GetRGASTestnet />} />
               <Route
@@ -119,12 +128,23 @@ function AppContent() {
 }
 
 function App() {
+  const [theme] = useLocalStorageState<"dark" | "light">("nuwa-theme", {
+    defaultValue: window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light",
+  });
+
   return (
     <HelmetProvider>
       <ThemeProvider>
         <Router>
+          <ToastContainer
+            position="bottom-left"
+            theme={theme}
+            transition={Slide}
+            hideProgressBar
+          />
           <AppContent />
-          <Toaster position="bottom-right" />
         </Router>
       </ThemeProvider>
     </HelmetProvider>

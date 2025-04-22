@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { EditProfileModal } from "../profile/EditUserProfileModal";
+import { formatAmountDisplay } from "@/utils/amount";
 
 const roochScanBaseUrl = "https://test.roochscan.io";
 
@@ -39,14 +40,7 @@ export const UserProfilePanel = ({ address }: ProfilePanelProps) => {
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text);
     toast.success("Address copied to clipboard!", {
-      position: "top-right",
       autoClose: 2000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-      theme: "light",
     });
   };
 
@@ -147,7 +141,7 @@ export const UserProfilePanel = ({ address }: ProfilePanelProps) => {
                 RGAS Balance
               </h3>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {rGas?.toLocaleString()} RGAS
+                {formatAmountDisplay(rGas ?? 0)} RGAS
               </p>
             </div>
           </div>

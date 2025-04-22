@@ -28,7 +28,7 @@ export default function useUserCheck() {
   });
 
   return {
-    exists: exists === undefined ? true : exists, // if exists undefind, may be not connect wallet, dont tigger user init action
+    exists: exists === undefined ? true : exists, // if exists undefined, may be not connect wallet, do not trigger user init action
     isPending,
     isError,
     refetch,

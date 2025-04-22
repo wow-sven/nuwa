@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from "react-router-dom";
 
 export function Logo() {
   return (
@@ -7,5 +7,5 @@ export function Logo() {
         Nuwa
       </span>
     </Link>
-  )
-} 
+  );
+}

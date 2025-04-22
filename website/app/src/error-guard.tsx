@@ -1,13 +1,17 @@
-import { useSubscribeOnError } from '@roochnetwork/rooch-sdk-kit'
-import { useEffect } from "react";
-import toast from 'react-hot-toast';
-import type { ErrorType } from '@roochnetwork/rooch-sdk-kit';
+import { useSubscribeOnError } from "@roochnetwork/rooch-sdk-kit";
+import { useEffect, useRef } from "react";
+import { toast } from "react-toastify";
+import type { ErrorType } from "@roochnetwork/rooch-sdk-kit";
 
 interface MoveAbortStatus {
-  type: 'moveabort';
+  type: "moveabort";
   location: string;
   abort_code: string;
 }
+
+const COMMON_ERROR_MESSAGES = {
+  1004: "Insufficient gas, please claim gas first.",
+};
 
 // Error code mapping to friendly messages
 const ERROR_MESSAGES: Record<number, string> = {
@@ -46,10 +50,14 @@ const MOVE_ERROR_MESSAGES: Record<string, Record<number, string>> = {
 export function ErrorGuard() {
   const subscribeToError = useSubscribeOnError();
 
+  const lastErrorRef = useRef<{ message: string; timestamp: number } | null>(
+    null
+  );
+
   useEffect(() => {
     const unsubscribe = subscribeToError((error: ErrorType) => {
       // Keep console log for debugging
-      console.error('Error occurred:', error);
+      console.error("Error occurred:", error);
 
       let friendlyMessage = error.message;
 
@@ -57,15 +65,17 @@ export function ErrorGuard() {
       // https://github.com/rooch-network/nuwa/issues/143
       if (error.code === 32602) {
         console.log(error.message);
-        return 
+        return;
       }
 
       // Handle Move contract errors
-      if ('status' in error && (error.status as MoveAbortStatus).type === 'moveabort') {
+      if (
+        "status" in error &&
+        (error.status as MoveAbortStatus).type === "moveabort"
+      ) {
         const status = error.status as MoveAbortStatus;
         const location = status.location;
         const abortCode = parseInt(status.abort_code);
-
         // Check if we have a specific message for this location and abort code
         if (MOVE_ERROR_MESSAGES[location]?.[abortCode]) {
           friendlyMessage = MOVE_ERROR_MESSAGES[location][abortCode];
@@ -75,10 +85,44 @@ export function ErrorGuard() {
         friendlyMessage = ERROR_MESSAGES[error.code] || error.message;
       }
 
+      if (
+        error.code &&
+        typeof error.code === "number" &&
+        COMMON_ERROR_MESSAGES[error.code as keyof typeof COMMON_ERROR_MESSAGES]
+      ) {
+        friendlyMessage =
+          COMMON_ERROR_MESSAGES[
+            error.code as keyof typeof COMMON_ERROR_MESSAGES
+          ];
+      }
+
+      console.log(
+        "🚀 ~ error-guard.tsx:84 ~ unsubscribe ~ friendlyMessage:",
+        friendlyMessage
+      );
+
+      // Check if the same error message appeared within the last 500ms
+      const now = Date.now();
+      const lastError = lastErrorRef.current;
+
+      if (
+        lastError &&
+        lastError.message === friendlyMessage &&
+        now - lastError.timestamp < 500
+      ) {
+        // Skip showing duplicate toast within 500ms
+        return;
+      }
+
+      // Update last error reference
+      lastErrorRef.current = {
+        message: friendlyMessage,
+        timestamp: now,
+      };
+
       // Display error toast in bottom-left corner
       toast.error(friendlyMessage, {
-        position: 'bottom-left',
-        duration: 5000, // Auto dismiss after 5 seconds
+        autoClose: 5000, // Auto dismiss after 5 seconds
       });
     });
 

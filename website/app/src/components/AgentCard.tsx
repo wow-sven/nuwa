@@ -1,42 +1,42 @@
-import { Agent } from '../types/agent'
-import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { Agent } from "../types/agent";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 interface AgentCardProps {
-  agent: Agent
+  agent: Agent;
 }
 
 export function AgentCard({ agent }: AgentCardProps) {
-  const navigate = useNavigate()
-  const [isLiked, setIsLiked] = useState(false)
-  const [isStarred, setIsStarred] = useState(false)
+  const navigate = useNavigate();
+  // const [isLiked, setIsLiked] = useState(false)
+  // const [isStarred, setIsStarred] = useState(false)
 
-  const shortenAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`
-  }
+  // const shortenAddress = (address: string) => {
+  //   return `${address.slice(0, 6)}...${address.slice(-4)}`
+  // }
 
-  const getTimeAgo = () => {
-    // 模拟创建日期在过去1-6个月之间
-    const now = new Date()
-    const monthsAgo = Math.floor(Math.random() * 5) + 1 // 1-6个月
-    const createdAt = new Date(now.setMonth(now.getMonth() - monthsAgo))
-    const diffInDays = Math.floor((new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
+  // const getTimeAgo = () => {
+  //   // 模拟创建日期在过去1-6个月之间
+  //   const now = new Date()
+  //   const monthsAgo = Math.floor(Math.random() * 5) + 1 // 1-6个月
+  //   const createdAt = new Date(now.setMonth(now.getMonth() - monthsAgo))
+  //   const diffInDays = Math.floor((new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
 
-    if (diffInDays > 30) {
-      const months = Math.floor(diffInDays / 30)
-      return `${months}mo`
-    }
-    return `${diffInDays}d`
-  }
+  //   if (diffInDays > 30) {
+  //     const months = Math.floor(diffInDays / 30)
+  //     return `${months}mo`
+  //   }
+  //   return `${diffInDays}d`
+  // }
 
-  const getPopularity = () => {
-    // 如果是trending，返回较高的热度值（85-99）
-    if (agent.isTrending) {
-      return Math.floor(Math.random() * 15) + 85
-    }
-    // 否则返回较低的热度值（30-84）
-    return Math.floor(Math.random() * 55) + 30
-  }
+  // const getPopularity = () => {
+  //   // 如果是trending，返回较高的热度值（85-99）
+  //   if (agent.isTrending) {
+  //     return Math.floor(Math.random() * 15) + 85
+  //   }
+  //   // 否则返回较低的热度值（30-84）
+  //   return Math.floor(Math.random() * 55) + 30
+  // }
 
   return (
     <div
@@ -70,7 +70,7 @@ export function AgentCard({ agent }: AgentCardProps) {
             <img
               src={agent.avatar}
               alt={agent.name}
-              className="w-16 h-16 mb-2"
+              className="w-16 h-16 mb-2 rounded-full"
             />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-center">
               {agent.name}
@@ -81,12 +81,12 @@ export function AgentCard({ agent }: AgentCardProps) {
           </div>
 
           {/* Bio with max height and scroll */}
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 text-center max-w-sm mx-auto max-h-[60px] overflow-y-auto">
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 text-center max-w-sm mx-auto overflow-y-auto">
             {agent.description}
           </p>
         </div>
 
-        {/* Stats and Button Contagentner */}
+        {/* Stats and Button Container */}
         <div className="w-full space-y-4">
           {/* Stats */}
           {/* <div className="flex items-center justify-center space-x-6">
@@ -129,17 +129,19 @@ export function AgentCard({ agent }: AgentCardProps) {
           {/* Action Button */}
           <button
             onClick={(e) => {
-              e.stopPropagation()
-              navigate(`/agent/${agent.username}`)
+              e.stopPropagation();
+              navigate(`/agent/${agent.username}`);
             }}
             className="group relative w-full px-8 py-3 text-sm font-semibold rounded-lg border-2 border-purple-600 bg-white dark:bg-gray-900 transition-all duration-500 ease-in-out overflow-hidden"
           >
-            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:text-white group-hover:text-white transition-colors duration-500">Chat Now</span>
+            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:text-white group-hover:text-white transition-colors duration-500">
+              Chat Now
+            </span>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-in-out origin-left"></div>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-in-out origin-right delay-100"></div>
           </button>
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}
