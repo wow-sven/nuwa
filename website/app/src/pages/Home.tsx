@@ -44,6 +44,7 @@ export const Home = () => {
                   Explore Agents
                 </h2>
                 <Link
+                  // cSpell:ignore allagents
                   to="/allagents"
                   className="mx-4 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors mb-1"
                 >

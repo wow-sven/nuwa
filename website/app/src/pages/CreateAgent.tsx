@@ -4,7 +4,7 @@ import useUserNameCheck from "@/hooks/useUserNameCheck";
 import { PhotoIcon } from "@heroicons/react/24/outline";
 import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
 import React, { useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
 interface CreateAgentForm {

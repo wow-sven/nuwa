@@ -30,7 +30,7 @@ export default function useUserInfo(address?: string) {
       const name = String(resultA.data[0]?.decoded_value?.value?.name || "");
       const avatar = String(
         resultA.data[0]?.decoded_value?.value?.avatar ||
-          `https://api.dicebear.com/7.x/avataaars/svg?seed=+${username}`
+          `https://api.dicebear.com/9.x/dylan/svg?seed=+${username}`
       );
 
       return {

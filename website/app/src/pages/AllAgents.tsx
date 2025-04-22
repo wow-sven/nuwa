@@ -1,4 +1,5 @@
 import { AgentCard } from "@/components/AgentCard";
+import { LoadingScreen } from "@/components/layout/LoadingScreen";
 import { SEO } from "@/components/layout/SEO";
 import useAllAgents from "@/hooks/useAllAgents";
 import { IndexerStateIDView } from "@roochnetwork/rooch-sdk";
@@ -38,7 +39,7 @@ export const AllAgents = () => {
   if (isPending && page === 1) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl">Loading...</div>
+        <LoadingScreen />
       </div>
     );
   }

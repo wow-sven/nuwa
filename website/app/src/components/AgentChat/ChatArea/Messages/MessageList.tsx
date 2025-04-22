@@ -595,9 +595,9 @@ export function MessageList({
   );
 
   // Manually trigger loading (internal use, no button exposed)
-  const triggerLoad = useCallback(() => {
-    setAutoRefreshTrigger((prev) => prev + 1);
-  }, []);
+  // const triggerLoad = useCallback(() => {
+  //   setAutoRefreshTrigger((prev) => prev + 1);
+  // }, []);
 
   // 检测 AI 思考状态
   useEffect(() => {

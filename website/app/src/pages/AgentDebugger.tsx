@@ -20,6 +20,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { NotFound } from "./NotFound";
+import { useLocalStorageState } from "ahooks";
 
 interface Message {
   role: "user" | "assistant";
@@ -40,10 +41,14 @@ function AgentDebuggerContent() {
   const packageId = useNetworkVariable("packageId");
   const { agent, isOwner, caps, updateAgent } = useAgentProfile();
 
+  const [openaiApiKey, setOpenaiApiKey] = useLocalStorageState<
+    string | undefined
+  >("nuwa-openai-api-key", {
+    defaultValue: "",
+  });
+
   const [loading, setLoading] = useState(false);
-  const [apiKey, setApiKey] = useState(
-    localStorage.getItem("openai_api_key") || ""
-  );
+  const [apiKey, setApiKey] = useState(openaiApiKey);
   const [agentPrompt, setAgentPrompt] = useState("");
   const [renderedPrompt, setRenderedPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -52,9 +57,6 @@ function AgentDebuggerContent() {
   const [temperature, setTemperature] = useState<number>(0.7);
   const [mockRgasAmount, setMockRgasAmount] = useState<string>("0");
   const [isSavingPrompt, setIsSavingPrompt] = useState(false);
-  const [formErrors, setFormErrors] = useState<{
-    prompt?: string;
-  }>({});
 
   // Initialize prompt only once when agent is loaded
   useEffect(() => {
@@ -270,10 +272,10 @@ function AgentDebuggerContent() {
 
     const promptError = validatePrompt(agentPrompt);
     if (promptError) {
-      setFormErrors((prev) => ({
-        ...prev,
-        prompt: promptError,
-      }));
+      // setFormErrors((prev) => ({
+      //   ...prev,
+      //   prompt: promptError,
+      // }));
       return;
     }
 
@@ -285,25 +287,11 @@ function AgentDebuggerContent() {
       });
 
       toast.success("Agent prompt updated successfully!", {
-        position: "top-right",
         autoClose: 2000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
       });
     } catch (error) {
       toast.error("Failed to update agent prompt", {
-        position: "top-right",
         autoClose: 2000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
       });
     } finally {
       setIsSavingPrompt(false);
@@ -394,7 +382,7 @@ function AgentDebuggerContent() {
                   value={apiKey}
                   onChange={(e) => {
                     setApiKey(e.target.value);
-                    localStorage.setItem("openai_api_key", e.target.value);
+                    setOpenaiApiKey(e.target.value);
                   }}
                   placeholder="Enter your OpenAI API Key"
                   className="w-80 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"

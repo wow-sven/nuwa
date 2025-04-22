@@ -10,12 +10,13 @@ import { networkConfig } from "@/hooks/useNetworks";
 import { PACKAGE_ID } from "./constants.ts";
 import { RoochProvider, WalletProvider } from "@roochnetwork/rooch-sdk-kit";
 import { ErrorGuard } from "./error-guard.tsx";
+import "react-toastify/dist/ReactToastify.css";
 
 const queryClient = new QueryClient();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Theme appearance="light">
+    <Theme>
       <QueryClientProvider client={queryClient}>
         <RoochProvider
           networks={networkConfig}

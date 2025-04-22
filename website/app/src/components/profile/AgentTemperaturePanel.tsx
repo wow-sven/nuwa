@@ -81,14 +81,7 @@ export function AgentTemperaturePanel() {
         });
 
         toast.success("Agent temperature updated successfully!", {
-          position: "top-right",
           autoClose: 2000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "light",
         });
       } catch (error) {
         console.error("Failed to update temperature:", error);

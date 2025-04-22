@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { Link } from "react-router-dom";
 
 export function Hero() {
   return (
@@ -8,10 +8,10 @@ export function Hero() {
         className="absolute inset-0 opacity-50"
         style={{
           backgroundImage: `url('/hero-background.png')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          filter: 'grayscale(100%)',
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          filter: "grayscale(100%)",
         }}
       ></div>
       <div className="relative container mx-auto px-4 py-16 sm:py-24">
@@ -37,20 +37,24 @@ export function Hero() {
 
           {/* Description */}
           <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8">
-            Nuwa is an On-Chain AI with its own assets, on-chain operations, and continuous learning.
+            Nuwa is an On-Chain AI with its own assets, on-chain operations, and
+            continuous learning.
           </p>
 
           {/* Explore Agents Button */}
           <Link
+            // cSpell:ignore allagents
             to="/allagents"
             className="group relative px-8 py-3 text-lg font-semibold rounded-full border-2 border-purple-600 hover:border-transparent transition-all duration-500 ease-in-out overflow-hidden bg-white dark:bg-gray-900 inline-block"
           >
-            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 group-hover:text-white transition-colors duration-500">Explore Agents</span>
+            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 group-hover:text-white transition-colors duration-500">
+              Explore Agents
+            </span>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-in-out origin-left"></div>
             <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-in-out origin-right delay-100"></div>
           </Link>
         </div>
       </div>
     </div>
-  )
-} 
+  );
+}

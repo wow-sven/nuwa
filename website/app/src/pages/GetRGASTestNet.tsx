@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import useRgasBalance from "@/hooks/useRgasBalance";
 import { useState } from "react";
 import { useCurrentAddress } from "@roochnetwork/rooch-sdk-kit";
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 
 const FAUCET_URL = "https://test-faucet.rooch.network";
 
