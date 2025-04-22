@@ -155,6 +155,8 @@ export const getUserPoints = async (userName: string): Promise<{ points: number;
     try {
         const table = base('Campaign Points');
 
+
+
         // Find user record
         const records = await table.select({
             filterByFormula: `{Handle} = '${userName}'`,
@@ -174,4 +176,35 @@ export const getUserPoints = async (userName: string): Promise<{ points: number;
         console.error('Error fetching user points from Airtable:', error);
         return { points: 0, success: false, error: 'Failed to fetch user points' };
     }
-}; 
+};
+
+// Get user's reward history
+export const getUserRewardHistory = async (userName: string): Promise<{
+    id: string;
+    points: number;
+    mission: string;
+    createdTime: string;
+}[]> => {
+    try {
+        const table = base('Points Reward Log');
+
+        // Query records for the user
+        const records = await table.select({
+            filterByFormula: `{RewardTo} = '${userName}'`,
+            sort: [{ field: 'CreatedAt', direction: 'desc' }]
+        }).all();
+
+        // Convert records to format
+        const history = records.map((record) => ({
+            id: record.id,
+            points: record.get('Points') as number,
+            mission: record.get('Mission') as string,
+            createdTime: record.get('CreatedAt') as string,
+        }));
+
+        return history;
+    } catch (error) {
+        console.error('Error fetching user reward history from Airtable:', error);
+        return [];
+    }
+};

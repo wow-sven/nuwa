@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { UserProfilePanel } from "@/app/components/profile/UserProfilePanel";
+import { UserPointsHistory } from "@/app/components/profile/UserPointsHistory";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
 
@@ -37,6 +38,9 @@ export default function ProfilePage() {
         return null;
     }
 
+    // 从session中获取Twitter用户名
+    const twitterHandle = session.user?.twitterHandle || '';
+
     return (
         <main className="container mx-auto px-4 py-8">
             <motion.div
@@ -47,6 +51,10 @@ export default function ProfilePage() {
             >
                 <div className="w-full">
                     <UserProfilePanel />
+                </div>
+
+                <div className="w-full mt-8">
+                    <UserPointsHistory userName={twitterHandle} />
                 </div>
             </motion.div>
         </main>

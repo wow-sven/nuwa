@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { FiAward } from "react-icons/fi";
 import { getLeaderboardData, LeaderboardUser } from "@/app/services/airtable";
-import { BarLoader } from "./BarLoader";
+import { BarLoader } from "../shared/BarLoader";
 
 // 使用Airtable数据接口
 interface User extends LeaderboardUser { }
