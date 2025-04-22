@@ -90,7 +90,6 @@ export function useUserInit({
       }
     },
     onSuccess: () => {
-      // 使所有用户信息相关的查询失效
       queryClient.invalidateQueries({ queryKey: ["useUserInfo"] });
     },
     ...mutationOptions,

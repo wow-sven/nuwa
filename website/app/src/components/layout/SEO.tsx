@@ -21,7 +21,6 @@ export const SEO = ({
 
   return (
     <Helmet>
-      {/* 基础 Meta 标签 */}
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
       <meta name="keywords" content={keywords} />

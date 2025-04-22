@@ -18,7 +18,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkGfm from "remark-gfm";
 
-// 添加辅助函数来获取用户信息和显示名称
+// add helper function to get user info and display name
 const useUserDisplay = (address: string) => {
   const { userInfo } = useUserInfo(address);
   const displayName =
@@ -28,7 +28,7 @@ const useUserDisplay = (address: string) => {
   return { userInfo, displayName };
 };
 
-// 添加用户链接组件
+// add user link component
 const UserLink = ({ address }: { address: string }) => {
   const { displayName } = useUserDisplay(address);
   return (
@@ -53,7 +53,7 @@ export function ChatMessage({
   const isActionEvent = message.message_type === MESSAGE_TYPE.ACTION_EVENT;
   const senderAddress = new RoochAddress(message.sender).toBech32Address();
 
-  // // 获取接收者地址
+  // // get recipient address
   // const recipientAddress = React.useMemo(() => {
   //   if (!isActionEvent) return null;
   //   try {
@@ -66,7 +66,7 @@ export function ChatMessage({
   //   }
   // }, [isActionEvent, message.content]);
 
-  // 检查消息是否包含转账附件
+  // check if message contains transfer attachment
   const hasTransferAttachment = React.useMemo(() => {
     return message.attachments.some((attachment) => {
       try {
@@ -80,7 +80,7 @@ export function ChatMessage({
     });
   }, [message.attachments]);
 
-  // 获取转账附件信息
+  // get transfer attachment info
   const transferAttachment = React.useMemo(() => {
     if (!hasTransferAttachment) return null;
     const attachment = message.attachments.find((attachment) => {
@@ -98,7 +98,7 @@ export function ChatMessage({
       : null;
   }, [message.attachments, hasTransferAttachment]);
 
-  // 检查消息是否发送给 AI
+  // check if message is sent to AI
   const isToAI = React.useMemo(() => {
     if (!agent?.address) return false;
     return message.mentions.some((mention) => {
@@ -274,7 +274,7 @@ export function ChatMessage({
     );
   }
 
-  // 获取被回复的消息
+  // get replied message
   const getReplyToMessage = () => {
     if (!messages || message.reply_to === -1) return null;
     return messages.find((m) => m.index === message.reply_to);
@@ -283,7 +283,7 @@ export function ChatMessage({
   const replyToMessage = getReplyToMessage();
   const { userInfo: replyToUserInfo } = useUserInfo(replyToMessage?.sender);
 
-  // For normal messages, use the existing format
+  // for normal messages, use the existing format
   return (
     <div className="flex w-full">
       <div className="w-full flex gap-3">
@@ -505,12 +505,12 @@ export function ChatMessage({
                 </div>
               }
 
-              {/* 按钮移到气泡外部 */}
+              {/* move buttons to outside of bubble */}
               <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={handleCopy}
                   className="p-1 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition-colors"
-                  title="复制消息"
+                  title="Copy message"
                 >
                   {copied ? (
                     <CheckIcon className="w-3 h-3 text-green-500" />
@@ -521,7 +521,7 @@ export function ChatMessage({
                 <button
                   onClick={handleShare}
                   className="p-1 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition-colors"
-                  title="分享到推特"
+                  title="Share to Twitter"
                 >
                   <ShareIcon className="w-3 h-3" />
                 </button>

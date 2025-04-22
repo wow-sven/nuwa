@@ -14,7 +14,7 @@ export function ActionPanel({
 }: ActionPanelProps) {
   return (
     <div className="flex items-center space-x-2 p-1 mt-2 border-t border-gray-100 dark:border-gray-700">
-      {/* 转账按钮 */}
+      {/* transfer button */}
       <SessionKeyGuard onClick={onTransferClick}>
         <button className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
           <CurrencyDollarIcon className="w-5 h-5" />
@@ -22,7 +22,7 @@ export function ActionPanel({
         </button>
       </SessionKeyGuard>
 
-      {/* 自动@AI按钮 */}
+      {/* auto @AI button */}
       <button
         onClick={onAutoMentionToggle}
         className={`flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 ${
