@@ -5,14 +5,6 @@ const base = new Airtable({
     apiKey: process.env.NEXT_PUBLIC_AIRTABLE_API_KEY
 }).base(process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID || '');
 
-// Form data interface
-export interface FormData {
-    email: string;
-    agentname: string;
-    product?: string;
-    description?: string;
-}
-
 // Leaderboard user data interface
 export interface LeaderboardUser {
     id: string;
@@ -41,31 +33,6 @@ export interface Mission {
     order?: number;
     repeatable?: boolean;
 }
-
-// Submit form data to Airtable
-export const submitFormToAirtable = async (formData: FormData): Promise<boolean> => {
-    try {
-        // Assuming your table name is "Contacts"
-        const table = base('Early Access Registry');
-
-        // Create record
-        await table.create([
-            {
-                fields: {
-                    Email: formData.email,
-                    Agentname: formData.agentname,
-                    Link: formData.product || '',
-                    Description: formData.description || '',
-                }
-            }
-        ]);
-
-        return true;
-    } catch (error) {
-        console.error('Error submitting form to Airtable:', error);
-        return false;
-    }
-};
 
 // Get leaderboard data
 export const getLeaderboardData = async (): Promise<LeaderboardUser[]> => {
