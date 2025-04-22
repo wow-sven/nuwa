@@ -1,0 +1,2 @@
+PRINT(FORMAT("Placed the sky, grass, house, tree, and sun on the canvas."))
+PRINT(FORMAT("message:", {}))
