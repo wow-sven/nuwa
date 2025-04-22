@@ -35,6 +35,7 @@ export const fetchUserRewardHistory = async (userName: string): Promise<{
     points: number;
     mission: string;
     createdTime: string;
+    missionDetails: string;
 }[]> => {
     try {
         const response = await fetch(`/api/airtable?action=getUserRewardHistory&userName=${encodeURIComponent(userName)}`);
@@ -82,7 +83,8 @@ export const updateUserReward = async (rewardData: RewardData): Promise<{ succes
                 action: 'updateReward',
                 userName: rewardData.userName,
                 points: rewardData.points,
-                mission: rewardData.mission
+                mission: rewardData.mission,
+                missionDetails: rewardData.missionDetails || ''
             }),
         });
 
@@ -94,19 +96,22 @@ export const updateUserReward = async (rewardData: RewardData): Promise<{ succes
 };
 
 // 检查用户是否已获得特定任务的奖励
-export const checkUserMissionReward = async (userName: string, mission: string): Promise<boolean> => {
+export const checkUserMissionReward = async (userName: string, mission: string): Promise<{
+    hasReceived: boolean;
+    missionDetails?: string;
+}> => {
     try {
         const response = await fetch(`/api/airtable?action=checkUserRewardHistory&userName=${encodeURIComponent(userName)}&mission=${encodeURIComponent(mission)}`);
         const data = await response.json();
 
         if (!data.success) {
             console.error('Error checking user mission reward:', data.error);
-            return false;
+            return { hasReceived: false };
         }
 
         return data.data;
     } catch (error) {
         console.error('Failed to check user mission reward:', error);
-        return false;
+        return { hasReceived: false };
     }
 }; 

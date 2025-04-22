@@ -20,6 +20,7 @@ export interface RewardData {
     userName: string;
     points: number;
     mission: string;
+    missionDetails?: string;
 }
 
 // Mission data interface
@@ -71,6 +72,7 @@ export const updateReward = async (rewardData: RewardData): Promise<{ success: b
                     RewardTo: rewardData.userName,
                     Points: rewardData.points,
                     Mission: rewardData.mission,
+                    MissionDetails: rewardData.missionDetails || '',
                 }
             }
         ], { typecast: true });
@@ -104,7 +106,10 @@ export const updateReward = async (rewardData: RewardData): Promise<{ success: b
 };
 
 // Check if user has already received reward for a specific mission
-export const checkUserRewardHistory = async (userName: string, mission: string): Promise<boolean> => {
+export const checkUserRewardHistory = async (userName: string, mission: string): Promise<{
+    hasReceived: boolean;
+    missionDetails?: string;
+}> => {
     try {
         const table = base('Points Reward Log');
 
@@ -114,11 +119,18 @@ export const checkUserRewardHistory = async (userName: string, mission: string):
             maxRecords: 1
         }).all();
 
-        // If records are found, user has already received reward for this mission
-        return records.length > 0;
+        if (records.length > 0) {
+            const record = records[0];
+            return {
+                hasReceived: true,
+                missionDetails: record.get('MissionDetails') as string || ''
+            };
+        }
+
+        return { hasReceived: false };
     } catch (error) {
         console.error('Error checking user reward history from Airtable:', error);
-        return false;
+        return { hasReceived: false };
     }
 };
 
@@ -184,6 +196,7 @@ export const getUserRewardHistory = async (userName: string): Promise<{
     points: number;
     mission: string;
     createdTime: string;
+    missionDetails: string;
 }[]> => {
     try {
         const table = base('Points Reward Log');
@@ -200,6 +213,7 @@ export const getUserRewardHistory = async (userName: string): Promise<{
             points: record.get('Points') as number,
             mission: record.get('Mission') as string,
             createdTime: record.get('CreatedAt') as string,
+            missionDetails: record.get('MissionDetails') as string || '',
         }));
 
         return history;

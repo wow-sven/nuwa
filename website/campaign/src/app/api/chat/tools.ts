@@ -292,13 +292,15 @@ export const tools = {
             userName: z.string().describe('The username of the reward receiver'),
             points: z.number().describe('The amount of points to be rewarded'),
             mission: z.string().describe('The mission that was completed'),
+            missionDetails: z.string().optional().describe('Additional details about the completed mission'),
         }),
-        execute: async ({ userName, points, mission }) => {
+        execute: async ({ userName, points, mission, missionDetails }) => {
             try {
                 const success = await updateReward({
                     userName,
                     points,
-                    mission
+                    mission,
+                    missionDetails
                 });
 
                 if (success) {
@@ -330,11 +332,12 @@ export const tools = {
         }),
         execute: async ({ userName, mission }) => {
             try {
-                const hasReceivedReward = await checkUserRewardHistory(userName, mission);
+                const result = await checkUserRewardHistory(userName, mission);
 
                 return {
-                    hasReceivedReward,
-                    message: hasReceivedReward
+                    hasReceivedReward: result.hasReceived,
+                    missionDetails: result.missionDetails || '',
+                    message: result.hasReceived
                         ? `User ${userName} has already received rewards for mission: ${mission}`
                         : `User ${userName} has not received rewards for mission: ${mission} yet`
                 };
@@ -354,8 +357,9 @@ export const tools = {
             userName: z.string().describe('The username of the user to deduct points from'),
             points: z.number().describe('The amount of points to be deducted (positive number)'),
             mission: z.string().describe('The mission that is deducting the points'),
+            missionDetails: z.string().optional().describe('Additional details about why points are being deducted'),
         }),
-        execute: async ({ userName, points, mission }) => {
+        execute: async ({ userName, points, mission, missionDetails }) => {
             try {
                 if (points <= 0) {
                     return {
@@ -367,7 +371,8 @@ export const tools = {
                 const success = await updateReward({
                     userName,
                     points: -points, // 传递负值以扣除积分
-                    mission: mission
+                    mission: mission,
+                    missionDetails
                 });
 
                 if (success) {

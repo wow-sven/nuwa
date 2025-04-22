@@ -13,6 +13,7 @@ interface PointsHistoryItem {
     createdTime: string;
     missionTitle?: string;
     missionDescription?: string;
+    missionDetails?: string;
 }
 
 interface UserPointsHistoryProps {
@@ -51,6 +52,7 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
                     ...item,
                     missionTitle: missionDetails?.title || 'Unknown Mission',
                     missionDescription: missionDetails?.description || '',
+                    missionDetails: item.missionDetails || '',
                 };
             });
 
@@ -211,7 +213,7 @@ const TableRow = ({
             <td className="p-4">
                 <div>
                     <span className="block mb-1 font-medium">{item.missionTitle}</span>
-                    <span className="block text-xs text-slate-500">{item.missionDescription}</span>
+                    <span className="block text-xs text-slate-500">{item.missionDetails}</span>
                 </div>
             </td>
 
