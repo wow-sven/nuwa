@@ -431,6 +431,8 @@ export function MessageList({
         return combinedMessages.sort((a, b) => a.index - b.index);
       });
 
+      scrollToBottom();
+
       // 重置查询页面
       setCurrentQueryPage(null);
       setIsLoadingMoreUp(false);
@@ -593,9 +595,9 @@ export function MessageList({
   );
 
   // Manually trigger loading (internal use, no button exposed)
-  const triggerLoad = useCallback(() => {
-    setAutoRefreshTrigger((prev) => prev + 1);
-  }, []);
+  // const triggerLoad = useCallback(() => {
+  //   setAutoRefreshTrigger((prev) => prev + 1);
+  // }, []);
 
   // 检测 AI 思考状态
   useEffect(() => {

@@ -12,6 +12,7 @@ import useAgentJoined from "@/hooks/useAgentJoined";
 import useChannelMembers from "@/hooks/useChannelMembers";
 import { useAgentChat } from "@/contexts/AgentChatContext";
 import { SessionKeyGuard } from "@roochnetwork/rooch-sdk-kit";
+import { formatAmountDisplay } from "@/utils/amount";
 
 /**
  * AgentProfile component - Displays agent information and channel statistics
@@ -109,7 +110,7 @@ export function AgentInfo() {
               <span className="animate-pulse">...</span>
             ) : (
               <span>
-                {(Number(balance?.balance || 0) / 1e8).toLocaleString()} RGAS
+                {formatAmountDisplay(Number(balance?.balance || 0) / 1e8)} RGAS
               </span>
             )}
           </div>

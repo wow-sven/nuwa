@@ -8,10 +8,11 @@ import {
   useSubscribeOnRequest,
 } from "@roochnetwork/rooch-sdk-kit";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { toast } from "react-hot-toast";
+import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
 import { ThemeToggle } from "./ThemeToggle";
 import useRgasBalance from "@/hooks/useRgasBalance";
+import { formatAmountDisplay } from "@/utils/amount";
 
 interface HeaderProps {
   isDarkMode: boolean;
@@ -56,7 +57,7 @@ export function Header({ isDarkMode }: HeaderProps) {
     if (connectionStatus === "connected" && address && !hasShownToast.current) {
       hasShownToast.current = true;
       toast.success("Wallet Connected", {
-        duration: 3000,
+        autoClose: 3000,
         position: "top-center",
         className: "mt-4",
       });
@@ -86,11 +87,11 @@ export function Header({ isDarkMode }: HeaderProps) {
           </Link>
         </div>,
         {
-          duration: 5000,
+          autoClose: 5000,
           position: "top-center",
           className:
             "mt-4 bg-purple-50 border border-purple-200 text-purple-800 dark:bg-purple-900 dark:border-purple-800 dark:text-purple-300",
-          icon: "👤",
+          icon: <span>👤</span>,
         }
       );
     }
@@ -102,6 +103,7 @@ export function Header({ isDarkMode }: HeaderProps) {
       connectionStatus === "connected" &&
       address &&
       rGas === 0 &&
+      // cSpell:ignore getrgas
       window.location.pathname !== "/getrgas-testnet"
     ) {
       toast(
@@ -115,11 +117,11 @@ export function Header({ isDarkMode }: HeaderProps) {
           </Link>
         </div>,
         {
-          duration: 5000,
+          autoClose: 5000,
           position: "top-center",
           className:
             "mt-4 bg-purple-50 border border-purple-200 text-purple-800 dark:bg-purple-900 dark:border-purple-800 dark:text-purple-300",
-          icon: "💜",
+          icon: <span>💜</span>,
         }
       );
     }
@@ -130,6 +132,7 @@ export function Header({ isDarkMode }: HeaderProps) {
     const prefix = "rooch-sdk-kit";
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith(prefix)) {
+        // because sdk will set the key to localStorage, so here can't use useLocalStorageState
         localStorage.removeItem(key);
       }
     });
@@ -164,13 +167,13 @@ export function Header({ isDarkMode }: HeaderProps) {
             to="/docs/intro"
             className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
           >
-            Documentation
+            Docs
           </Link>
           <div className="p-1">
             <ThemeToggle />
           </div>
           {connectionStatus !== "connected" ? (
-            <ConnectButton className="px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors">
+            <ConnectButton className="px-4 py-2 text-sm font-medium text-purple-600 dark:!text-white hover:text-purple-700 dark:hover:text-purple-200 dark:hover:!bg-slate-400 transition-colors">
               Connect Wallet
             </ConnectButton>
           ) : (
@@ -189,7 +192,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                       )}
                   </span>
                   <span className="text-xs text-gray-600 dark:text-gray-400">
-                    {rGas?.toLocaleString()} RGAS
+                    {formatAmountDisplay(rGas || 0)} RGAS
                   </span>
                 </div>
               </Menu.Button>

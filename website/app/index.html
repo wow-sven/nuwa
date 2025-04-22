@@ -1,16 +1,42 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/nuwa-icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nuwa - Web3 AI Agent Platform</title>
+    <script>
+      // 在页面加载前尽早设置主题
+      (function () {
+        try {
+          const savedTheme = localStorage.getItem("nuwa-theme");
+          console.log("🚀 ~ index.html:13 ~ savedTheme:", savedTheme);
+          let theme = "light"; // 默认主题
 
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/nuwa-icon.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nuwa - Web3 AI Agent Platform</title>
-</head>
+          if (savedTheme) {
+            // ahooks 存储格式是 JSON 字符串
+            theme = JSON.parse(savedTheme);
+          } else if (
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+          ) {
+            // 如果没有保存的主题，则使用系统偏好
+            theme = "dark";
+          }
 
-<body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+          console.log("🚀 ~ index.html:24 ~ theme:", theme);
+          // 立即设置文档根元素的类，避免闪烁
+          document.documentElement.className = theme;
+        } catch (e) {
+          console.log("🚀 ~ index.html:28 ~ e:", e);
+          // 出错时使用默认亮色主题
+          document.documentElement.className = "light";
+        }
+      })();
+    </script>
+  </head>
 
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

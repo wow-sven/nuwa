@@ -1,6 +1,7 @@
 import useAllBalance from "@/hooks/useAllBalance";
 import { useTransfer } from "@/hooks/useTransfer";
 import { Token } from "@/types/user";
+import { formatAmountDisplay } from "@/utils/amount";
 import { normalizeCoinIconUrl } from "@/utils/icon";
 import {
   ArrowPathIcon,
@@ -12,7 +13,7 @@ import {
   useCurrentAddress,
 } from "@roochnetwork/rooch-sdk-kit";
 import { useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 
 interface PortfolioPanelProps {
   address: string;
@@ -89,15 +90,13 @@ export const UserPortfolioPanel = ({ address }: PortfolioPanelProps) => {
       });
       setIsTransferModalOpen(false);
       refetchAllBalance();
-      toast.success("转账成功！", {
-        position: "bottom-right",
-        duration: 3000,
+      toast.success("Transfer successful!", {
+        autoClose: 3000,
       });
     } catch (error) {
       console.error("Transfer failed:", error);
-      toast.error("转账失败，请重试", {
-        position: "bottom-right",
-        duration: 3000,
+      toast.error("Transfer failed, please try again", {
+        autoClose: 3000,
       });
     }
   };
@@ -158,7 +157,7 @@ export const UserPortfolioPanel = ({ address }: PortfolioPanelProps) => {
               <div className="flex items-center space-x-4">
                 <div className="text-right">
                   <p className="font-medium text-gray-900 dark:text-gray-100">
-                    {tokenBalance.balance}
+                    {formatAmountDisplay(tokenBalance.balance)}
                   </p>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     {tokenBalance.token.symbol}

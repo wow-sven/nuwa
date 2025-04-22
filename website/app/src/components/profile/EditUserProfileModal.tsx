@@ -38,11 +38,8 @@ export const EditProfileModal = ({
   const [previewUrl, setPreviewUrl] = useState("");
   const { mutate: updateUser } = useUserUpdate();
   const { mutate: initUser } = useUserInit();
-  const {
-    available: usernameCheck,
-    isPending: isCheckingUsername,
-    refetch: refetchUsername,
-  } = useUserNameCheck(formData.username);
+  const { isPending: isCheckingUsername, refetch: refetchUsername } =
+    useUserNameCheck(formData.username);
 
   useEffect(() => {
     setFormData(initialData);
@@ -62,7 +59,7 @@ export const EditProfileModal = ({
     try {
       if (!hasUsername) {
         // initialize the user
-        await initUser({
+        initUser({
           name: data.name,
           username: data.username.trim(),
           avatar: data.avatar,
@@ -70,13 +67,13 @@ export const EditProfileModal = ({
       } else {
         // update the user information
         if (data.name !== initialData.name) {
-          await updateUser({
+          updateUser({
             objId: initialData.id || "",
             name: data.name,
           });
         }
         if (data.avatar !== initialData.avatar) {
-          await updateUser({
+          updateUser({
             objId: initialData.id || "",
             avatar: data.avatar,
           });
@@ -84,14 +81,7 @@ export const EditProfileModal = ({
       }
       onSuccess();
       toast.success("Profile updated successfully!", {
-        position: "top-right",
         autoClose: 2000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        theme: "light",
       });
       onClose();
     } catch (error) {
@@ -139,7 +129,7 @@ export const EditProfileModal = ({
       const newData = { ...prev, username: newUsername };
       // if the user has not set a username, then automatically update the avatar
       if (!hasUsername) {
-        newData.avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${newUsername}`;
+        newData.avatar = `https://api.dicebear.com/9.x/dylan/svg?seed=${newUsername}`;
       }
       return newData;
     });
