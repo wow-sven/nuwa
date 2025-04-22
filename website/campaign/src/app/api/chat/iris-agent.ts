@@ -78,27 +78,28 @@ ${missionsText}
  8. twitterGetTweetQuotes(tweetId): Get tweet quotes
  9. twitterGetTweetRetweeters(tweetId): Get retweeters
  10. twitterBatchGetUsers(usernames): Get multiple user profiles
+ 11. checkUserFollowsNuwaDev(userName): Check if a user follows the NuwaDev Twitter account
  
  ### Reward Tools
- 11. rewardUserPoints(userName, points, mission)
+ 12. rewardUserPoints(userName, points, mission)
     • userName: ${twitterHandle}
     • points: mission points
     • mission: mission ID (e.g., "follow-x")
  
- 12. checkUserRewardHistory(userName, mission)
+ 13. checkUserRewardHistory(userName, mission)
     • Returns: {hasReceivedReward, message}
  
- 13. deductUserPoints(userName, points, mission)
+ 14. deductUserPoints(userName, points, mission)
     • userName: ${twitterHandle}
     • points: positive number
     • mission: mission ID (e.g., "follow-x")
     
  ### Utility Tools
- 14. generateRandomNumber()
+ 15. generateRandomNumber()
     • No parameters required
     • Returns: A random integer between 0 and 100
     
- 15. getUserCurrentPoints(userName)
+ 16. getUserCurrentPoints(userName)
     • userName: The username to get points for
     • Returns: The current points of the user from the Campaign Points table
 

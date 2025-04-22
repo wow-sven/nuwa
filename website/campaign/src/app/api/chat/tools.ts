@@ -20,10 +20,6 @@ async function callTwitterApi(endpoint: string, params: Record<string, string> =
 
         const url = `https://api.twitterapi.io/twitter/${endpoint}${queryString ? `?${queryString}` : ''}`;
 
-        console.log('Request URL:', url);
-        console.log('Request Headers:', {
-            'X-API-Key': apiKey ? '***' : 'missing',
-        });
 
         const response = await fetch(url, {
             method: 'GET',
@@ -32,18 +28,15 @@ async function callTwitterApi(endpoint: string, params: Record<string, string> =
             },
         });
 
-        console.log('Response Status:', response.status);
-        console.log('Response Headers:', Object.fromEntries(response.headers.entries()));
+        const data = await response.json();
 
-        if (!response.ok) {
-            const errorText = await response.text();
+        if (!response.ok || data.status === "error") {
+            const errorText = await data.message;
             return {
                 error: `Failed to fetch Twitter data: ${response.status} ${response.statusText}`,
                 details: errorText
             };
         }
-
-        const data = await response.json();
         return data;
     } catch (error) {
         return {
@@ -84,10 +77,58 @@ export const tools = {
             cursor: z.string().optional().describe('Pagination cursor for retrieving more tweets'),
         }),
         execute: async ({ userName, cursor = "" }) => {
-            return callTwitterApi('user/last_tweets', {
+            const response = await callTwitterApi('user/last_tweets', {
                 userName: userName,
                 cursor: cursor
             });
+
+            const data = response.data;
+
+            // 如果API调用出错，直接返回错误信息
+            if (response.status === "error") {
+                return response.msg;
+            }
+
+            // 提取指定字段，减少令牌使用
+            if (data.tweets) {
+                const optimizedTweets = data.tweets.map((tweet: {
+                    text: string;
+                    retweetCount: number;
+                    replyCount: number;
+                    likeCount: number;
+                    quoteCount: number;
+                    viewCount: number;
+                }) => ({
+                    text: tweet.text,
+                    retweetCount: tweet.retweetCount,
+                    replyCount: tweet.replyCount,
+                    likeCount: tweet.likeCount,
+                    quoteCount: tweet.quoteCount,
+                    viewCount: tweet.viewCount
+                }));
+
+                // 处理可能存在的 pin_tweet 对象
+                if (data.pin_tweet) {
+                    const pinTweet = {
+                        text: data.pin_tweet.text,
+                        retweetCount: data.pin_tweet.retweetCount,
+                        replyCount: data.pin_tweet.replyCount,
+                        likeCount: data.pin_tweet.likeCount,
+                        quoteCount: data.pin_tweet.quoteCount,
+                        viewCount: data.pin_tweet.viewCount,
+                        isPinned: true // 添加标记表示这是置顶推文
+                    };
+                    optimizedTweets.unshift(pinTweet); // 将置顶推文添加到数组开头
+                }
+
+                return {
+                    tweets: optimizedTweets,
+                    next_cursor: response.next_cursor,
+                    has_next_page: response.has_next_page
+                };
+            }
+
+            return response;
         },
     }),
 
@@ -387,6 +428,68 @@ export const tools = {
             } catch (error) {
                 return {
                     error: `Error getting user points: ${error instanceof Error ? error.message : String(error)}`
+                };
+            }
+        },
+    }),
+
+    // 16. 检查用户是否关注了NuwaDev
+    checkUserFollowsNuwaDev: tool({
+        description: 'Check if a user follows the NuwaDev Twitter account',
+        parameters: z.object({
+            userName: z.string().describe('The Twitter username to check if they follow NuwaDev'),
+        }),
+        execute: async ({ userName }) => {
+            try {
+                let cursor = "";
+                let hasMorePages = true;
+
+                // 遍历所有关注列表页
+                while (hasMorePages) {
+                    // 获取用户关注列表的当前页
+                    const followingsResponse = await callTwitterApi('user/followings', {
+                        userName: userName,
+                        cursor: cursor
+                    });
+
+                    // 检查API调用是否返回错误
+                    if (followingsResponse.error) {
+                        console.log(followingsResponse)
+                        return {
+                            error: followingsResponse.error,
+                            details: followingsResponse.details,
+                            followsNuwaDev: false
+                        };
+                    }
+
+                    // 检查关注列表中是否包含NuwaDev
+                    const followings = followingsResponse.followings || [""];
+                    const followsNuwaDev = followings.some((following: any) =>
+                        following.screen_name.toLowerCase() === 'nuwadev'
+                    );
+
+                    // 如果找到NuwaDev，立即返回结果
+                    if (followsNuwaDev) {
+                        return {
+                            followsNuwaDev: true,
+                            message: `User ${userName} follows @NuwaDev`
+                        };
+                    }
+
+                    // 获取下一页的cursor
+                    cursor = followingsResponse.next_cursor || "";
+                    hasMorePages = followingsResponse.has_next_page || false;
+                }
+
+                // 如果遍历完所有页面都没有找到NuwaDev
+                return {
+                    followsNuwaDev: false,
+                    message: `User ${userName} does not follow @NuwaDev`
+                };
+            } catch (error) {
+                return {
+                    error: `Error checking if user follows NuwaDev: ${error instanceof Error ? error.message : String(error)}`,
+                    followsNuwaDev: false
                 };
             }
         },
