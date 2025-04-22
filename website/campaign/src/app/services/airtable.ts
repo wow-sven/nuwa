@@ -2,8 +2,8 @@ import Airtable from 'airtable';
 
 // Initialize Airtable client
 const base = new Airtable({
-    apiKey: process.env.NEXT_PUBLIC_AIRTABLE_API_KEY
-}).base(process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID || '');
+    apiKey: process.env.AIRTABLE_API_KEY
+}).base(process.env.AIRTABLE_BASE_ID || '');
 
 // Leaderboard user data interface
 export interface LeaderboardUser {

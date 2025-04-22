@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FiAward, FiChevronDown, FiChevronUp, FiRefreshCw } from "react-icons/fi";
-import { getUserRewardHistory, getMissions } from "@/app/services/airtable";
-import { BarLoader } from "../shared/BarLoader";
+import { FiAward, FiRefreshCw } from "react-icons/fi";
+import { fetchUserRewardHistory, fetchMissions } from "@/app/services/apiClient";
+import { BarLoader } from "@/app/components/shared/BarLoader";
 
 interface PointsHistoryItem {
     id: string;
@@ -31,8 +31,8 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
 
             // 并行获取积分历史和所有任务信息
             const [historyData, allMissions] = await Promise.all([
-                getUserRewardHistory(userName),
-                getMissions()
+                fetchUserRewardHistory(userName),
+                fetchMissions()
             ]);
 
             // 创建任务ID到任务详情的映射

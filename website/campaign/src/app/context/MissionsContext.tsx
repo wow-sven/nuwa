@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Mission, getMissions } from '../services/airtable';
+import { Mission } from '../services/airtable';
+import { fetchMissions } from '../services/apiClient';
 
 // Create default empty missions array
 const defaultMissions: Mission[] = [];
@@ -34,11 +35,11 @@ export const MissionsProvider: React.FC<MissionsProviderProps> = ({ children }) 
     const [error, setError] = useState<string | null>(null);
 
     // Function to fetch mission data
-    const fetchMissions = async () => {
+    const fetchMissionsData = async () => {
         try {
             setLoading(true);
             setError(null);
-            const data = await getMissions();
+            const data = await fetchMissions();
             setMissions(data);
         } catch (err) {
             setError('Failed to fetch missions data');
@@ -50,7 +51,7 @@ export const MissionsProvider: React.FC<MissionsProviderProps> = ({ children }) 
 
     // Fetch data when component mounts
     useEffect(() => {
-        fetchMissions();
+        fetchMissionsData();
     }, []);
 
     // Context value
@@ -58,7 +59,7 @@ export const MissionsProvider: React.FC<MissionsProviderProps> = ({ children }) 
         missions,
         loading,
         error,
-        refetchMissions: fetchMissions
+        refetchMissions: fetchMissionsData
     };
 
     return (

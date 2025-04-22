@@ -3,8 +3,9 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { FiAward } from "react-icons/fi";
-import { getLeaderboardData, LeaderboardUser } from "@/app/services/airtable";
-import { BarLoader } from "../shared/BarLoader";
+import { fetchLeaderboard } from "@/app/services/apiClient";
+import { LeaderboardUser } from "@/app/services/airtable";
+import { BarLoader } from "@/app/components/shared/BarLoader";
 
 // 使用Airtable数据接口
 interface User extends LeaderboardUser { }
@@ -62,7 +63,7 @@ const Table = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const data = await getLeaderboardData();
+                const data = await fetchLeaderboard();
                 setUsers(data);
                 setError(null);
             } catch (err) {

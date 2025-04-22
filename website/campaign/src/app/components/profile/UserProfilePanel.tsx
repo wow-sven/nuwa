@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { TwitterLoginButton } from "@/app/components/auth/TwitterLoginButton";
 import { useSession, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
-import { getUserPoints } from "@/app/services/airtable";
+import { fetchUserPoints } from "@/app/services/apiClient";
 import { FiAward } from "react-icons/fi";
 
 export const UserProfilePanel = () => {
@@ -11,10 +11,10 @@ export const UserProfilePanel = () => {
     const [loading, setLoading] = useState<boolean>(true);
 
     useEffect(() => {
-        const fetchUserPoints = async () => {
+        const fetchPoints = async () => {
             if (session?.user?.twitterHandle) {
                 try {
-                    const result = await getUserPoints(session.user.twitterHandle);
+                    const result = await fetchUserPoints(session.user.twitterHandle);
                     if (result.success) {
                         setPoints(result.points);
                     }
@@ -29,7 +29,7 @@ export const UserProfilePanel = () => {
         };
 
         if (status === "authenticated") {
-            fetchUserPoints();
+            fetchPoints();
         } else {
             setLoading(false);
         }
