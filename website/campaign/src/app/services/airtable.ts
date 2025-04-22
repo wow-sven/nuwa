@@ -31,7 +31,6 @@ export interface Mission {
     suggested?: boolean;
     prompt?: string;
     order?: number;
-    repeatable?: boolean;
 }
 
 // Get leaderboard data
@@ -142,7 +141,6 @@ export const getMissions = async (): Promise<Mission[]> => {
             suggested: record.get('suggested') as boolean || false,
             prompt: record.get('Prompt') as string || '',
             order: record.get('order') as number || 0,
-            repeatable: record.get('repeatable') as boolean || false,
         }));
 
         return missions;

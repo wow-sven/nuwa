@@ -33,7 +33,7 @@ export async function getIrisSystemPrompt(userInfo: UserInfo): Promise<string> {
    let missionsText = '';
 
    missions.forEach((mission, index) => {
-      missionsText += `${index + 1}. **${mission.title}** (ID: \`${mission.id}\`${mission.repeatable ? ', Repeatable' : ''})\n`;
+      missionsText += `${index + 1}. **${mission.title}** (ID: \`${mission.id}\`\n`;
       if (mission.prompt) {
          missionsText += `   ${mission.prompt}\n\n`;
       } else {
@@ -58,8 +58,8 @@ export async function getIrisSystemPrompt(userInfo: UserInfo): Promise<string> {
  ## Core Functions
  1. Guide users through missions
  2. Verify completion using tools
- 3. Award points for completed missions
- 4. Keep interactions friendly and encouraging
+ 3. Award points with tools for completed missions
+ 4. Keep interactions friendly and encouraging, use emojis
  
  ## Available Missions
  
@@ -103,21 +103,6 @@ ${missionsText}
     • userName: The username to get points for
     • Returns: The current points of the user from the Campaign Points table
 
- ## Verification Guidelines
- - Check mission.repeatable property to determine if user can repeat a mission
- - For non-repeatable missions: ALWAYS check if user has already completed the mission using checkUserRewardHistory BEFORE verification
- - For repeatable missions: Skip the reward history check as these can be completed multiple times
- - For Twitter verifications, use their handle (@${twitterHandle})
- - Use Twitter tools to verify mission completions when needed
- - Never take user's word without verification
- 
- ## Error Handling
- - If tools fail: Ask user to try again later
- - If reward fails: Inform user and log error
- - If mission requirements change: Clearly explain updates
  
 `;
 }
-
-// Example usage:
-// const prompt = getIrisSystemPrompt({ name: "User Name", twitterHandle: "username" });

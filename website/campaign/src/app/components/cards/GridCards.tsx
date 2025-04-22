@@ -46,9 +46,6 @@ interface CardProps {
 }
 
 const Card = ({ mission, onSelectSuggestion, onCloseGridCards }: CardProps) => {
-    // 模拟任务完成状态 - 在实际应用中，这应该从后端或状态管理中获取
-    // 这里我们使用任务ID的最后一个字符是否为偶数来模拟完成状态
-    const isCompleted = true;
 
     const handleClick = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -69,20 +66,6 @@ const Card = ({ mission, onSelectSuggestion, onCloseGridCards }: CardProps) => {
             <p className="relative z-10 text-sm text-slate-400 mt-2 line-clamp-2">
                 {mission.description}
             </p>
-
-            <div className="absolute right-3 top-4 z-10 flex items-center gap-1">
-                {isCompleted ? (
-                    <>
-                        <FiCheckCircle className="text-2xl text-green-500" />
-                        <span className="text-xs text-green-500">MISSION COMPLETED</span>
-                    </>
-                ) : (
-                    <>
-                        <FiCircle className="text-2xl text-slate-400" />
-                        <span className="text-xs text-slate-400">MISSION TO DO</span>
-                    </>
-                )}
-            </div>
 
             <div
                 className="absolute bottom-0 left-0 right-0 top-0 opacity-0 blur-sm grayscale transition-all group-hover:opacity-10 group-active:scale-105 group-active:opacity-30 group-active:blur-0 group-active:grayscale-0"

@@ -353,9 +353,9 @@ export const tools = {
         parameters: z.object({
             userName: z.string().describe('The username of the user to deduct points from'),
             points: z.number().describe('The amount of points to be deducted (positive number)'),
-            reason: z.string().describe('The reason for deducting points'),
+            mission: z.string().describe('The mission that is deducting the points'),
         }),
-        execute: async ({ userName, points, reason }) => {
+        execute: async ({ userName, points, mission }) => {
             try {
                 if (points <= 0) {
                     return {
@@ -367,13 +367,13 @@ export const tools = {
                 const success = await updateReward({
                     userName,
                     points: -points, // 传递负值以扣除积分
-                    mission: reason
+                    mission: mission
                 });
 
                 if (success) {
                     return {
                         success: true,
-                        message: `Successfully deducted ${points} points from user ${userName} for reason: ${reason}`
+                        message: `Successfully deducted ${points} points from user ${userName} for reason: ${mission}`
                     };
                 } else {
                     return {
