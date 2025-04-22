@@ -151,7 +151,7 @@ export function AgentMemoriesPanel() {
                     <div className="flex-1">
                       <div className="flex items-center mb-2">
                         <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
-                          记忆 #{index + 1}
+                          Memories #{index + 1}
                         </span>
                       </div>
                       <p className="text-sm text-gray-900 dark:text-gray-100">

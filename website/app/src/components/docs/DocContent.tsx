@@ -8,20 +8,17 @@ interface DocContentProps {
 }
 
 const extractMermaidTitle = (content: string): string => {
-  // 尝试从注释中获取标题
   const commentMatch = content.match(/%%\s*(.+)/);
   if (commentMatch) {
     return commentMatch[1].trim();
   }
 
-  // 尝试从图表标题中获取
   const titleMatch = content.match(/title\s+(.+)/);
   if (titleMatch) {
     return titleMatch[1].trim();
   }
 
-  // 如果没有找到标题，返回默认值
-  return "图表";
+  return "Chart";
 };
 
 export const DocContent = ({ content }: DocContentProps) => {

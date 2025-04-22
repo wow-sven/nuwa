@@ -65,9 +65,9 @@ export function MembersList() {
   const { agent, members } = useAgentChat();
   const agentAddress = agent?.address ? new RoochAddress(agent.address) : null;
 
-  // 对成员列表进行排序，将当前 agent 放在最前面
+  // sort members list, put current agent at the first
   const sortedMembers = [...members].sort((a, b) => {
-    // 如果没有 agent 地址，保持原有顺序
+    // if no agent address, keep original order
     if (!agentAddress) return 0;
 
     const memberAddressA = new RoochAddress(a.address);

@@ -129,7 +129,7 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
   const handleSendMessage = async (message: string, payment?: number) => {
     if ((message.trim() || mentions.length > 0) && selectedChannel && agent) {
       try {
-        // 检查消息长度
+        // check message length
         if (message.length > 4096) {
           console.log("Message too long, showing error toast");
           toast.error("Message is too long", {
@@ -138,11 +138,11 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
           return;
         }
 
-        // 构建包含 mentions 的消息内容
+        // build message content with mentions
         const mentionText = mentions.map((m) => `@${m.text}`).join(" ");
         const fullMessage = `${mentionText} ${message}`.trim();
 
-        // 检查完整消息长度（包含 mentions）
+        // check full message length (includes mentions)
         if (fullMessage.length > 4096) {
           console.log("Full message too long, showing error toast");
           toast.error("Message is too long", {
@@ -151,7 +151,6 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
           return;
         }
 
-        // 如果显示转账表单，添加 payment 属性
         const messageData: any = {
           channelId: selectedChannel,
           content: fullMessage,
@@ -175,7 +174,7 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
           // Clear mentions and reset token form
           setMentions([]);
           setShowTransferModal(false);
-          // 只在消息发送成功后清空输入框
+          // only clean the input when message send success
           setInputMessage("");
         } catch (error: any) {
           // check if the error is session key expired
@@ -218,7 +217,6 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
     }
 
     if (inputMessage.trim()) {
-      // 检查消息长度
       if (inputMessage.length > 4096) {
         toast.error("Message is too long", {
           position: "top-center",
@@ -226,11 +224,9 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
         return;
       }
 
-      // 构建包含 mentions 的消息内容
       const mentionText = mentions.map((m) => `@${m.text}`).join(" ");
       const fullMessage = `${mentionText} ${inputMessage}`.trim();
 
-      // 检查完整消息长度（包含 mentions）
       if (fullMessage.length > 4096) {
         toast.error("Message is too long", {
           position: "top-center",
@@ -239,7 +235,6 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
       }
 
       await handleSendMessage(inputMessage);
-      // 重置输入框高度
       if (inputRef.current) {
         inputRef.current.style.height = "24px";
       }
@@ -258,14 +253,12 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
     const cursorPosition = e.target.selectionStart || 0;
     const lastAtSymbol = value.lastIndexOf("@", cursorPosition);
 
-    // 自动调整高度
     if (inputRef.current) {
       inputRef.current.style.height = "auto";
       const newHeight = Math.max(inputRef.current.scrollHeight, 24);
       inputRef.current.style.height = `${newHeight}px`;
     }
 
-    // 处理粘贴事件
     if ((e.nativeEvent as InputEvent).inputType === "insertFromPaste") {
       const pastedText = value;
       const mentionRegex = /@(\w+)/g;
@@ -292,7 +285,6 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
             text: displayName,
             type: member.isAgent ? "agent" : "user",
           });
-          // 替换掉文本中的 @ 提及部分
           processedText = processedText.replace(`@${mentionText}`, "");
         }
       }
@@ -305,9 +297,8 @@ export function MessageInput({ messagesEndRef }: MessageInputProps) {
           );
           return [...prev, ...uniqueNewMentions];
         });
-        // 更新输入框的内容，移除已处理的 @ 提及
         setInputMessage(processedText.trim());
-        return; // 如果是粘贴事件且处理了 mentions，直接返回
+        return;
       }
     }
 

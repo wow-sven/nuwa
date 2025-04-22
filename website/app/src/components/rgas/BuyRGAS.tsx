@@ -24,7 +24,6 @@ export const BuyRGAS = () => {
     };
 
     fetchBtcRate();
-    // 每60秒更新一次汇率
     const interval = setInterval(fetchBtcRate, 60000);
     return () => clearInterval(interval);
   }, []);

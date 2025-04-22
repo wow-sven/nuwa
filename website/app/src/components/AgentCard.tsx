@@ -16,9 +16,9 @@ export function AgentCard({ agent }: AgentCardProps) {
   // }
 
   // const getTimeAgo = () => {
-  //   // 模拟创建日期在过去1-6个月之间
+  //   // mock created date in the past 1-6 months
   //   const now = new Date()
-  //   const monthsAgo = Math.floor(Math.random() * 5) + 1 // 1-6个月
+  //   const monthsAgo = Math.floor(Math.random() * 5) + 1 // 1-6 months
   //   const createdAt = new Date(now.setMonth(now.getMonth() - monthsAgo))
   //   const diffInDays = Math.floor((new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
 
@@ -30,11 +30,11 @@ export function AgentCard({ agent }: AgentCardProps) {
   // }
 
   // const getPopularity = () => {
-  //   // 如果是trending，返回较高的热度值（85-99）
+  //   // if trending, return higher popularity value (85-99)
   //   if (agent.isTrending) {
   //     return Math.floor(Math.random() * 15) + 85
   //   }
-  //   // 否则返回较低的热度值（30-84）
+  //   // otherwise return lower popularity value (30-84)
   //   return Math.floor(Math.random() * 55) + 30
   // }
 

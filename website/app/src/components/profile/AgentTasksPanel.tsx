@@ -44,7 +44,6 @@ export function AgentTasksPanel() {
   }, [taskSpecs]);
 
   const validateTaskSpecs = (parsed: any): boolean => {
-    // 如果输入是单个对象，将其转换为数组
     const tasks = Array.isArray(parsed) ? parsed : [parsed];
 
     const isValidTask = (task: any) => {
@@ -67,7 +66,6 @@ export function AgentTasksPanel() {
       return false;
     }
 
-    // 更新状态时使用数组形式
     setTaskSpecs(tasks);
     return true;
   };
