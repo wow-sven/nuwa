@@ -32,7 +32,6 @@ export default function useAgentStatus(id?: string): UseAgentStatusResult {
         ? Boolean(result.return_values[0].decoded_value)
         : false;
 
-      // 获取最后活跃时间
       const lastActiveResult = await client.executeViewFunction({
         target: `${packageId}::agent::get_last_active_timestamp`,
         args: [Args.objectId(id!)],
@@ -43,7 +42,7 @@ export default function useAgentStatus(id?: string): UseAgentStatusResult {
         : Date.now();
 
       return {
-        isOnline: !isProcessing, // 如果不在处理请求，则视为在线
+        isOnline: !isProcessing,
         lastActive,
         currentTask: isProcessing ? "processing" : undefined,
       };

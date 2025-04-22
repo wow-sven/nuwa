@@ -94,7 +94,7 @@ export const EditProfileModal = ({
     e.preventDefault();
     setError("");
 
-    // 验证 Display Name
+    // validate display name
     if (!formData.name.trim()) {
       setError("Display Name is required");
       return;

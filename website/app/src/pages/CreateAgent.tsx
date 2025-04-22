@@ -93,7 +93,6 @@ export const CreateAgent = () => {
     setHasCustomAvatar(true);
   };
 
-  // 添加验证函数
   const validateUsername = (username: string): string | null => {
     if (!username.trim()) {
       return "Username cannot be empty";
@@ -158,7 +157,6 @@ export const CreateAgent = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 验证表单
     const newErrors: Partial<CreateAgentForm> = {};
 
     const usernameError = validateUsername(form.username);
@@ -186,7 +184,6 @@ export const CreateAgent = () => {
       return;
     }
 
-    // 检查用户名可用性
     const result = await refetchUsername();
     if (result.data?.error) {
       setErrors((prev) => ({

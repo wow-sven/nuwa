@@ -195,7 +195,7 @@ export function AgentProfilePanel() {
               <>
                 <div className="mb-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    头像URL
+                    Avatar URL
                   </label>
                   <input
                     type="text"
@@ -204,7 +204,7 @@ export function AgentProfilePanel() {
                     className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${
                       avatarError ? "border-red-500" : ""
                     }`}
-                    placeholder="输入头像URL"
+                    placeholder="Enter Avatar URL"
                   />
                   {avatarError && (
                     <p className="mt-1 text-sm text-red-500">{avatarError}</p>
@@ -212,7 +212,7 @@ export function AgentProfilePanel() {
                 </div>
                 <div className="mb-2">
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    名称
+                    Name
                   </label>
                   <input
                     type="text"
@@ -226,7 +226,7 @@ export function AgentProfilePanel() {
                     className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${
                       formErrors.name ? "border-red-500" : ""
                     }`}
-                    placeholder="输入名称"
+                    placeholder="Enter Name"
                   />
                   {formErrors.name && (
                     <p className="mt-1 text-sm text-red-500">

@@ -66,7 +66,6 @@ export function AgentChatProvider({
     setSelectedChannel(undefined);
   }, [agent?.id]);
 
-  // 单独处理 channel 选择
   useEffect(() => {
     if (!selectedChannel && channels && channels.length > 0) {
       setSelectedChannel(channels[0].id);

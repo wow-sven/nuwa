@@ -340,30 +340,25 @@ export function MessageList({
     setLastScrollHeight(0);
     setCurrentQueryPage(null);
 
-    // 触发初始加载
     setAutoRefreshTrigger((prev) => prev + 1);
   }, [channelId]);
 
-  // 修改初始加载效果
   useEffect(() => {
     if (validChannelId) {
-      // 立即触发一次加载
       setAutoRefreshTrigger((prev) => prev + 1);
 
-      // 设置一个定时器，确保在 messageCount 更新后加载所有必要的页面
       const timer = setTimeout(() => {
         if (messageCount > 0) {
-          // 计算需要加载的页面范围
           const latestPage = Math.ceil(messageCount / MESSAGES_PER_PAGE) - 1;
-          const startPage = Math.max(0, latestPage - 2); // 加载最近3页
+          const startPage = Math.max(0, latestPage - 2); // load recent 3 pages
 
-          // 按顺序加载页面
+          // load pages in order
           for (let page = startPage; page <= latestPage; page++) {
             setTimeout(() => {
               if (!loadedPages.includes(page)) {
                 setCurrentQueryPage(page);
               }
-            }, (page - startPage) * 200); // 每页间隔200ms加载
+            }, (page - startPage) * 200);
           }
         } else {
           setCurrentQueryPage(0);
@@ -374,16 +369,15 @@ export function MessageList({
     }
   }, [validChannelId, messageCount, loadedPages]);
 
-  // 修改滚动加载历史消息的逻辑
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
 
     const handleScroll = () => {
-      // 检查是否接近顶部
+      // check if near top
       const isNearTop = container.scrollTop < 50;
 
-      // 如果接近顶部且还有更多历史消息可加载
+      // if near top and there are more history messages to load
       if (
         isNearTop &&
         !isLoadingMoreUp &&
@@ -392,18 +386,18 @@ export function MessageList({
       ) {
         const oldestLoadedPage = Math.min(...loadedPages);
 
-        // 如果还有更早的页面
+        // if there are earlier pages
         if (oldestLoadedPage > 0) {
           const nextPageToLoad = oldestLoadedPage - 1;
 
-          // 触发加载
+          // trigger loading
           if (!loadedPages.includes(nextPageToLoad)) {
             setIsLoadingMoreUp(true);
             setLastScrollHeight(container.scrollHeight);
             setCurrentQueryPage(nextPageToLoad);
           }
         } else {
-          // 已经到达第一页
+          // already reached the first page
           setReachedTop(true);
         }
       }
@@ -413,15 +407,12 @@ export function MessageList({
     return () => container.removeEventListener("scroll", handleScroll);
   }, [loadedPages, isLoadingMoreUp, reachedTop]);
 
-  // 优化消息加载状态显示
   useEffect(() => {
     if (pageMessages && pageMessages.length > 0) {
-      // 添加当前页面到已加载页面列表
       if (!loadedPages.includes(currentQueryPage || 0)) {
         setLoadedPages((prev) => [...prev, currentQueryPage || 0]);
       }
 
-      // 修改消息去重和排序逻辑
       setAllMessages((prev) => {
         const existingIndices = new Set(prev.map((m) => m.index));
         const newMessages = pageMessages.filter(
@@ -432,19 +423,15 @@ export function MessageList({
       });
 
       scrollToBottom();
-
-      // 重置查询页面
       setCurrentQueryPage(null);
       setIsLoadingMoreUp(false);
     }
   }, [pageMessages, currentQueryPage, loadedPages]);
 
-  // 添加消息加载重试逻辑
   useEffect(() => {
     if (isError && validChannelId) {
       const retryTimer = setTimeout(() => {
         if (currentQueryPage !== null) {
-          // 重置页面查询以触发新请求
           setCurrentQueryPage(null);
           setTimeout(() => triggerPageLoad(currentQueryPage), 100);
         } else if (messageCount > 0) {
@@ -599,11 +586,11 @@ export function MessageList({
   //   setAutoRefreshTrigger((prev) => prev + 1);
   // }, []);
 
-  // 检测 AI 思考状态
+  // detect AI thinking state
   useEffect(() => {
     if (allMessages.length === 0 || !agentAddress) return;
 
-    // 找到用户最后一条发送给 agent 的消息
+    // find the last message sent to agent
     const lastMessageToAgent = [...allMessages].reverse().find((m) => {
       if (!isCurrentUser(m)) return false;
 
@@ -619,13 +606,13 @@ export function MessageList({
       });
     });
 
-    // 如果没有找到发送给 agent 的消息，关闭 thinking 状态
+    // if no message sent to agent, close thinking state
     if (!lastMessageToAgent) {
       onAIThinkingChange?.(false);
       return;
     }
 
-    // 检查是否有 AI 回复了这条消息
+    // check if AI has replied to this message
     const hasReply = allMessages.some(
       (m) =>
         isAI(m) &&
@@ -633,7 +620,7 @@ export function MessageList({
         m.index > lastMessageToAgent.index
     );
 
-    // 只有当没有回复时才设置 thinking 状态
+    // only set thinking state when there is no reply
     onAIThinkingChange?.(!hasReply);
   }, [allMessages, isCurrentUser, isAI, onAIThinkingChange, agentAddress]);
 
