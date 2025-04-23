@@ -537,4 +537,28 @@ export const tools = {
             }
         },
     }),
+
+    // 17. 发送推文内容到Twitter卡片
+    sendPostToTwitterCard: tool({
+        description: 'Create a Twitter card preview with content and optional image URL',
+        parameters: z.object({
+            content: z.string().describe('The content of the tweet to be displayed'),
+            imageUrl: z.string().optional().describe('URL of an image to include in the tweet (optional)'),
+        }),
+        execute: async ({ content, imageUrl }) => {
+            try {
+                // 这里只返回数据，实际的Twitter发布逻辑将在UI组件中处理
+                return {
+                    success: true,
+                    content,
+                    imageUrl
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: `Error creating Twitter card: ${error instanceof Error ? error.message : String(error)}`
+                };
+            }
+        },
+    }),
 }; 
