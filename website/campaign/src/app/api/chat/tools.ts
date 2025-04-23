@@ -209,7 +209,7 @@ export const tools = {
         description: 'Get tweets by their IDs',
         parameters: z.object({
             tweet_ids: z.string().describe('Comma-separated list of tweet IDs'),
-            current_user: z.string().describe('The username of the current user to check tweet ownership'),
+            current_user: z.string().optional().describe('The username of the current user to check tweet ownership (optional)'),
         }),
         execute: async ({ tweet_ids, current_user }) => {
             const response = await callTwitterApi('tweets', { tweet_ids });
@@ -221,8 +221,8 @@ export const tools = {
 
             const optimizedTweets = optimizeTweetsData(response.tweets);
 
-            // 只检查第一条推文的作者是否为当前用户
-            if (optimizedTweets && optimizedTweets.length > 0) {
+            // 只有当提供了 current_user 参数时才检查作者身份
+            if (current_user && optimizedTweets && optimizedTweets.length > 0) {
                 const firstTweet = optimizedTweets[0];
 
                 if (firstTweet.author.toLowerCase() !== current_user.toLowerCase()) {
