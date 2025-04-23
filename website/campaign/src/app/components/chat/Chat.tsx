@@ -8,7 +8,7 @@ import { useSession } from 'next-auth/react';
 import { Missions } from './Missions';
 import { MessageContainer } from './MessageContainer';
 import { InputContainer } from './InputContainer';
-import DotExpandButton from './DotExpandButton';
+import NeubrutalismButton from '@/app/components/shared/NeubrutalismButton';
 
 export function Chat() {
     const { data: session } = useSession();
@@ -99,7 +99,7 @@ export function Chat() {
                         <div className="flex flex-col h-full">
                             {messages.length > 0 && status !== 'streaming' && (
                                 <div className="flex justify-end p-2">
-                                    <DotExpandButton
+                                    <NeubrutalismButton
                                         text="Start New Chat"
                                         onClick={handleNewChat}
                                     />
