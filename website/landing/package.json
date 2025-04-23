@@ -30,7 +30,6 @@
     "lucide-react": "^0.488.0",
     "nanoid": "^5.1.5",
     "next": "15.3.0",
-    "next-auth": "^4.24.11",
     "next-mdx-remote": "^5.0.0",
     "openai": "^4.95.0",
     "prettier": "^3.2.5",
