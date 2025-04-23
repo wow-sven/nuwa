@@ -7,6 +7,7 @@ import 'katex/dist/katex.min.css';
 import React from 'react';
 import Image from 'next/image';
 import { UIMessage } from 'ai';
+import { TiltImageCard } from './TiltImageCard';
 
 // 类型定义
 type MessageRole = 'user' | 'assistant' | 'system';
@@ -106,32 +107,26 @@ const markdownComponents = {
 
         if (!src) {
             return (
-                <div className="text-red-500 text-sm my-4">
+                <span className="block text-red-500 text-sm my-4">
                     Invalid image source
-                </div>
+                </span>
             );
         }
 
         return (
-            <div className="relative my-4 w-full">
+            <span className="block my-4 w-full">
                 {isError ? (
-                    <div className="text-red-500 text-sm">
+                    <span className="block text-red-500 text-sm">
                         Failed to load image: {alt}
-                    </div>
+                    </span>
                 ) : (
-                    <div className="relative w-full aspect-video">
-                        <Image
-                            src={src}
-                            alt={alt || ''}
-                            fill
-                            className="object-contain rounded-lg"
-                            onError={() => setIsError(true)}
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            priority={false}
-                        />
-                    </div>
+                    <TiltImageCard
+                        src={src}
+                        alt={alt || ''}
+                        onError={() => setIsError(true)}
+                    />
                 )}
-            </div>
+            </span>
         );
     },
 };
