@@ -2,13 +2,20 @@
 
 import { useChat } from '@ai-sdk/react';
 import { useScrollToBottom } from './useScrollToBottom';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from 'next-auth/react';
 import { Missions } from './Missions';
 import { MessageContainer } from './MessageContainer';
 import { InputContainer } from './InputContainer';
 import NeubrutalismButton from '@/app/components/shared/NeubrutalismButton';
+
+// Define classification state interface
+interface ClassificationState {
+    missionId: string;
+    confidence: number;
+    reasoning: string;
+}
 
 export function Chat() {
     const { data: session } = useSession();
@@ -17,24 +24,76 @@ export function Chat() {
         twitterHandle: session?.user?.twitterHandle || "visitor"
     };
 
-    // 保存最后一条用户消息，用于重试
+    // Save the last user message for retry
     const lastUserMessageRef = useRef<string>('');
+
+    // Add mission classification state
+    const [classification, setClassification] = useState<ClassificationState | null>(null);
+    const [isClassifying, setIsClassifying] = useState(false);
 
     const { messages, input, handleInputChange, handleSubmit, status, append, setMessages } = useChat({
         body: {
-            userInfo: userInfo
+            userInfo: userInfo,
+            classifiedMissionId: classification?.missionId
         }
     });
+
     const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
     const [showGridCards, setShowGridCards] = useState(false);
 
+    // Classify user messages when new messages are added
+    useEffect(() => {
+        const classifyUserMessage = async (message: string) => {
+            if (!message || isClassifying || classification) return;
+
+            setIsClassifying(true);
+
+            try {
+                // Build query parameters
+                const params = new URLSearchParams({
+                    message,
+                    userName: userInfo.name,
+                    twitterHandle: userInfo.twitterHandle
+                });
+
+                // Call classification API
+                const response = await fetch(`/api/chat?${params.toString()}`);
+
+                if (!response.ok) {
+                    throw new Error('Classification request failed');
+                }
+
+                const result = await response.json();
+
+                // Only set classification when confidence exceeds threshold
+                if (result.confidence > 0.5) {
+                    setClassification({
+                        missionId: result.missionId,
+                        confidence: result.confidence,
+                        reasoning: result.reasoning
+                    });
+                }
+            } catch (error) {
+                // Silent error handling
+            } finally {
+                setIsClassifying(false);
+            }
+        };
+
+        // Classify when there are new user messages
+        const lastUserMessage = messages
+            .filter(msg => msg.role === 'user')
+            .pop()?.content;
+
+        if (lastUserMessage && !classification && !isClassifying && messages.length > 0) {
+            classifyUserMessage(lastUserMessage);
+        }
+    }, [messages, classification, isClassifying, userInfo]);
+
     const handleSelectSuggestion = (suggestion: string) => {
-        console.log("handleSelectSuggestion called with:", suggestion);
         if (status === 'streaming') {
-            console.log("Ignoring suggestion because status is streaming");
             return;
         }
-        console.log("Appending suggestion to chat");
         lastUserMessageRef.current = suggestion;
         append({ role: 'user', content: suggestion });
     };
@@ -54,11 +113,12 @@ export function Chat() {
     const handleNewChat = () => {
         if (status === 'streaming') return;
         setMessages([]);
+        setClassification(null);
         handleInputChangeWrapper('');
         lastUserMessageRef.current = '';
     };
 
-    // 处理表单提交，保存最后一条用户消息
+    // Handle form submission, save the last user message
     const handleSubmitWrapper = (e: React.FormEvent<HTMLFormElement>) => {
         if (input.trim()) {
             lastUserMessageRef.current = input;
@@ -66,14 +126,14 @@ export function Chat() {
         handleSubmit(e);
     };
 
-    // 重试功能
+    // Retry functionality
     const handleRetry = () => {
         if (lastUserMessageRef.current) {
-            // 移除最后一条消息（通常是错误消息）
+            // Remove the last message (usually an error message)
             if (messages.length > 0) {
                 setMessages(messages.slice(0, -1));
             }
-            // 重新发送最后一条用户消息
+            // Resend the last user message
             append({ role: 'user', content: lastUserMessageRef.current });
         }
     };
@@ -98,7 +158,14 @@ export function Chat() {
                     >
                         <div className="flex flex-col h-full">
                             {messages.length > 0 && status !== 'streaming' && (
-                                <div className="flex justify-end p-2">
+                                <div className="flex justify-between p-2">
+                                    <div>
+                                        {classification && (
+                                            <div className="text-xs text-gray-500">
+                                                Current Mission Id: {classification.missionId}
+                                            </div>
+                                        )}
+                                    </div>
                                     <NeubrutalismButton
                                         text="Start New Chat"
                                         onClick={handleNewChat}

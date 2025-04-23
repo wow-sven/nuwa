@@ -2,37 +2,67 @@ import { openai } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { tools } from './tools';
 import { classifyUserMission, getMissionSystemPrompt, getDefaultSystemPrompt } from './mission-router';
+import { NextResponse } from 'next/server';
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
+// Add a new interface for message classification
+export async function GET(req: Request) {
+    // Get message content from request URL
+    const url = new URL(req.url);
+    const message = url.searchParams.get('message');
+    const userName = url.searchParams.get('userName') || 'visitor';
+    const twitterHandle = url.searchParams.get('twitterHandle') || 'visitor';
+
+    const userInfo = {
+        name: userName,
+        twitterHandle: twitterHandle
+    };
+
+    if (!message) {
+        return NextResponse.json({ error: 'Message content is required' }, { status: 400 });
+    }
+
+    // Classify the message
+    const classification = await classifyUserMission(message, userInfo);
+
+    // Return classification result
+    return NextResponse.json({
+        missionId: classification.missionId,
+        confidence: classification.confidence,
+        reasoning: classification.reasoning
+    });
+}
+
 export async function POST(req: Request) {
-    const { messages, userInfo } = await req.json();
+    const { messages, userInfo, classifiedMissionId } = await req.json();
 
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is not set');
     }
 
-    // 获取用户最后一条消息
+    // Get the last user message
     const lastUserMessage = messages
         .filter((msg: any) => msg.role === 'user')
         .pop()?.content || '';
 
-    // 使用路由功能确定用户想要执行的任务
-    const classification = await classifyUserMission(lastUserMessage, userInfo || {});
-
-    // 根据分类结果选择系统提示
     let systemPrompt;
 
-    if (classification.confidence > 0.5) {
-        // 如果置信度高，使用任务特定的系统提示
-        systemPrompt = await getMissionSystemPrompt(classification.missionId, userInfo || {});
-        console.log(`Selected mission: ${classification.missionId} with confidence: ${classification.confidence}`);
-        console.log(`Reasoning: ${classification.reasoning}`);
+    if (classifiedMissionId) {
+        // If already classified, use the specific system prompt
+        systemPrompt = await getMissionSystemPrompt(classifiedMissionId, userInfo || {});
     } else {
-        // 如果置信度低，使用默认系统提示
-        systemPrompt = await getDefaultSystemPrompt(userInfo || {});
-        console.log('Using default system prompt due to low confidence');
+        // Use routing to determine the user's task
+        const classification = await classifyUserMission(lastUserMessage, userInfo || {});
+
+        if (classification.confidence > 0.5) {
+            // If confidence is high, use task-specific system prompt
+            systemPrompt = await getMissionSystemPrompt(classification.missionId, userInfo || {});
+        } else {
+            // If confidence is low, use default system prompt
+            systemPrompt = await getDefaultSystemPrompt(userInfo || {});
+        }
     }
 
     const result = await streamText({
@@ -42,9 +72,7 @@ export async function POST(req: Request) {
         system: systemPrompt,
         maxSteps: 5,
         toolChoice: 'auto',
-        onError({ error }) {
-            console.error('Stream error:', error);
-        }
+        onError() { }
     });
 
     return result.toDataStreamResponse();
