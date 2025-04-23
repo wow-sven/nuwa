@@ -50,6 +50,7 @@ function optimizeTweetsData(tweets: any[], pinTweet?: any) {
     if (!tweets) return [];
 
     const optimizedTweets = tweets.map((tweet: {
+        id: string;
         author: { userName: string };
         text: string;
         retweetCount: number;
@@ -58,6 +59,7 @@ function optimizeTweetsData(tweets: any[], pinTweet?: any) {
         quoteCount: number;
         viewCount: number;
     }) => ({
+        id: tweet.id,
         author: tweet.author.userName,
         text: tweet.text,
         retweetCount: tweet.retweetCount,
@@ -70,6 +72,7 @@ function optimizeTweetsData(tweets: any[], pinTweet?: any) {
     // 处理可能存在的 pin_tweet 对象
     if (pinTweet) {
         const pinTweetObj = {
+            id: pinTweet.id,
             author: pinTweet.author.userName,
             text: pinTweet.text,
             retweetCount: pinTweet.retweetCount,
@@ -530,6 +533,30 @@ export const tools = {
                 return {
                     error: `Error checking if user follows NuwaDev: ${error instanceof Error ? error.message : String(error)}`,
                     followsNuwaDev: false
+                };
+            }
+        },
+    }),
+
+    // 17. 发送推文内容到Twitter卡片
+    sendPostToTwitterCard: tool({
+        description: 'Create a Twitter card preview with content and optional image URL',
+        parameters: z.object({
+            content: z.string().describe('The content of the tweet to be displayed'),
+            imageUrl: z.string().optional().describe('URL of an image to include in the tweet (optional)'),
+        }),
+        execute: async ({ content, imageUrl }) => {
+            try {
+                // 这里只返回数据，实际的Twitter发布逻辑将在UI组件中处理
+                return {
+                    success: true,
+                    content,
+                    imageUrl
+                };
+            } catch (error) {
+                return {
+                    success: false,
+                    error: `Error creating Twitter card: ${error instanceof Error ? error.message : String(error)}`
                 };
             }
         },

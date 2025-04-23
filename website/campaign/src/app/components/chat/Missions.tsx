@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { FiX } from 'react-icons/fi';
 import { GridCards } from '../cards/GridCards';
-import DotExpandButton from './DotExpandButton';
+import NeubrutalismButton from '@/app/components/shared/NeubrutalismButton';
 import { SuggestedMissions } from './SuggestedMissions';
 
 interface MissionsProps {
@@ -70,7 +70,7 @@ export function Missions({
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                 >
-                    <DotExpandButton
+                    <NeubrutalismButton
                         text="More Missions"
                         onClick={onShowGridCards}
                     />

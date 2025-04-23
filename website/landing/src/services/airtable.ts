@@ -2,8 +2,8 @@ import Airtable from 'airtable';
 
 // 初始化Airtable客户端
 const base = new Airtable({
-    apiKey: process.env.NEXT_PUBLIC_AIRTABLE_API_KEY
-}).base(process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID || '');
+    apiKey: process.env.AIRTABLE_API_KEY
+}).base(process.env.AIRTABLE_BASE_ID || '');
 
 // 定义表单数据的接口
 export interface FormData {
@@ -13,15 +13,6 @@ export interface FormData {
     description?: string;
 }
 
-// 定义排行榜用户数据的接口
-export interface LeaderboardUser {
-    id: string;
-    name: string;
-    handle: string;
-    avatar: string;
-    points: number;
-    rank?: number;
-}
 
 // 提交表单数据到Airtable
 export const submitFormToAirtable = async (formData: FormData): Promise<boolean> => {
@@ -47,30 +38,3 @@ export const submitFormToAirtable = async (formData: FormData): Promise<boolean>
         return false;
     }
 };
-
-// 获取排行榜数据
-export const getLeaderboardData = async (): Promise<LeaderboardUser[]> => {
-    try {
-        const table = base('Campaign Points');
-
-        // 获取所有记录，按Points字段降序排序
-        const records = await table.select({
-            sort: [{ field: 'Points', direction: 'desc' }]
-        }).all();
-
-        // 转换记录为LeaderboardUser格式
-        const users: LeaderboardUser[] = records.map((record, index) => ({
-            id: record.id,
-            name: record.get('Name') as string,
-            handle: record.get('Handle') as string,
-            avatar: record.get('Avatar') as string,
-            points: record.get('Points') as number,
-            rank: index + 1
-        }));
-
-        return users;
-    } catch (error) {
-        console.error('Error fetching leaderboard data from Airtable:', error);
-        return [];
-    }
-}; 

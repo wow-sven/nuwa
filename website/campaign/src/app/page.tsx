@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { GridHoverHero } from "@/app/components/hero/GridHoverHero";
 import { Chat } from "@/app/components/chat/Chat";
 import { motion } from "framer-motion";
+import { BarLoader } from "@/app/components/shared/BarLoader";
 
 // 定义淡入动画变体
 const fadeInUp = {
@@ -31,7 +32,12 @@ export default function Home() {
   }, [status, router]);
 
   if (status === "loading") {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>;
+    return (
+      <div className="flex flex-col justify-center items-center h-screen">
+        <BarLoader />
+        <p className="mt-4 text-gray-500">Loading...</p>
+      </div>
+    );
   }
 
   if (!session) {

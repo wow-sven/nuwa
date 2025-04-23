@@ -4,7 +4,6 @@ import {
     getUserPoints,
     getUserRewardHistory,
     getMissions,
-    updateReward,
     checkUserRewardHistory
 } from '@/app/services/airtable';
 
@@ -55,25 +54,3 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
     }
 }
-
-export async function POST(request: NextRequest) {
-    try {
-        const body = await request.json();
-        const { action } = body;
-
-        if (action === 'updateReward') {
-            const { userName, points, mission } = body;
-            if (!userName || points === undefined || !mission) {
-                return NextResponse.json({ success: false, error: 'Missing parameters' }, { status: 400 });
-            }
-            const result = await updateReward({ userName, points, mission });
-            return NextResponse.json(result);
-        }
-        else {
-            return NextResponse.json({ success: false, error: 'Invalid action' }, { status: 400 });
-        }
-    } catch (error) {
-        console.error('API error:', error);
-        return NextResponse.json({ success: false, error: 'Server error' }, { status: 500 });
-    }
-} 

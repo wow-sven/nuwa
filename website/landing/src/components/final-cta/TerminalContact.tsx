@@ -1,7 +1,13 @@
 import { motion } from "framer-motion";
 import { FiCheckCircle } from "react-icons/fi";
 import { Fragment, useEffect, useRef, useState } from "react";
-import { submitFormToAirtable, FormData } from "../../services/airtable";
+
+interface FormData {
+    email: string;
+    agentname: string;
+    product?: string;
+    description?: string;
+}
 
 interface Question {
     key: string;
@@ -192,12 +198,20 @@ const Summary: React.FC<SummaryProps> = ({ questions, setQuestions }) => {
         };
 
         try {
-            const success = await submitFormToAirtable(formData);
+            const response = await fetch('/api/submit-form', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
 
-            if (success) {
+            const data = await response.json();
+
+            if (data.success) {
                 setComplete(true);
             } else {
-                setError("Submit failed, please try again later");
+                setError(data.message || "Submit failed, please try again later");
             }
         } catch (err) {
             console.error("Submit form error:", err);
