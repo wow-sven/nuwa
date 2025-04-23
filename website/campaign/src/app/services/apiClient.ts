@@ -83,7 +83,7 @@ export const updateUserReward = async (rewardData: RewardData): Promise<{ succes
                 action: 'updateReward',
                 userName: rewardData.userName,
                 points: rewardData.points,
-                mission: rewardData.mission,
+                missionId: rewardData.missionId,
                 missionDetails: rewardData.missionDetails || ''
             }),
         });
