@@ -15,6 +15,7 @@ async function checkUserExists(handle: string): Promise<boolean> {
             filterByFormula: `{Handle} = '${handle}'`,
             maxRecords: 1
         }).all();
+        console.log(`Found ${records.length} records for handle: ${handle}`);
         return records.length > 0;
     } catch (error) {
         console.error('Error checking user existence:', error);
@@ -79,7 +80,6 @@ async function updateUserInfo(handle: string, name: string, avatar: string): Pro
             await records[0].updateFields({
                 Name: name,
                 Avatar: avatar,
-                LastUpdated: new Date().toISOString()
             });
             console.log(`Successfully updated user info for ${handle}`);
             return true;
