@@ -4,8 +4,8 @@ import Airtable from 'airtable';
 
 // 初始化Airtable客户端
 const base = new Airtable({
-    apiKey: process.env.NEXT_PUBLIC_AIRTABLE_API_KEY
-}).base(process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID || '');
+    apiKey: process.env.AIRTABLE_API_KEY
+}).base(process.env.AIRTABLE_BASE_ID || '');
 
 // 检查用户是否已存在于Airtable中
 async function checkUserExists(handle: string): Promise<boolean> {
