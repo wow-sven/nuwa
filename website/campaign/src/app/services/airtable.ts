@@ -34,6 +34,34 @@ export interface Mission {
     order?: number;
 }
 
+// Get all missions data
+export const getMissions = async (): Promise<Mission[]> => {
+    try {
+        const table = base('Missions');
+
+        // Get all records with sorting by order field
+        const records = await table.select({
+            sort: [{ field: 'order', direction: 'asc' }]
+        }).all();
+
+        // Convert records to Mission format
+        const missions: Mission[] = records.map((record) => ({
+            id: record.get('id') as string,
+            title: record.get('title') as string,
+            description: record.get('description') as string,
+            suggestionText: record.get('suggestionText') as string,
+            suggested: record.get('suggested') as boolean || false,
+            prompt: record.get('Prompt') as string || '',
+            order: record.get('order') as number || 0,
+        }));
+
+        return missions;
+    } catch (error) {
+        console.error('Error fetching missions from Airtable:', error);
+        return [];
+    }
+};
+
 // Get leaderboard data
 export const getLeaderboardData = async (): Promise<LeaderboardUser[]> => {
     try {
@@ -134,40 +162,10 @@ export const checkUserRewardHistory = async (userName: string, mission: string):
     }
 };
 
-// Get all missions data
-export const getMissions = async (): Promise<Mission[]> => {
-    try {
-        const table = base('Missions');
-
-        // Get all records with sorting by order field
-        const records = await table.select({
-            sort: [{ field: 'order', direction: 'asc' }]
-        }).all();
-
-        // Convert records to Mission format
-        const missions: Mission[] = records.map((record) => ({
-            id: record.get('id') as string,
-            title: record.get('title') as string,
-            description: record.get('description') as string,
-            suggestionText: record.get('suggestionText') as string,
-            suggested: record.get('suggested') as boolean || false,
-            prompt: record.get('Prompt') as string || '',
-            order: record.get('order') as number || 0,
-        }));
-
-        return missions;
-    } catch (error) {
-        console.error('Error fetching missions from Airtable:', error);
-        return [];
-    }
-};
-
 // Get user's current points
 export const getUserPoints = async (userName: string): Promise<{ points: number; success: boolean; error?: string }> => {
     try {
         const table = base('Campaign Points');
-
-
 
         // Find user record
         const records = await table.select({

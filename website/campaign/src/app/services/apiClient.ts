@@ -1,9 +1,10 @@
 import { LeaderboardUser, RewardData, Mission } from './airtable';
+import { createClient } from './supabase';
 
 // 获取排行榜数据
 export const fetchLeaderboard = async (): Promise<LeaderboardUser[]> => {
     try {
-        const response = await fetch(`/api/airtable?action=getLeaderboard`);
+        const response = await fetch(`/api/supabase?action=getLeaderboard`);
         const data = await response.json();
 
         if (!data.success) {
@@ -21,7 +22,7 @@ export const fetchLeaderboard = async (): Promise<LeaderboardUser[]> => {
 // 获取用户积分
 export const fetchUserPoints = async (userName: string): Promise<{ points: number; success: boolean; error?: string }> => {
     try {
-        const response = await fetch(`/api/airtable?action=getUserPoints&userName=${encodeURIComponent(userName)}`);
+        const response = await fetch(`/api/supabase?action=getUserPoints&userName=${encodeURIComponent(userName)}`);
         return await response.json();
     } catch (error) {
         console.error('Failed to fetch user points:', error);
@@ -38,7 +39,7 @@ export const fetchUserRewardHistory = async (userName: string): Promise<{
     missionDetails: string;
 }[]> => {
     try {
-        const response = await fetch(`/api/airtable?action=getUserRewardHistory&userName=${encodeURIComponent(userName)}`);
+        const response = await fetch(`/api/supabase?action=getUserRewardHistory&userName=${encodeURIComponent(userName)}`);
         const data = await response.json();
 
         if (!data.success) {
@@ -53,7 +54,7 @@ export const fetchUserRewardHistory = async (userName: string): Promise<{
     }
 };
 
-// 获取所有任务数据
+// 获取所有任务数据 - 仍然使用 Airtable
 export const fetchMissions = async (): Promise<Mission[]> => {
     try {
         const response = await fetch(`/api/airtable?action=getMissions`);
@@ -74,7 +75,7 @@ export const fetchMissions = async (): Promise<Mission[]> => {
 // 更新奖励
 export const updateUserReward = async (rewardData: RewardData): Promise<{ success: boolean; error?: string }> => {
     try {
-        const response = await fetch('/api/airtable', {
+        const response = await fetch('/api/supabase', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -101,7 +102,7 @@ export const checkUserMissionReward = async (userName: string, mission: string):
     missionDetails?: string;
 }> => {
     try {
-        const response = await fetch(`/api/airtable?action=checkUserRewardHistory&userName=${encodeURIComponent(userName)}&mission=${encodeURIComponent(mission)}`);
+        const response = await fetch(`/api/supabase?action=checkUserRewardHistory&userName=${encodeURIComponent(userName)}&mission=${encodeURIComponent(mission)}`);
         const data = await response.json();
 
         if (!data.success) {

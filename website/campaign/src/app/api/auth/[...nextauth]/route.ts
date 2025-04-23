@@ -1,22 +1,24 @@
 import NextAuth from "next-auth";
 import TwitterProvider from "next-auth/providers/twitter";
-import Airtable from 'airtable';
+import { createServiceClient } from "@/app/services/supabase";
 
-// 初始化Airtable客户端
-const base = new Airtable({
-    apiKey: process.env.AIRTABLE_API_KEY
-}).base(process.env.AIRTABLE_BASE_ID || '');
-
-// 检查用户是否已存在于Airtable中
+// 检查用户是否已存在于Supabase中
 async function checkUserExists(handle: string): Promise<boolean> {
     try {
-        const table = base('Campaign Points');
-        const records = await table.select({
-            filterByFormula: `{Handle} = '${handle}'`,
-            maxRecords: 1
-        }).all();
-        console.log(`Found ${records.length} records for handle: ${handle}`);
-        return records.length > 0;
+        const supabase = await createServiceClient();
+        const { data, error } = await supabase
+            .from('campaign_points')
+            .select('id')
+            .eq('handle', handle)
+            .limit(1);
+
+        if (error) {
+            console.error('Error checking user existence:', error);
+            return false;
+        }
+
+        console.log(`Found ${data.length} records for handle: ${handle}`);
+        return data.length > 0;
     } catch (error) {
         console.error('Error checking user existence:', error);
         return false;
@@ -26,18 +28,22 @@ async function checkUserExists(handle: string): Promise<boolean> {
 // 创建新用户记录
 async function createUserRecord(handle: string, name: string, avatar: string): Promise<boolean> {
     try {
-        const table = base('Campaign Points');
-        await table.create([
-            {
-                fields: {
-                    Handle: handle,
-                    Name: name,
-                    Avatar: avatar,
-                    Points: 0,
-                    LastUpdated: new Date().toISOString()
-                }
-            }
-        ]);
+        const supabase = await createServiceClient();
+        const { error } = await supabase
+            .from('campaign_points')
+            .insert({
+                handle: handle,
+                name: name,
+                avatar: avatar,
+                points: 0,
+                updated_at: new Date().toISOString()
+            });
+
+        if (error) {
+            console.error('Error creating user record:', error);
+            return false;
+        }
+
         console.log(`Successfully created user record for ${handle}`);
         return true;
     } catch (error) {
@@ -70,21 +76,23 @@ async function ensureUserRecord(handle: string, name: string, avatar: string): P
 // 更新用户信息
 async function updateUserInfo(handle: string, name: string, avatar: string): Promise<boolean> {
     try {
-        const table = base('Campaign Points');
-        const records = await table.select({
-            filterByFormula: `{Handle} = '${handle}'`,
-            maxRecords: 1
-        }).all();
+        const supabase = await createServiceClient();
+        const { error } = await supabase
+            .from('campaign_points')
+            .update({
+                name: name,
+                avatar: avatar,
+                updated_at: new Date().toISOString()
+            })
+            .eq('handle', handle);
 
-        if (records.length > 0) {
-            await records[0].updateFields({
-                Name: name,
-                Avatar: avatar,
-            });
-            console.log(`Successfully updated user info for ${handle}`);
-            return true;
+        if (error) {
+            console.error('Error updating user info:', error);
+            return false;
         }
-        return false;
+
+        console.log(`Successfully updated user info for ${handle}`);
+        return true;
     } catch (error) {
         console.error('Error updating user info:', error);
         return false;
