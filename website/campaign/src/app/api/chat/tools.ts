@@ -45,6 +45,46 @@ async function callTwitterApi(endpoint: string, params: Record<string, string> =
     }
 }
 
+// 优化推文数据的工具函数
+function optimizeTweetsData(tweets: any[], pinTweet?: any) {
+    if (!tweets) return [];
+
+    const optimizedTweets = tweets.map((tweet: {
+        author: { userName: string };
+        text: string;
+        retweetCount: number;
+        replyCount: number;
+        likeCount: number;
+        quoteCount: number;
+        viewCount: number;
+    }) => ({
+        author: tweet.author.userName,
+        text: tweet.text,
+        retweetCount: tweet.retweetCount,
+        replyCount: tweet.replyCount,
+        likeCount: tweet.likeCount,
+        quoteCount: tweet.quoteCount,
+        viewCount: tweet.viewCount
+    }));
+
+    // 处理可能存在的 pin_tweet 对象
+    if (pinTweet) {
+        const pinTweetObj = {
+            author: pinTweet.author.userName,
+            text: pinTweet.text,
+            retweetCount: pinTweet.retweetCount,
+            replyCount: pinTweet.replyCount,
+            likeCount: pinTweet.likeCount,
+            quoteCount: pinTweet.quoteCount,
+            viewCount: pinTweet.viewCount,
+            isPinned: true // 添加标记表示这是置顶推文
+        };
+        optimizedTweets.unshift(pinTweetObj); // 将置顶推文添加到数组开头
+    }
+
+    return optimizedTweets;
+}
+
 export const tools = {
 
     // 1. 批量获取用户信息
@@ -89,37 +129,9 @@ export const tools = {
                 return response.msg;
             }
 
-            // 提取指定字段，减少令牌使用
+            // 使用优化推文数据的工具函数
             if (data.tweets) {
-                const optimizedTweets = data.tweets.map((tweet: {
-                    text: string;
-                    retweetCount: number;
-                    replyCount: number;
-                    likeCount: number;
-                    quoteCount: number;
-                    viewCount: number;
-                }) => ({
-                    text: tweet.text,
-                    retweetCount: tweet.retweetCount,
-                    replyCount: tweet.replyCount,
-                    likeCount: tweet.likeCount,
-                    quoteCount: tweet.quoteCount,
-                    viewCount: tweet.viewCount
-                }));
-
-                // 处理可能存在的 pin_tweet 对象
-                if (data.pin_tweet) {
-                    const pinTweet = {
-                        text: data.pin_tweet.text,
-                        retweetCount: data.pin_tweet.retweetCount,
-                        replyCount: data.pin_tweet.replyCount,
-                        likeCount: data.pin_tweet.likeCount,
-                        quoteCount: data.pin_tweet.quoteCount,
-                        viewCount: data.pin_tweet.viewCount,
-                        isPinned: true // 添加标记表示这是置顶推文
-                    };
-                    optimizedTweets.unshift(pinTweet); // 将置顶推文添加到数组开头
-                }
+                const optimizedTweets = optimizeTweetsData(data.tweets, data.pin_tweet);
 
                 return {
                     tweets: optimizedTweets,
@@ -197,9 +209,32 @@ export const tools = {
         description: 'Get tweets by their IDs',
         parameters: z.object({
             tweet_ids: z.string().describe('Comma-separated list of tweet IDs'),
+            current_user: z.string().describe('The username of the current user to check tweet ownership'),
         }),
-        execute: async ({ tweet_ids }) => {
-            return callTwitterApi('tweets', { tweet_ids });
+        execute: async ({ tweet_ids, current_user }) => {
+            const response = await callTwitterApi('tweets', { tweet_ids });
+
+            // 检查API调用是否返回错误
+            if (response.error) {
+                return response;
+            }
+
+            const optimizedTweets = optimizeTweetsData(response.tweets);
+
+            // 只检查第一条推文的作者是否为当前用户
+            if (optimizedTweets && optimizedTweets.length > 0) {
+                const firstTweet = optimizedTweets[0];
+
+                if (firstTweet.author.toLowerCase() !== current_user.toLowerCase()) {
+                    return {
+                        error: 'Author does not match',
+                        message: `The tweet is not authored by ${current_user}.`,
+                        tweet: firstTweet
+                    };
+                }
+            }
+
+            return optimizedTweets[0];
         },
     }),
 
