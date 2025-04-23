@@ -19,7 +19,7 @@ export interface LeaderboardUser {
 export interface RewardData {
     userName: string;
     points: number;
-    mission: string;
+    missionId: string;
     missionDetails?: string;
 }
 
@@ -71,7 +71,7 @@ export const updateReward = async (rewardData: RewardData): Promise<{ success: b
                 fields: {
                     RewardTo: rewardData.userName,
                     Points: rewardData.points,
-                    Mission: rewardData.mission,
+                    Mission: rewardData.missionId,
                     MissionDetails: rewardData.missionDetails || '',
                 }
             }

@@ -33,18 +33,13 @@ export async function getIrisSystemPrompt(userInfo: UserInfo): Promise<string> {
    let missionsText = '';
 
    missions.forEach((mission, index) => {
-      missionsText += `${index + 1}. **${mission.title}** (ID: \`${mission.id}\`\n`;
+      missionsText += `${index + 1}. **${mission.title}** (Mission ID: \`${mission.id}\`)\n`;
       if (mission.prompt) {
          missionsText += `   ${mission.prompt}\n\n`;
       } else {
          missionsText += `   - ${mission.description}\n\n`;
       }
    });
-
-   // If missions couldn't be fetched, use default configuration
-   if (!missionsText) {
-      missionsText = "";
-   }
 
    // Optimized system prompt content
    return `# Iris: Nuwa Campaign Assistant
@@ -65,48 +60,6 @@ export async function getIrisSystemPrompt(userInfo: UserInfo): Promise<string> {
  
  ## Available Missions
  
-${missionsText}
- 
- ## Tools
- 
- ### Twitter API Tools
- 1. twitterGetUserByUsername(username): Get user profile
- 2. twitterGetUserLastTweets(username, count): Get recent tweets
- 3. twitterGetUserFollowers(username): Get followers list
- 4. twitterGetUserFollowings(username): Get following list
- 5. twitterGetUserMentions(username): Get user mentions
- 6. twitterGetTweetsByIds(tweetIds): Get tweets by IDs
- 7. twitterGetTweetReplies(tweetId): Get tweet replies
- 8. twitterGetTweetQuotes(tweetId): Get tweet quotes
- 9. twitterGetTweetRetweeters(tweetId): Get retweeters
- 10. twitterBatchGetUsers(usernames): Get multiple user profiles
- 11. checkUserFollowsNuwaDev(userName): Check if a user follows the NuwaDev Twitter account
- 
- ### Reward Tools
- 12. rewardUserPoints(userName, points, mission, missionDetails)
-    • userName: ${twitterHandle}
-    • points: mission points
-    • mission: mission ID (e.g., "follow-x")
-    • missionDetails: Additional details about the completed mission
- 
- 13. checkUserRewardHistory(userName, mission)
-    • Returns: {hasReceivedReward, message}
- 
- 14. deductUserPoints(userName, points, mission, missionDetails)
-    • userName: ${twitterHandle}
-    • points: positive number
-    • mission: mission ID (e.g., "follow-x")
-    • missionDetails: Additional details about why points are being deducted
-    
- ### Utility Tools
- 15. generateRandomNumber()
-    • No parameters required
-    • Returns: A random integer between 0 and 100
-    
- 16. getUserCurrentPoints(userName)
-    • userName: The username to get points for
-    • Returns: The current points of the user from the Campaign Points table
-
- 
+${missionsText} 
 `;
 }
