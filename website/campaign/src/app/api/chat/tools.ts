@@ -50,6 +50,7 @@ function optimizeTweetsData(tweets: any[], pinTweet?: any) {
     if (!tweets) return [];
 
     const optimizedTweets = tweets.map((tweet: {
+        id: string;
         author: { userName: string };
         text: string;
         retweetCount: number;
@@ -58,6 +59,7 @@ function optimizeTweetsData(tweets: any[], pinTweet?: any) {
         quoteCount: number;
         viewCount: number;
     }) => ({
+        id: tweet.id,
         author: tweet.author.userName,
         text: tweet.text,
         retweetCount: tweet.retweetCount,
@@ -70,6 +72,7 @@ function optimizeTweetsData(tweets: any[], pinTweet?: any) {
     // 处理可能存在的 pin_tweet 对象
     if (pinTweet) {
         const pinTweetObj = {
+            id: pinTweet.id,
             author: pinTweet.author.userName,
             text: pinTweet.text,
             retweetCount: pinTweet.retweetCount,
