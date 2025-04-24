@@ -33,14 +33,21 @@ function SuccessContent() {
 
             sendMessage();
         }
-
-        // Close window after 5 seconds
-        const timer = setTimeout(() => {
-            window.close();
-        }, 5000);
-
-        return () => clearTimeout(timer);
     }, [telegramId, twitterHandle]);
+
+    const handleBackToTelegram = () => {
+        const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || 'your_bot_username';
+        // 使用 deeplink 格式
+        const deeplinkUrl = `tg://resolve?domain=${botUsername}`;
+
+        // 尝试打开 Telegram 应用
+        window.location.href = deeplinkUrl;
+
+        // 如果 deeplink 失败，回退到普通链接
+        setTimeout(() => {
+            window.location.href = `https://t.me/${botUsername}`;
+        }, 5000);
+    };
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
@@ -78,6 +85,13 @@ function SuccessContent() {
                     <span className="font-bold">Please return to Telegram to continue.</span>
 
                 </p>
+
+                <button
+                    onClick={handleBackToTelegram}
+                    className="inline-block px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors mb-4"
+                >
+                    Back to Telegram
+                </button>
 
                 <div className="text-xs text-gray-500">
                     Telegram ID: {telegramId}
