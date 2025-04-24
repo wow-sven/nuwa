@@ -41,7 +41,7 @@ export function generateTwitterAuthUrl(telegramId: string) {
     const encodedState = `${telegramId}.${verifier}.${uuidv4()}`;
 
     const twitterAuthUrl = new URL('https://twitter.com/i/oauth2/authorize');
-    const redirectUri = `https://${process.env.NEXTAUTH_URL}/api/auth/tg-x-binding-callback`;
+    const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/tg-x-binding-callback`;
 
     twitterAuthUrl.searchParams.append('client_id', process.env.TWITTER_CLIENT_ID || '');
     twitterAuthUrl.searchParams.append('scope', 'users.read tweet.read offline.access');
