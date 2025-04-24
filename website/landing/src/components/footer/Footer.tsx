@@ -73,7 +73,7 @@ const GenericColumn = ({
         <Link
           key={l.title}
           href={l.href}
-          target="_blank"
+          {...(title === "Socials" ? { target: "_blank" } : {})}
           className="flex items-center gap-1.5 transition-colors hover:text-indigo-600 hover:underline"
         >
           {l.Icon && <l.Icon />}
