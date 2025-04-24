@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 const errorMessages: { [key: string]: string } = {
@@ -14,7 +14,7 @@ const errorMessages: { [key: string]: string } = {
     config_error: 'system configuration error, please contact the administrator',
 };
 
-export default function AuthErrorPage() {
+function ErrorContent() {
     const searchParams = useSearchParams();
     const errorCode = searchParams.get('error') || 'server_error';
     const telegramId = searchParams.get('telegram_id');
@@ -70,5 +70,17 @@ export default function AuthErrorPage() {
                 </p>
             </div>
         </div>
+    );
+}
+
+export default function AuthErrorPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+            </div>
+        }>
+            <ErrorContent />
+        </Suspense>
     );
 } 
