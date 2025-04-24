@@ -26,14 +26,14 @@ export async function GET(req: NextRequest) {
 
         if (!code || !state) {
             console.error('Missing required parameters:', { code, state });
-            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=missing_params', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding/error?error=missing_params', req.url));
         }
 
         // 解析 state 参数，获取 telegram_id 和 verifier
         const parts = state.split('.');
         if (parts.length < 2) {
             console.error('Invalid state parameter:', { state });
-            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=invalid_state', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding/error?error=invalid_state', req.url));
         }
 
         const telegramId = parts[0];
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
         if (!telegramId || !verifier) {
             console.error('Invalid state parameter parts:', { telegramId, verifier });
-            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=invalid_state', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding/error?error=invalid_state', req.url));
         }
 
         // 获取 Twitter 访问令牌
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
                 statusText: tokenResponse.statusText,
                 error: errorText
             });
-            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=token_error', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding/error?error=token_error', req.url));
         }
 
         const tokenData = await tokenResponse.json();
