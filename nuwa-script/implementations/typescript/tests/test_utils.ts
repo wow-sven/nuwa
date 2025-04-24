@@ -1,85 +1,90 @@
 import { Interpreter, OutputHandler, Scope } from '../src/interpreter';
 import { parse } from '../src/parser';
-import { ToolRegistry, ToolSchema, ToolFunction } from '../src/tools';
+// Import Zod for schema definition
+import { z } from 'zod';
+// Remove ToolSchema, ToolFunction, SchemaInput (no longer needed here)
+import {
+    ToolRegistry,
+    // ToolSchema, 
+    // ToolFunction,
+    NormalizedToolSchema,
+    // SchemaInput,
+    EvaluatedToolArguments
+} from '../src/tools';
 import { JsonValue } from '../src/values';
+// Remove JSONSchema types if not directly used elsewhere in this file
+// import { JSONSchema7, JSONSchema7Definition } from 'json-schema';
 
 // --- Mock Tools Setup ---
 
 export interface MockCallLog {
     toolName: string;
-    args: Record<string, JsonValue | undefined>;
+    // Use unknown because args before validation could be anything
+    args: unknown; 
 }
 
-// Simple synchronous tool example
-export const mockGetPrice: ToolFunction = (args, context) => {
-    if (args['token'] === 'BTC') return 65000;
-    if (args['token'] === 'ETH') return 3500;
+// --- Define Tool Schemas using Zod ---
+
+const getPriceParams = z.object({
+    token: z.string().describe('Crypto token symbol')
+});
+const getPriceReturn = z.union([z.number(), z.null()]).describe('Price in USD or null if not found');
+
+const swapParams = z.object({
+    from_token: z.string(),
+    to_token: z.string(),
+    amount: z.number().positive()
+});
+const swapReturn = z.object({
+    success: z.boolean(),
+    from: z.string(),
+    to: z.string(),
+    amount: z.number()
+}).describe('Object indicating swap result');
+
+const errorToolParams = z.object({}); // No params
+const errorToolReturn = z.any().describe('Never returns successfully'); // Can return anything theoretically before error
+
+const getListParams = z.object({});
+const getListReturn = z.array(z.number()).describe('A list of numbers');
+
+const getObjParams = z.object({});
+const getObjReturn = z.object({
+    nested: z.object({ value: z.number() })
+}).describe('An object with nested structure');
+
+
+// --- Define Tool Implementations (using inferred Zod types) ---
+
+const mockGetPrice = (args: z.infer<typeof getPriceParams>): z.infer<typeof getPriceReturn> => {
+    if (args.token === 'BTC') return 65000;
+    if (args.token === 'ETH') return 3500;
     return null;
 };
-export const getPriceSchema: ToolSchema = {
-    name: 'get_price', description: 'Get crypto price',
-    parameters: [{ name: 'token', type: 'string', required: true }],
-    returns: 'number' // Can also return null
-};
 
-// Asynchronous tool example
-export const mockSwap: ToolFunction = async (args, context) => {
-    // Simulate async operation
-    await new Promise(resolve => setTimeout(resolve, 10)); // Small delay
-    // Use non-null assertion assuming test args are always provided
+const mockSwap = async (args: z.infer<typeof swapParams>): Promise<z.infer<typeof swapReturn>> => {
+    await new Promise(resolve => setTimeout(resolve, 10));
     return {
         success: true,
-        from: args['from_token']!,
-        to: args['to_token']!,
-        amount: args['amount']!
-    } as JsonValue; // Assert return type is JsonValue (specifically an object)
-};
-export const swapSchema: ToolSchema = {
-    name: 'swap', description: 'Swap tokens',
-    parameters: [
-        { name: 'from_token', type: 'string', required: true },
-        { name: 'to_token', type: 'string', required: true },
-        { name: 'amount', type: 'number', required: true },
-    ],
-    returns: 'object'
+        from: args.from_token,
+        to: args.to_token,
+        amount: args.amount
+    };
 };
 
-// Tool that intentionally throws an error
-export const mockErrorTool: ToolFunction = (args, context) => {
+const mockErrorTool = (args: z.infer<typeof errorToolParams>): z.infer<typeof errorToolReturn> => {
     throw new Error("Tool failed intentionally");
 };
-export const errorToolSchema: ToolSchema = {
-    name: 'error_tool', description: 'This tool always fails', parameters: [], returns: 'any'
+
+const mockGetList = (args: z.infer<typeof getListParams>): z.infer<typeof getListReturn> => {
+    return [10, 20, 30];
 };
 
-// Mock list returning tool for FOR loops
-export const mockGetList: ToolFunction = (args, context) => {
-    return [10, 20, 30]; // Example list
-};
-export const getListSchema: ToolSchema = {
-    name: 'get_list', description: 'Returns a list', parameters: [], returns: 'array'
-};
-
-// Mock object returning tool for member access tests
-export const mockGetObj: ToolFunction = (args, context) => {
+const mockGetObj = (args: z.infer<typeof getObjParams>): z.infer<typeof getObjReturn> => {
     return { nested: { value: 99 } };
 };
-export const getObjSchema: ToolSchema = {
-    name: 'get_obj', description: 'Returns an object', parameters: [], returns: 'object'
-};
 
-
-// --- Core runScript Helper ---
-// Moved from interpreter.test.ts, now accepts context as arguments
-
-/**
- * Executes a NuwaScript string using a provided context.
- * @param scriptText The NuwaScript code.
- * @param toolRegistry The ToolRegistry instance for this run.
- * @param outputHandler The OutputHandler instance for this run.
- * * @param initialScope Optional initial variable scope as a Record.
- * @returns A Promise resolving to the final variable scope (Map).
- */
+// --- Core runScript Helper (remains the same) ---
 export async function runScript(
     scriptText: string,
     toolRegistry: ToolRegistry,
@@ -90,48 +95,89 @@ export async function runScript(
     return await interpreter.executeScript(scriptText, initialScope);
 }
 
-// --- Setup Helper (Optional but recommended) ---
+// --- Setup Helper (MODIFIED) ---
 
-/**
- * Sets up the common context for interpreter tests.
- * @returns An object containing initialized toolRegistry, mockOutputHandler, capturedOutput array, and callLog array.
- */
 export function setupTestContext(): {
     toolRegistry: ToolRegistry;
     mockOutputHandler: OutputHandler;
     capturedOutput: string[];
-    callLog: MockCallLog[];
+    callLog: MockCallLog[]; // Log remains for checking if tool was attempted
 } {
     const toolRegistry = new ToolRegistry();
     const capturedOutput: string[] = [];
-    const callLog: MockCallLog[] = [];
+    const callLog: MockCallLog[] = []; // Log raw args received by adapter
     const mockOutputHandler: OutputHandler = (output: string) => {
         capturedOutput.push(output);
     };
 
-    // Register common mock tools needed across different test files
-    toolRegistry.register(getPriceSchema.name, getPriceSchema, (args, context) => {
-        callLog.push({ toolName: getPriceSchema.name, args });
-        return mockGetPrice(args, context);
-    });
-    toolRegistry.register(swapSchema.name, swapSchema, async (args, context) => {
-         callLog.push({ toolName: swapSchema.name, args });
-         return await mockSwap(args, context);
-    });
-     toolRegistry.register(errorToolSchema.name, errorToolSchema, (args, context) => {
-         callLog.push({ toolName: errorToolSchema.name, args });
-         return mockErrorTool(args, context); // Will throw
-    });
-    // Register other common tools if needed (e.g., get_list, get_obj)
-    toolRegistry.register(getListSchema.name, getListSchema, (args, context) => {
-        callLog.push({ toolName: getListSchema.name, args });
-        return mockGetList(args, context);
-    });
-    toolRegistry.register(getObjSchema.name, getObjSchema, (args, context) => {
-        callLog.push({ toolName: getObjSchema.name, args });
-        return mockGetObj(args, context);
-    });
+    // Wrapper to log calls before execution (adapter function handles validation)
+    const logWrapper = <P extends z.ZodTypeAny, R extends z.ZodTypeAny>(
+        toolName: string, 
+        func: (args: z.infer<P>) => z.infer<R> | Promise<z.infer<R>> | JsonValue | Promise<JsonValue>
+    ) => {
+        return async (args: z.infer<P>): Promise<any> => { // Input args are already validated by internal adapter
+            // Log the validated args received by the user function
+            callLog.push({ toolName, args }); 
+            return await func(args);
+        }
+    };
 
+    // Register mock tools using the NEW register signature
+    toolRegistry.register({
+        name: 'get_price', 
+        description: 'Get crypto price', 
+        parameters: getPriceParams, 
+        returns: { schema: getPriceReturn },
+        // Define execute inline, args type is inferred!
+        execute: logWrapper('get_price', (args) => { 
+            // No need for: args: z.infer<typeof getPriceParams>
+            if (args.token === 'BTC') return 65000;
+            if (args.token === 'ETH') return 3500;
+            return null;
+        })
+    });
+    toolRegistry.register({
+        name: 'swap', 
+        description: 'Swap tokens', 
+        parameters: swapParams, 
+        returns: { schema: swapReturn },
+        execute: logWrapper('swap', async (args) => { 
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return {
+                success: true,
+                from: args.from_token,
+                to: args.to_token,
+                amount: args.amount
+            };
+        })
+    });
+    toolRegistry.register({
+        name: 'error_tool', 
+        description: 'This tool always fails', 
+        parameters: errorToolParams, 
+        returns: { schema: errorToolReturn },
+        execute: logWrapper('error_tool', (args) => { 
+            throw new Error("Tool failed intentionally");
+        })
+    });
+    toolRegistry.register({
+        name: 'get_list', 
+        description: 'Returns a list', 
+        parameters: getListParams, 
+        returns: { schema: getListReturn },
+        execute: logWrapper('get_list', (args) => { 
+            return [10, 20, 30];
+        })
+    });
+    toolRegistry.register({
+        name: 'get_obj', 
+        description: 'Returns an object', 
+        parameters: getObjParams, 
+        returns: { schema: getObjReturn },
+        execute: logWrapper('get_obj', (args) => { 
+            return { nested: { value: 99 } };
+        })
+    });
 
     return { toolRegistry, mockOutputHandler, capturedOutput, callLog };
 } 
