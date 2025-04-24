@@ -6,6 +6,7 @@ import { DesktopLinks, LinkType } from "./DesktopLinks";
 import { MobileLinks } from "./MobileLinks";
 import { Announcement } from "./Announcement";
 import { Button } from "../shared/Button";
+import Link from 'next/link';
 
 export const ExpandableNavBar = ({
   children,
@@ -26,17 +27,22 @@ export const ExpandableNavBar = ({
               <Logo />
               <DesktopLinks links={links} />
             </div>
-            <Button
-              className="hidden md:block"
-              intent="secondary"
-              size="small"
-              onClick={() => window.open('https://test.nuwa.dev/', '_blank')}
+            <Link
+              href="https://test.nuwa.dev/"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              <span className="font-bold flex items-center">
-                Try Nuwa Alpha
-                <FiArrowRight className="ml-1" />
-              </span>
-            </Button>
+              <Button
+                className="hidden md:block"
+                intent="secondary"
+                size="small"
+              >
+                <span className="font-bold flex items-center">
+                  Try Nuwa Alpha
+                  <FiArrowRight className="ml-1" />
+                </span>
+              </Button>
+            </Link>
             <button
               onClick={() => setMobileNavOpen((pv) => !pv)}
               className="mt-0.5 block text-2xl md:hidden"

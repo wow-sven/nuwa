@@ -17,7 +17,7 @@ const variants = {
     },
 };
 
-export const BarLoader = () => {
+const BarLoader = () => {
     return (
         <motion.div
             transition={{
@@ -34,4 +34,6 @@ export const BarLoader = () => {
             <motion.div variants={variants} className="h-12 w-2 bg-violet-500" />
         </motion.div>
     );
-}; 
+};
+
+export default BarLoader; 

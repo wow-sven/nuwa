@@ -75,7 +75,7 @@ export default function Home({ posts }: HomeProps) {
           <Logos />
         </AnimatedSection>
 
-        <div className="space-y-36 bg-zinc-50 pb-24 pt-24 md:pt-32">
+        <div className="space-y-36 pb-24 pt-24 md:pt-32 px-4">
           <AnimatedSection delay={0.2}>
             <FeatureToggles />
           </AnimatedSection>
@@ -97,19 +97,20 @@ export default function Home({ posts }: HomeProps) {
               <LazyBlogCarousel posts={posts} />
             </Suspense>
           </AnimatedSection>
+
+
+          <AnimatedSection delay={0.6}>
+            <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+              <LazyFinalCTA />
+            </Suspense>
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.7}>
+            <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+              <LazyFooter />
+            </Suspense>
+          </AnimatedSection>
         </div>
-
-        <AnimatedSection delay={0.6}>
-          <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
-            <LazyFinalCTA />
-          </Suspense>
-        </AnimatedSection>
-
-        <AnimatedSection delay={0.7}>
-          <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
-            <LazyFooter />
-          </Suspense>
-        </AnimatedSection>
       </main>
     </>
   );

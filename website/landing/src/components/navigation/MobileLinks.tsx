@@ -1,6 +1,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { LinkType } from "@/components/navigation/DesktopLinks";
+import Link from 'next/link';
 
 export const MobileLinks = ({
   links,
@@ -25,13 +26,13 @@ export const MobileLinks = ({
           className="grid grid-cols-1 gap-6 py-6 md:hidden"
         >
           {links.map((l) => (
-            <a
+            <Link
               key={l.title}
               href={l.href}
               className="text-md block font-semibold text-zinc-950 hover:text-indigo-600"
             >
               {l.title}
-            </a>
+            </Link>
           ))}
         </motion.div>
       )}
