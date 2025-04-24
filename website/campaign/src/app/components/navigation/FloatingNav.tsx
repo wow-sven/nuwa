@@ -5,6 +5,7 @@ import { FiUser, FiAward, FiHome } from "react-icons/fi";
 import { IconType } from "react-icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 interface NavItem {
     title: string;
@@ -14,6 +15,7 @@ interface NavItem {
 
 export const FloatingNav = () => {
     const pathname = usePathname();
+    const { data: session, status } = useSession();
 
     const navItems: NavItem[] = [
         {
@@ -37,6 +39,11 @@ export const FloatingNav = () => {
     // 检查当前路径是否匹配任何导航项
     const isPathValid = navItems.some(item => pathname === item.path);
     if (!isPathValid) {
+        return null;
+    }
+
+    // 如果用户未登录，返回 null
+    if (status === "unauthenticated" || !session) {
         return null;
     }
 
