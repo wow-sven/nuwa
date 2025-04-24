@@ -46,13 +46,21 @@ export async function GET(req: NextRequest) {
 
         // 获取 Twitter 访问令牌
         const tokenUrl = 'https://api.twitter.com/2/oauth2/token';
-        const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/tg-x-binding-callback`;
+        const requestProtocol = req.url.startsWith('https') ? 'https' : 'http';
+        const baseUrl = process.env.NEXTAUTH_URL?.startsWith('http')
+            ? process.env.NEXTAUTH_URL
+            : `${requestProtocol}://${process.env.NEXTAUTH_URL}`;
+        const redirectUri = `${baseUrl}/api/auth/tg-x-binding-callback`;
 
         console.log('Requesting Twitter token with:', {
             tokenUrl,
             redirectUri,
             clientId: process.env.TWITTER_CLIENT_ID,
-            verifier: verifier.substring(0, 5) + '...'
+            verifier: verifier.substring(0, 5) + '...',
+            nextAuthUrl: process.env.NEXTAUTH_URL,
+            baseUrl,
+            requestProtocol,
+            originalUrl: req.url
         });
 
         const tokenResponse = await fetch(tokenUrl, {
