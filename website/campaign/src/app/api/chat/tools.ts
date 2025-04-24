@@ -513,10 +513,8 @@ export const tools = {
                 const newPoints = userData.points - points;
                 const { error: updateError } = await supabase
                     .from('campaign_points')
-                    .upsert({
-                        handle: userName,
-                        points: newPoints,
-                    });
+                    .update({ points: newPoints })
+                    .eq('id', userData.id);
 
                 if (updateError) {
                     console.error('Error updating user points in Supabase:', updateError);
