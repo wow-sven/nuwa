@@ -1,4 +1,3 @@
-import { FeatureToggles } from "@/components/feature-toggles/FeatureToggles";
 import { Hero } from "@/components/hero/Hero";
 import { Logos } from "@/components/logos/Logos";
 import { ExpandableNavBar } from "@/components/navigation/ExpandableNavBar";
@@ -17,9 +16,10 @@ import SEO from "@/components/SEO";
 // 懒加载非首屏组件
 const LazyBenefitsGrid = lazy(() => import("@/components/benefits-grid/BenefitsGrid"));
 const LazyBlogCarousel = lazy(() => import("@/components/blog/BlogCarousel"));
-const LazyUsecases = lazy(() => import("@/components/supports/Usecases"));
+const LazyUsecases = lazy(() => import("@/components/usecases/Usecases"));
 const LazyFinalCTA = lazy(() => import("@/components/final-cta/FinalCTA"));
 const LazyFooter = lazy(() => import("@/components/footer/Footer"));
+const LazyFeatureToggles = lazy(() => import("@/components/feature-toggles/FeatureToggles"));
 
 interface HomeProps {
   posts: BlogPost[];
@@ -77,7 +77,9 @@ export default function Home({ posts }: HomeProps) {
 
         <div className="space-y-36 pb-24 pt-24 md:pt-32 px-4">
           <AnimatedSection delay={0.2}>
-            <FeatureToggles />
+            <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+              <LazyFeatureToggles />
+            </Suspense>
           </AnimatedSection>
 
           <AnimatedSection delay={0.3}>

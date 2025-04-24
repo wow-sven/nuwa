@@ -11,14 +11,18 @@ export const Copy = ({
 }) => {
   return (
     <div className="w-full">
-      <span className="mb-1.5 block text-center text-indigo-600 md:text-start">
+      <h1 className="mb-1.5 text-4xl font-bold block text-center text-indigo-600 md:text-start">
         Usecases
-      </span>
+      </h1>
       <h2 className="mb-3 text-center text-4xl font-bold leading-tight md:text-start md:text-5xl md:leading-tight">
-        Transform your Web3 products, big or small
+        Transform Every Web3 Experience with AI Agents
       </h2>
       <p className="mb-6 text-center text-base leading-relaxed md:text-start md:text-lg md:leading-relaxed">
-        The AI revolution is here, and your Web3 protocol can't afford to be left behind. Without intuitive agent interfaces, you'll watch the next billion users slip through your fingers. Let Nuwa transform your complex blockchain technology into seamless conversations that new users instantly understand—positioning your protocol at the forefront of tomorrow's AI-native world.
+        The next wave of Web3 growth won’t come from better tech — it’ll come from better experiences.
+        <br />
+        Nuwa bridges the gap with AI agents that turn complex blockchain logic into simple, human-like interactions.
+        <br />
+        Don’t let your protocol be left behind — lead the shift to an AI-native Web3.
       </p>
       <div className="mb-6 flex flex-wrap justify-center gap-3 md:justify-start">
         {OPTIONS.map((o, i) => {

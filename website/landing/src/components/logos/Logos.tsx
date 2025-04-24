@@ -10,7 +10,7 @@ import {
 
 export const Logos = () => {
   return (
-    <section className="relative -mt-2 -rotate-1 scale-[1.01] border-y-2 border-zinc-900 bg-white">
+    <section className="relative -mt-2 scale-[1.01] border-y-2 border-zinc-900 bg-white">
       <div className="relative z-0 flex overflow-hidden border-b-2 border-zinc-900">
         <TranslateWrapper>
           <LogoItemsTop />

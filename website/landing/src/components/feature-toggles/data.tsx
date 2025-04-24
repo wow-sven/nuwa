@@ -5,7 +5,7 @@ export const data = [
     imagePath: "/images/landing/Agent to Smart Contract (A2SC) Protocol.png",
     cardTitle: "Agent to Smart Contract (A2SC) Protocol",
     cardSubtitle:
-      "The A2SC protocol forms enables seamless communication between AI agents and on-chain smart contracts.With A2SC, your agent gains the ability to execute contract functions, just as your current application does through its interface.",
+      "Seamlessly connect AI agents with smart contracts. With A2SC, your agents can securely call contract functions — just like a frontend app does, but autonomously.",
   },
   {
     id: 2,

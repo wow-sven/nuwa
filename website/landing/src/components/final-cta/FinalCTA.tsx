@@ -14,7 +14,6 @@ const FinalCTA = () => {
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col md:flex-row items-start gap-12">
           <div className="flex-1 flex flex-col items-start">
-            <LogoLarge />
             <SectionHeading>{FINAL_CTA_TEXTS.heading}</SectionHeading>
             <p className="text-left text-base leading-relaxed md:text-xl md:leading-relaxed">
               {FINAL_CTA_TEXTS.subheading}
