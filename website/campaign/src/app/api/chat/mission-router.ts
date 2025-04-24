@@ -6,7 +6,7 @@ import { getMissions } from '../../services/airtable';
 /**
  * 用户信息接口
  */
-interface UserInfo {
+export interface UserInfo {
     name?: string;       // Twitter display name
     twitterHandle?: string;  // Twitter handle without @ symbol
 }
@@ -51,7 +51,7 @@ export async function classifyUserMission(
         }),
         prompt: `Analyze the following user message and determine which mission the user wants to execute.
 
-User information:
+Here is the user information provided by the system, which only serves as the reference for the user's identity and should not be considered as a factor in the classification:
 - Name: ${userInfo.name || 'Unknown'}
 - Twitter: ${userInfo.twitterHandle || 'Unknown'}
 
