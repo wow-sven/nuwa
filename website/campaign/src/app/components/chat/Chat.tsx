@@ -9,6 +9,7 @@ import { Missions } from './Missions';
 import { MessageContainer } from './MessageContainer';
 import { InputContainer } from './InputContainer';
 import NeubrutalismButton from '@/app/components/shared/NeubrutalismButton';
+import { useMissions } from '@/app/context/MissionsContext';
 
 // Define classification state interface
 interface ClassificationState {
@@ -19,6 +20,7 @@ interface ClassificationState {
 
 export function Chat() {
     const { data: session } = useSession();
+    const { missions } = useMissions();
     const userInfo = {
         name: session?.user?.name || "visitor",
         twitterHandle: session?.user?.twitterHandle || "visitor"
@@ -157,12 +159,12 @@ export function Chat() {
                         className="flex flex-col h-full"
                     >
                         <div className="flex flex-col h-full">
-                            {messages.length > 0 && status !== 'streaming' && (
+                            {messages.length > 0 && (
                                 <div className="flex justify-between p-2">
                                     <div>
                                         {classification && (
                                             <div className="text-xs text-gray-500">
-                                                Current Mission Id: {classification.missionId}
+                                                Current Mission: {missions.find(m => m.id === classification.missionId)?.title || 'Unknown'} (ID: {classification.missionId})
                                             </div>
                                         )}
                                     </div>
