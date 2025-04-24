@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
                 TWITTER_CLIENT_SECRET: !!process.env.TWITTER_CLIENT_SECRET,
                 NEXTAUTH_URL: !!process.env.NEXTAUTH_URL
             });
-            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=config_error', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding/error?error=config_error', req.url));
         }
 
         // 获取查询参数
@@ -83,7 +83,7 @@ export async function GET(req: NextRequest) {
         console.log('Successfully obtained Twitter token');
 
         // 获取用户信息
-        const userResponse = await fetch('https://api.twitter.com/2/users/me', {
+        const userResponse = await fetch('https://api.twitter.com/2/users/me?user.fields=name,profile_image_url', {
             headers: {
                 'Authorization': `Bearer ${tokenData.access_token}`,
             },
@@ -96,12 +96,14 @@ export async function GET(req: NextRequest) {
                 statusText: userResponse.statusText,
                 error: errorText
             });
-            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=user_info_error', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding/error?error=user_info_error', req.url));
         }
 
         const userData = await userResponse.json();
         const twitterHandle = userData.data.username;
-        console.log('Successfully obtained user info:', { twitterHandle });
+        const twitterName = userData.data.name;
+        const twitterAvatarUrl = userData.data.profile_image_url?.replace('_normal', '_400x400') || userData.data.profile_image_url;
+        console.log('Successfully obtained user info:', { twitterHandle, twitterName, twitterAvatarUrl });
 
         // 存储绑定关系
         const supabase = await createServiceClient();
@@ -116,15 +118,15 @@ export async function GET(req: NextRequest) {
 
         if (error) {
             console.error('Failed to store binding:', error);
-            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=db_error', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding/error?error=db_error', req.url));
         }
 
-        console.log('Successfully stored binding:', { telegramId, twitterHandle });
+        console.log('Successfully stored binding:', { telegramId, twitterHandle, twitterName, twitterAvatarUrl });
 
         // 重定向到成功页面
-        return NextResponse.redirect(new URL('/tg-x-binding-auth/success?telegram_id=' + telegramId, req.url));
+        return NextResponse.redirect(new URL(`/tg-x-binding/success?telegram_id=${telegramId}&twitter_handle=${twitterHandle}&twitter_name=${encodeURIComponent(twitterName)}&twitter_avatar_url=${encodeURIComponent(twitterAvatarUrl)}`, req.url));
     } catch (error) {
         console.error('Error in TG-X Binding callback:', error);
-        return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=server_error', req.url));
+        return NextResponse.redirect(new URL('/tg-x-binding/error?error=server_error', req.url));
     }
 } 

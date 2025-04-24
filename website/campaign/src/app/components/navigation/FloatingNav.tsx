@@ -1,3 +1,5 @@
+'use client'
+
 import { motion } from "framer-motion";
 import { FiUser, FiAward, FiHome } from "react-icons/fi";
 import { IconType } from "react-icons";
@@ -31,6 +33,12 @@ export const FloatingNav = () => {
             path: "/profile",
         },
     ];
+
+    // 检查当前路径是否匹配任何导航项
+    const isPathValid = navItems.some(item => pathname === item.path);
+    if (!isPathValid) {
+        return null;
+    }
 
     return (
         <motion.div

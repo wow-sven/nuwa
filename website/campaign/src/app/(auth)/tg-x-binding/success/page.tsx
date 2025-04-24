@@ -2,11 +2,14 @@
 
 import { useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 
 function SuccessContent() {
     const searchParams = useSearchParams();
     const telegramId = searchParams.get('telegram_id');
     const twitterHandle = searchParams.get('twitter_handle');
+    const twitterName = searchParams.get('twitter_name');
+    const twitterAvatarUrl = searchParams.get('twitter_avatar_url');
 
     useEffect(() => {
         // Send success message to Telegram
@@ -40,7 +43,7 @@ function SuccessContent() {
     }, [telegramId, twitterHandle]);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100">
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
             <div className="p-8 bg-white rounded-lg shadow-md max-w-md w-full text-center">
                 <div className="mb-6">
                     <svg className="mx-auto h-12 w-12 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -48,14 +51,37 @@ function SuccessContent() {
                     </svg>
                 </div>
                 <h1 className="text-2xl font-bold text-gray-800 mb-4">Binding Successful</h1>
+
+                {twitterAvatarUrl && (
+                    <div className="mb-4 flex justify-center">
+                        <div className="relative w-20 h-20 rounded-full overflow-hidden">
+                            <Image
+                                src={twitterAvatarUrl}
+                                alt={`${twitterName || twitterHandle}'s avatar`}
+                                fill
+                                className="object-cover"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                <div className="mb-4">
+                    <p className="text-lg font-semibold text-gray-800">
+                        {twitterName || 'Twitter User'}
+                    </p>
+                    <p className="text-blue-500">@{twitterHandle}</p>
+                </div>
+
                 <p className="text-gray-600 mb-6">
-                    Your Twitter account @{twitterHandle} has been successfully bound!
+                    Your Twitter account has been successfully bound!
                     <br />
-                    Please return to Telegram to continue.
+                    <span className="font-bold">Please return to Telegram to continue.</span>
+
                 </p>
-                <p className="text-sm text-gray-500">
-                    This window will close automatically in 5 seconds...
-                </p>
+
+                <div className="text-xs text-gray-500">
+                    Telegram ID: {telegramId}
+                </div>
             </div>
         </div>
     );

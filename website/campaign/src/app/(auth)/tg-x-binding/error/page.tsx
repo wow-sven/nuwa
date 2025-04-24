@@ -61,12 +61,10 @@ function ErrorContent() {
                 </div>
                 <h1 className="text-2xl font-bold text-gray-800 mb-4">Binding failed</h1>
                 <p className="text-gray-600 mb-6">
-                    {errorMessage}
-                    <br />
-                    Please return to Telegram and try again.
+                    Error:{errorMessage}
                 </p>
-                <p className="text-sm text-gray-500">
-                    This window will close automatically in 5 seconds...
+                <p className="text-gray-600 mb-6 font-bold">
+                    Please return to Telegram and try again.
                 </p>
             </div>
         </div>
