@@ -5,7 +5,6 @@ import { CollaborateBlock } from "./CollaborateBlock";
 import { HighlighBlocks } from "./HighlighBlocks";
 import { SectionHeading } from "../shared/SectionHeading";
 import { SectionSubheading } from "../shared/SectionSubheading";
-import { Button } from "../shared/Button";
 
 const BENEFITS_GRID_TEXTS = {
   heading: "Why Choose Nuwa for Your Web3 Protocol",
@@ -32,11 +31,6 @@ export const BenefitsGrid = () => {
       <IntegrationsBlock />
       <CollaborateBlock />
       <HighlighBlocks />
-      <div className="col-span-3 mt-6 flex justify-center">
-        <Button intent="outline">
-          <span className="font-bold">{BENEFITS_GRID_TEXTS.ctaButton}</span>
-        </Button>
-      </div>
     </motion.section>
   );
 };

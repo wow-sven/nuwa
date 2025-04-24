@@ -6,8 +6,8 @@ import { SectionHeading } from "../shared/SectionHeading";
 import { SectionSubheading } from "../shared/SectionSubheading";
 
 const FEATURE_TOGGLES_TEXTS = {
-  heading: "Powerful Web3 Agent Solution",
-  subheading: "Nuwa provides the complete tech stack for Web3 protocols to deploy AI agents that can directly interact with on-chain smart contracts while maintaining robust security and brand identity."
+  heading: "Powerful and Secured Web3 Agent Solution",
+  subheading: "Nuwa provides the complete tech stack for Web3 protocols to deploy AI agents that can directly interact with on-chain smart contracts while maintaining robust security."
 };
 
 export const FeatureToggles = () => {

@@ -9,7 +9,8 @@ const HERO_TEXTS = {
   huntBadge: "New!",
   huntText: "Early Access Now Open!",
   heading: "Secured Intelligence for",
-  subheading: "Empowering Web3 protocols with Agent-as-a-Service (AaaS) that simplify user experience and unlock new capabilities—zero technical overhead required",
+
+  subheading: "Empowering Web3 protocols with Agent-as-a-Service (AaaS) that simplify user experience and unlock new capabilities",
   ctaButton: "Join Early Access"
 };
 
