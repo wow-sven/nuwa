@@ -12,7 +12,7 @@ const BENEFITS_GRID_TEXTS = {
   ctaButton: "Explore Solutions"
 };
 
-export const BenefitsGrid = () => {
+const BenefitsGrid = () => {
   return (
     <motion.section
       transition={{
@@ -34,3 +34,5 @@ export const BenefitsGrid = () => {
     </motion.section>
   );
 };
+
+export default BenefitsGrid;

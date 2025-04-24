@@ -1,6 +1,6 @@
 import { ExpandableNavBar } from "@/components/navigation/ExpandableNavBar";
 import { NAV_LINKS } from "@/components/navigation/DesktopLinks";
-import { Footer } from "@/components/footer/Footer";
+import Footer from "@/components/footer/Footer";
 import { font } from "@/fonts";
 import { getBlogPostBySlug, getAllBlogPosts } from "@/lib/blog";
 import { GetStaticProps, GetStaticPaths } from "next";

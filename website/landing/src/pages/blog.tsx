@@ -1,13 +1,15 @@
 import { ExpandableNavBar } from "@/components/navigation/ExpandableNavBar";
 import { NAV_LINKS } from "@/components/navigation/DesktopLinks";
-import { Footer } from "@/components/footer/Footer";
+import Footer from "@/components/footer/Footer";
 import { font } from "@/fonts";
 import { getAllBlogPosts, getAllTags } from "@/lib/blog";
 import { GetStaticProps } from "next";
-import { useState } from "react";
-import { BlogFilter } from "@/components/blog/BlogFilter";
-import { BlogGrid } from "@/components/blog/BlogGrid";
+import { useState, Suspense, lazy } from "react";
 import SEO from "@/components/SEO";
+
+// 懒加载非首屏组件
+const LazyBlogFilter = lazy(() => import("@/components/blog/BlogFilter"));
+const LazyBlogGrid = lazy(() => import("@/components/blog/BlogGrid"));
 
 interface BlogPageProps {
     posts: {
@@ -45,16 +47,22 @@ export default function Blog({ posts: initialPosts, tags }: BlogPageProps) {
                             Explore our latest articles, insights, and updates
                         </p>
 
-                        <BlogFilter
-                            tags={tags}
-                            posts={initialPosts}
-                            onFilterChange={setFilteredPosts}
-                        />
+                        <Suspense fallback={<div className="h-32 flex items-center justify-center">Loading filters...</div>}>
+                            <LazyBlogFilter
+                                tags={tags}
+                                posts={initialPosts}
+                                onFilterChange={setFilteredPosts}
+                            />
+                        </Suspense>
 
-                        <BlogGrid posts={filteredPosts} />
+                        <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading posts...</div>}>
+                            <LazyBlogGrid posts={filteredPosts} />
+                        </Suspense>
                     </div>
                 </div>
-                <Footer />
+                <Suspense fallback={<div className="h-32 flex items-center justify-center">Loading footer...</div>}>
+                    <Footer />
+                </Suspense>
             </main>
         </>
     );
@@ -69,5 +77,7 @@ export const getStaticProps: GetStaticProps<BlogPageProps> = async () => {
             posts,
             tags,
         },
+        // 添加 ISR 以定期重新生成页面
+        revalidate: 3600, // 每小时重新生成一次
     };
 }; 

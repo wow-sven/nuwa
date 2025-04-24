@@ -20,7 +20,7 @@ interface BlogCarouselProps {
   posts: BlogPost[];
 }
 
-export const BlogCarousel = ({ posts }: BlogCarouselProps) => {
+const BlogCarousel = ({ posts }: BlogCarouselProps) => {
   const [ref, { width }] = useMeasure();
   const [offset, setOffset] = useState(0);
 
@@ -101,3 +101,5 @@ export const BlogCarousel = ({ posts }: BlogCarouselProps) => {
     </section>
   );
 };
+
+export default BlogCarousel;

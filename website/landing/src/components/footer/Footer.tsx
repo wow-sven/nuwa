@@ -20,7 +20,7 @@ const FOOTER_TEXTS = {
   ]
 };
 
-export const Footer = () => {
+const Footer = () => {
   return (
     <div className="bg-white">
       <footer className="relative mx-auto max-w-6xl overflow-hidden py-12">
@@ -83,3 +83,5 @@ const GenericColumn = ({
     </div>
   );
 };
+
+export default Footer;

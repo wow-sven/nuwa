@@ -14,7 +14,7 @@ interface BlogGridProps {
     posts: BlogPost[];
 }
 
-export const BlogGrid = ({ posts }: BlogGridProps) => {
+const BlogGrid = ({ posts }: BlogGridProps) => {
     return (
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => (
@@ -33,4 +33,6 @@ export const BlogGrid = ({ posts }: BlogGridProps) => {
             ))}
         </div>
     );
-}; 
+};
+
+export default BlogGrid; 

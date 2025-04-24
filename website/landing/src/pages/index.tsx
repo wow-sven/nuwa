@@ -3,18 +3,23 @@ import { Hero } from "@/components/hero/Hero";
 import { Logos } from "@/components/logos/Logos";
 import { ExpandableNavBar } from "@/components/navigation/ExpandableNavBar";
 import { NAV_LINKS } from "@/components/navigation/DesktopLinks";
-import { BenefitsGrid } from "@/components/benefits-grid/BenefitsGrid";
+
 import { font } from "@/fonts";
-import { BlogCarousel } from "@/components/blog/BlogCarousel";
-import { FinalCTA } from "@/components/final-cta/FinalCTA";
-import { Footer } from "@/components/footer/Footer";
+
 import { getAllBlogPosts } from "@/lib/blog";
 import { GetStaticProps } from "next";
 import { BlogPost } from "@/lib/blog";
 import { motion, useInView } from "framer-motion";
-import { useRef, ReactNode } from "react";
-import { Usecases } from "@/components/supports/Usecases";
+import { useRef, ReactNode, Suspense, lazy } from "react";
+
 import SEO from "@/components/SEO";
+
+// 懒加载非首屏组件
+const LazyBenefitsGrid = lazy(() => import("@/components/benefits-grid/BenefitsGrid"));
+const LazyBlogCarousel = lazy(() => import("@/components/blog/BlogCarousel"));
+const LazyUsecases = lazy(() => import("@/components/supports/Usecases"));
+const LazyFinalCTA = lazy(() => import("@/components/final-cta/FinalCTA"));
+const LazyFooter = lazy(() => import("@/components/footer/Footer"));
 
 interface HomeProps {
   posts: BlogPost[];
@@ -76,24 +81,34 @@ export default function Home({ posts }: HomeProps) {
           </AnimatedSection>
 
           <AnimatedSection delay={0.3}>
-            <BenefitsGrid />
+            <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+              <LazyBenefitsGrid />
+            </Suspense>
           </AnimatedSection>
 
           <AnimatedSection delay={0.4}>
-            <Usecases />
+            <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+              <LazyUsecases />
+            </Suspense>
           </AnimatedSection>
 
           <AnimatedSection delay={0.5}>
-            <BlogCarousel posts={posts} />
+            <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+              <LazyBlogCarousel posts={posts} />
+            </Suspense>
           </AnimatedSection>
         </div>
 
         <AnimatedSection delay={0.6}>
-          <FinalCTA />
+          <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+            <LazyFinalCTA />
+          </Suspense>
         </AnimatedSection>
 
         <AnimatedSection delay={0.7}>
-          <Footer />
+          <Suspense fallback={<div className="h-96 flex items-center justify-center">Loading...</div>}>
+            <LazyFooter />
+          </Suspense>
         </AnimatedSection>
       </main>
     </>

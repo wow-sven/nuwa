@@ -8,7 +8,7 @@ const FINAL_CTA_TEXTS = {
   subheading: "Join our Early Access Program and receive free integration plus a 30% lifetime discount. Limited spots available.",
 };
 
-export const FinalCTA = () => {
+const FinalCTA = () => {
   return (
     <section id="final-cta" className="-mt-8 bg-white px-2 py-24 md:px-4">
       <div className="mx-auto max-w-7xl">
@@ -28,3 +28,5 @@ export const FinalCTA = () => {
     </section>
   );
 };
+
+export default FinalCTA;

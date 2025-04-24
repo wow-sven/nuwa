@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Samples } from "./Samples";
 import { Copy } from "./Copy";
 
-export const Usecases = () => {
+const Usecases = () => {
   const [selected, setSelected] = useState(1);
 
   return (
@@ -12,3 +12,5 @@ export const Usecases = () => {
     </section>
   );
 };
+
+export default Usecases;

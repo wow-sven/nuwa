@@ -19,7 +19,7 @@ const generateTabData = (tags: string[]) => {
     ];
 };
 
-export const BlogFilter = ({ tags, onFilterChange, posts }: BlogFilterProps) => {
+const BlogFilter = ({ tags, onFilterChange, posts }: BlogFilterProps) => {
     const [filterId, setFilterId] = useState(1);
     const tabData = generateTabData(tags);
 
@@ -76,4 +76,6 @@ const ToggleButton = ({ children, selected, setSelected, id }: ToggleButtonProps
             </button>
         </div>
     );
-}; 
+};
+
+export default BlogFilter; 
