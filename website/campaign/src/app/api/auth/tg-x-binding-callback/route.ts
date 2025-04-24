@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
         const code = searchParams.get('code');
         const state = searchParams.get('state');
 
-        console.log('Callback received with params:', {
+        console.log('TG-X Binding Callback received with params:', {
             code: code ? 'present' : 'missing',
             state: state || 'missing',
             url: req.url
@@ -41,12 +41,12 @@ export async function GET(req: NextRequest) {
 
         if (!telegramId || !verifier) {
             console.error('Invalid state parameter parts:', { telegramId, verifier });
-            return NextResponse.redirect(new URL('/auth/error?error=invalid_state', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=invalid_state', req.url));
         }
 
         // 获取 Twitter 访问令牌
         const tokenUrl = 'https://api.twitter.com/2/oauth2/token';
-        const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/callback/twitter`;
+        const redirectUri = `${process.env.NEXTAUTH_URL}/api/auth/tg-x-binding-callback`;
 
         console.log('Requesting Twitter token with:', {
             tokenUrl,
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
                 statusText: tokenResponse.statusText,
                 error: errorText
             });
-            return NextResponse.redirect(new URL('/auth/error?error=token_error', req.url));
+            return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=token_error', req.url));
         }
 
         const tokenData = await tokenResponse.json();
@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
         // 重定向到成功页面
         return NextResponse.redirect(new URL('/tg-x-binding-auth/success?telegram_id=' + telegramId, req.url));
     } catch (error) {
-        console.error('Error in Twitter callback:', error);
+        console.error('Error in TG-X Binding callback:', error);
         return NextResponse.redirect(new URL('/tg-x-binding-auth/error?error=server_error', req.url));
     }
 } 
