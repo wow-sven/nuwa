@@ -51,7 +51,10 @@ export function TwitterCard({ content, imageUrl }: TwitterCardProps) {
                     <div className="mt-4">
                         <NeubrutalismButton
                             text={'Post on Twitter'}
-                            onClick={() => { }}
+                            onClick={() => {
+                                const tweetText = encodeURIComponent(content);
+                                window.open(`https://twitter.com/intent/tweet?text=${tweetText}`, '_blank');
+                            }}
                         />
                     </div>
                 </div>
