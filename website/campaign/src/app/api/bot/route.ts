@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { Telegraf } from 'telegraf';
-import { openai } from '@ai-sdk/openai';
-import { generateText } from 'ai';
-import { tools } from '../chat/tools';
+import * as filters from 'telegraf/filters';
 import { getDefaultSystemPrompt, getMissionSystemPrompt, UserInfo } from '../chat/mission-router';
 import { checkTwitterBinding, sendTwitterBindingMessage, sendTwitterBindingError } from './twitter-binding';
 import { handleMissionsCommand, handleMissionButton } from './mission-commands';
 import { handleMyPointsCommand } from './points-commands';
 import { handleLeaderboardCommand } from './leaderboard-commands';
 import { sendWelcomeMessage, handleWelcomeButtons } from './send-welcome/send-welcome';
+import { generateAndSendAIResponse } from './ai-utils';
 
 // Initialize Telegraf bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
@@ -131,7 +130,7 @@ bot.action(/^mission_(.+)$/, async (ctx) => {
 bot.action(/^show_(points|leaderboard|missions)$/, handleWelcomeButtons);
 
 // Handle text messages
-bot.on('text', async (ctx) => {
+bot.on(filters.message('text'), async (ctx) => {
     try {
         const userMessage = ctx.message.text;
         const telegramId = ctx.from.id.toString(); // Extract telegramId as a separate variable
@@ -207,24 +206,8 @@ bot.on('text', async (ctx) => {
             systemPrompt = await getDefaultSystemPrompt(userInfo);
         }
 
-        // Use generateText to generate response, passing in history
-        const result = await generateText({
-            model: openai('gpt-4o-mini'),
-            messages: history,
-            tools,
-            system: systemPrompt,
-            maxSteps: 5,
-            toolChoice: 'auto'
-        });
-
-        // Get AI response
-        const aiResponse = await result.text;
-
-        // Add AI response to history
-        history.push({ role: 'assistant', content: aiResponse });
-
-        // Send response back to Telegram, using HTML parse mode
-        await ctx.reply(aiResponse, { parse_mode: 'HTML' });
+        // 使用工具函数生成并发送AI响应
+        await generateAndSendAIResponse(ctx, history, systemPrompt);
     } catch (error) {
         console.error('Error processing message:', error);
         await ctx.reply('Sorry, an error occurred while processing the message. Please try again later.');

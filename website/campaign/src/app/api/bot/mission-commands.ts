@@ -3,6 +3,7 @@ import { getMissions } from '../../services/airtable';
 import { checkTwitterBinding, sendTwitterBindingMessage } from './twitter-binding';
 import { getDefaultSystemPrompt, getMissionSystemPrompt, UserInfo } from '../chat/mission-router';
 import { conversationHistory, activeMissions } from '../bot/route';
+import { generateAndSendAIResponse } from './ai-utils';
 
 /**
  * 处理 /missions 命令，向用户发送任务列表按钮
@@ -78,23 +79,6 @@ export async function handleMissionButton(ctx: Context, missionId: string): Prom
         // Set the mission as active for this user
         activeMissions.set(telegramId, missionId);
 
-        // 构建任务详情消息
-        let message = `📌 <b>${mission.title}</b>\n\n`;
-        message += `${mission.description}\n\n`;
-
-        if (mission.suggestionText) {
-            message += `💡 <b>Suggestion:</b> ${mission.suggestionText}\n\n`;
-        }
-
-        message += `I'm ready to help you complete this mission! Please tell me what you'd like to do, or start directly according to the suggestion.`;
-        message += `\n\nYou can use /end_mission command to end this mission when you're done.`;
-
-        // 发送任务详情
-        await ctx.answerCbQuery('Loading mission...');
-        await ctx.reply(message, {
-            parse_mode: 'HTML'
-        });
-
         // 准备用户信息
         const userInfo: UserInfo = {
             name: ctx.from?.first_name || 'User',
@@ -111,14 +95,30 @@ export async function handleMissionButton(ctx: Context, missionId: string): Prom
         // 清空之前的对话历史，开始新的任务对话
         history.length = 0;
 
-        // 添加系统初始消息到历史记录，引导用户开始任务
+        // 添加系统初始消息到历史记录
         history.push({
             role: 'assistant',
-            content: `I'll help you complete the "${mission.title}" mission. Please start according to the suggestion, or tell me what kind of help you need.`
+            content: `I'll help you complete the "${mission.title}" mission. Let's get started!`
         });
 
-        // 注意：用户下一条消息将会使用特定任务的系统提示进行处理
-        // 这是在route.ts的文本消息处理部分自动处理的
+        // 获取任务特定的系统提示
+        const systemPrompt = await getMissionSystemPrompt(missionId, userInfo);
+
+        // 构建任务详情消息
+        let message = `📌 <b>${mission.title}</b>\n\n`;
+        message += `${mission.description}\n\n`;
+
+        // 发送任务详情
+        await ctx.answerCbQuery('Loading mission...');
+        await ctx.reply(message, {
+            parse_mode: 'HTML'
+        });
+
+        // 使用工具函数生成并发送AI响应
+        await generateAndSendAIResponse(ctx, history, systemPrompt);
+
+        // 添加提示信息
+        await ctx.reply(`You can use /end_mission command to end this mission when you're done.`);
 
     } catch (error) {
         console.error('Error handling mission button:', error);

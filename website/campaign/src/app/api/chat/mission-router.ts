@@ -116,6 +116,9 @@ export async function getMissionSystemPrompt(
  
  ## Mission Details (Mission ID: ${mission.id})
  Mission Instructions: ${mission.prompt}
+ 
+ ## Initial Response
+ When the user selects this mission, you should immediately start guiding them through the steps to complete it. Don't wait for them to ask specific questions - take the initiative to explain what they need to do and help them get started.
 `;
 }
 
