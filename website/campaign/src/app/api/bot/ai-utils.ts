@@ -21,7 +21,7 @@ export async function generateAndSendAIResponse(
         messages: history,
         tools,
         system: systemPrompt,
-        maxSteps: 10,
+        maxSteps: 50,
         toolChoice: 'auto'
     });
 

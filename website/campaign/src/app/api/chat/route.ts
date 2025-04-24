@@ -63,7 +63,7 @@ export async function POST(req: Request) {
         messages,
         tools,
         system: systemPrompt,
-        maxSteps: 10,
+        maxSteps: 50,
         toolChoice: 'auto',
         onError() { }
     });
