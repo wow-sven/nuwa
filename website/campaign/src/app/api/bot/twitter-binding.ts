@@ -54,13 +54,8 @@ export function generateTwitterAuthUrl(telegramId: string) {
     return twitterAuthUrl.toString();
 }
 
-// 处理已绑定 Twitter 的情况
-export async function handleBoundTwitter(ctx: Context, twitterHandle: string) {
-    await ctx.reply(`Welcome to Nuwa!\nYou have already bound your Twitter account @${twitterHandle}.\n\nIf you need to rebind, please use the /bind_twitter command.`);
-}
-
 // 处理未绑定 Twitter 的情况
-export async function handleUnboundTwitter(ctx: Context, telegramId: string) {
+export async function sendTwitterBindingMessage(ctx: Context, telegramId: string) {
     const twitterAuthUrl = generateTwitterAuthUrl(telegramId);
 
     await ctx.reply(
@@ -76,7 +71,7 @@ export async function handleUnboundTwitter(ctx: Context, telegramId: string) {
 }
 
 // 处理 Twitter 绑定错误
-export async function handleTwitterBindingError(ctx: Context, error: any) {
+export async function sendTwitterBindingError(ctx: Context, error: any) {
     console.error('Error in Twitter binding:', error);
     await ctx.reply('Sorry, an error occurred while processing the request. Please try again later.');
 } 

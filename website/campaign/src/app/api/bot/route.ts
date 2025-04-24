@@ -4,8 +4,11 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { tools } from '../chat/tools';
 import { getDefaultSystemPrompt } from '../chat/mission-router';
-import { checkTwitterBinding, handleBoundTwitter, handleUnboundTwitter, handleTwitterBindingError } from './twitter-binding';
+import { checkTwitterBinding, sendTwitterBindingMessage, sendTwitterBindingError } from './twitter-binding';
 import { handleMissionsCommand, handleMissionButton } from './mission-commands';
+import { handleMyPointsCommand } from './points-commands';
+import { handleLeaderboardCommand } from './leaderboard-commands';
+import { sendWelcomeMessage, handleWelcomeButtons } from './send-welcome/send-welcome';
 
 // Initialize Telegraf bot
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || '');
@@ -19,14 +22,34 @@ bot.command('start', async (ctx) => {
         const twitterHandle = await checkTwitterBinding(telegramId);
 
         if (twitterHandle) {
-            // 如果已经绑定，显示欢迎信息和已绑定的 Twitter 账号
-            await handleBoundTwitter(ctx, twitterHandle);
+            // 发送欢迎消息
+            await sendWelcomeMessage(ctx, twitterHandle);
         } else {
             // 如果未绑定，显示欢迎信息和绑定按钮
-            await handleUnboundTwitter(ctx, telegramId);
+            await sendTwitterBindingMessage(ctx, telegramId);
         }
     } catch (error) {
-        await handleTwitterBindingError(ctx, error);
+        await sendTwitterBindingError(ctx, error);
+    }
+});
+
+// Handle /start command
+bot.command('help', async (ctx) => {
+    try {
+        const telegramId = ctx.from.id.toString();
+
+        // 检查 Twitter 绑定状态
+        const twitterHandle = await checkTwitterBinding(telegramId);
+
+        if (twitterHandle) {
+            // 发送欢迎消息
+            await sendWelcomeMessage(ctx, twitterHandle);
+        } else {
+            // 如果未绑定，显示欢迎信息和绑定按钮
+            await sendTwitterBindingMessage(ctx, telegramId);
+        }
+    } catch (error) {
+        await sendTwitterBindingError(ctx, error);
     }
 });
 
@@ -41,16 +64,19 @@ bot.command('bind_twitter', async (ctx) => {
             await ctx.reply(`You have already bound your Twitter account @${twitterHandle}.`);
             return;
         }
-
-        // 生成绑定按钮
-        await handleUnboundTwitter(ctx, telegramId);
     } catch (error) {
-        await handleTwitterBindingError(ctx, error);
+        await sendTwitterBindingError(ctx, error);
     }
 });
 
 // Handle /missions command
 bot.command('missions', handleMissionsCommand);
+
+// Handle /my_points command
+bot.command('my_points', handleMyPointsCommand);
+
+// Handle /leaderboard command
+bot.command('leaderboard', handleLeaderboardCommand);
 
 // Handle mission button clicks
 bot.action(/^mission_(.+)$/, async (ctx) => {
@@ -61,6 +87,9 @@ bot.action(/^mission_(.+)$/, async (ctx) => {
         await handleMissionButton(ctx, missionId);
     }
 });
+
+// Handle welcome message buttons
+bot.action(/^show_(points|leaderboard|missions)$/, handleWelcomeButtons);
 
 // Handle text messages
 bot.on('text', async (ctx) => {
@@ -105,4 +134,4 @@ export async function POST(req: Request) {
         console.error('Error in webhook handler:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
-} 
+}

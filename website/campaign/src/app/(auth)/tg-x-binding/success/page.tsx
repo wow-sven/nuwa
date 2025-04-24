@@ -16,18 +16,18 @@ function SuccessContent() {
         if (telegramId && twitterHandle) {
             const sendMessage = async () => {
                 try {
-                    await fetch('/api/bot/send-message', {
+                    await fetch('/api/bot/send-welcome', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
                             telegramId,
-                            message: `Successfully bound with Twitter account @${twitterHandle}!`
+                            twitterHandle
                         }),
                     });
                 } catch (error) {
-                    console.error('Failed to send message to Telegram:', error);
+                    console.error('Failed to send welcome message to Telegram:', error);
                 }
             };
 
