@@ -1,5 +1,5 @@
 import React from "react";
-import { SiInstagram, SiX, SiYoutube } from "react-icons/si";
+import { SiX } from "react-icons/si";
 import { IconType } from "react-icons";
 import Link from "next/link";
 import { Logo } from "../navigation/Logo";
@@ -11,11 +11,11 @@ const FOOTER_TEXTS = {
   socialLinks: [
     {
       title: "Twitter",
-      href: "/#"
+      href: "https://x.com/nuwadev"
     },
     {
       title: "Github",
-      href: "/#"
+      href: "https://github.com/rooch-network/nuwa"
     }
   ]
 };
@@ -73,6 +73,7 @@ const GenericColumn = ({
         <Link
           key={l.title}
           href={l.href}
+          target="_blank"
           className="flex items-center gap-1.5 transition-colors hover:text-indigo-600 hover:underline"
         >
           {l.Icon && <l.Icon />}

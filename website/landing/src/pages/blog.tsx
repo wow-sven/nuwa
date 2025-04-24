@@ -7,6 +7,7 @@ import { GetStaticProps } from "next";
 import { useState } from "react";
 import { BlogFilter } from "@/components/blog/BlogFilter";
 import { BlogGrid } from "@/components/blog/BlogGrid";
+import SEO from "@/components/SEO";
 
 interface BlogPageProps {
     posts: {
@@ -24,27 +25,38 @@ interface BlogPageProps {
 export default function Blog({ posts: initialPosts, tags }: BlogPageProps) {
     const [filteredPosts, setFilteredPosts] = useState(initialPosts);
 
+    // 获取最新的5个标签作为关键词
+    const recentTags = tags.slice(0, 5).join(', ');
+
     return (
-        <main className={`${font.className} overflow-hidden`}>
-            <ExpandableNavBar links={NAV_LINKS} />
-            <div className="bg-zinc-50 py-16 md:py-24">
-                <div className="mx-auto max-w-6xl px-4">
-                    <h1 className="mb-8 text-4xl font-bold md:text-5xl">Nuwa Blog</h1>
-                    <p className="mb-12 text-lg text-zinc-600">
-                        Explore our latest articles, insights, and updates
-                    </p>
+        <>
+            <SEO
+                title="Blog - Latest Web3 Agent Development Insights"
+                description="Explore the latest insights, tutorials, and updates about Web3 Agent development, AI automation, and blockchain technology integration."
+                keywords={`Web3 Blog, AI Agents, Blockchain Development, Smart Contract Automation, ${recentTags}`}
+                ogImage="/hero-background.png"
+            />
+            <main className={`${font.className} overflow-hidden`}>
+                <ExpandableNavBar links={NAV_LINKS} />
+                <div className="bg-zinc-50 py-16 md:py-24">
+                    <div className="mx-auto max-w-6xl px-4">
+                        <h1 className="mb-8 text-4xl font-bold md:text-5xl">Nuwa Blog</h1>
+                        <p className="mb-12 text-lg text-zinc-600">
+                            Explore our latest articles, insights, and updates
+                        </p>
 
-                    <BlogFilter
-                        tags={tags}
-                        posts={initialPosts}
-                        onFilterChange={setFilteredPosts}
-                    />
+                        <BlogFilter
+                            tags={tags}
+                            posts={initialPosts}
+                            onFilterChange={setFilteredPosts}
+                        />
 
-                    <BlogGrid posts={filteredPosts} />
+                        <BlogGrid posts={filteredPosts} />
+                    </div>
                 </div>
-            </div>
-            <Footer />
-        </main>
+                <Footer />
+            </main>
+        </>
     );
 }
 

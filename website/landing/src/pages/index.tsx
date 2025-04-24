@@ -14,6 +14,8 @@ import { BlogPost } from "@/lib/blog";
 import { motion, useInView } from "framer-motion";
 import { useRef, ReactNode } from "react";
 import { Usecases } from "@/components/supports/Usecases";
+import SEO from "@/components/SEO";
+
 interface HomeProps {
   posts: BlogPost[];
 }
@@ -51,43 +53,50 @@ const AnimatedSection = ({ children, delay = 0 }: { children: ReactNode, delay?:
 
 export default function Home({ posts }: HomeProps) {
   return (
-    <main className={`${font.className} overflow-hidden`}>
-      <ExpandableNavBar links={NAV_LINKS}>
-        <AnimatedSection>
-          <Hero />
-        </AnimatedSection>
-      </ExpandableNavBar>
+    <>
+      <SEO
+        title="Nuwa - Agent-as-a-Service (AaaS) for Web3"
+        description="Transform your Web3 offering with AI agents that make complex features accessible to mainstream users while unlocking entirely new capabilities."
+        keywords="AI, Web3, Agent-as-a-Service, AaaS, Web3 Agent, Web3 AI, Web3 Development, Web3 Automation"
+      />
+      <main className={`${font.className} overflow-hidden`}>
+        <ExpandableNavBar links={NAV_LINKS}>
+          <AnimatedSection>
+            <Hero />
+          </AnimatedSection>
+        </ExpandableNavBar>
 
-      <AnimatedSection delay={0.1}>
-        <Logos />
-      </AnimatedSection>
-
-      <div className="space-y-36 bg-zinc-50 pb-24 pt-24 md:pt-32">
-        <AnimatedSection delay={0.2}>
-          <FeatureToggles />
-        </AnimatedSection>
-
-        <AnimatedSection delay={0.3}>
-          <BenefitsGrid />
+        <AnimatedSection delay={0.1}>
+          <Logos />
         </AnimatedSection>
 
-        <AnimatedSection delay={0.4}>
-          <Usecases />
+        <div className="space-y-36 bg-zinc-50 pb-24 pt-24 md:pt-32">
+          <AnimatedSection delay={0.2}>
+            <FeatureToggles />
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.3}>
+            <BenefitsGrid />
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.4}>
+            <Usecases />
+          </AnimatedSection>
+
+          <AnimatedSection delay={0.5}>
+            <BlogCarousel posts={posts} />
+          </AnimatedSection>
+        </div>
+
+        <AnimatedSection delay={0.6}>
+          <FinalCTA />
         </AnimatedSection>
 
-        <AnimatedSection delay={0.5}>
-          <BlogCarousel posts={posts} />
+        <AnimatedSection delay={0.7}>
+          <Footer />
         </AnimatedSection>
-      </div>
-
-      <AnimatedSection delay={0.6}>
-        <FinalCTA />
-      </AnimatedSection>
-
-      <AnimatedSection delay={0.7}>
-        <Footer />
-      </AnimatedSection>
-    </main>
+      </main>
+    </>
   );
 }
 
