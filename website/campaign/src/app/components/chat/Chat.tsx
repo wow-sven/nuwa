@@ -31,7 +31,6 @@ export function Chat() {
 
     // Add mission classification state
     const [classification, setClassification] = useState<ClassificationState | null>(null);
-    const [isClassifying, setIsClassifying] = useState(false);
 
     const { messages, input, handleInputChange, handleSubmit, status, append, setMessages } = useChat({
         body: {
@@ -46,9 +45,7 @@ export function Chat() {
     // Classify user messages when new messages are added
     useEffect(() => {
         const classifyUserMessage = async (message: string) => {
-            if (!message || isClassifying || classification) return;
-
-            setIsClassifying(true);
+            if (!message || classification) return;
 
             try {
                 // Build query parameters
@@ -68,7 +65,7 @@ export function Chat() {
                 const result = await response.json();
 
                 // Only set classification when confidence exceeds threshold
-                if (result.confidence > 0.5) {
+                if (result.confidence > 0.7) {
                     setClassification({
                         missionId: result.missionId,
                         confidence: result.confidence,
@@ -77,8 +74,6 @@ export function Chat() {
                 }
             } catch (error) {
                 // Silent error handling
-            } finally {
-                setIsClassifying(false);
             }
         };
 
@@ -87,10 +82,10 @@ export function Chat() {
             .filter(msg => msg.role === 'user')
             .pop()?.content;
 
-        if (lastUserMessage && !classification && !isClassifying && messages.length > 0) {
+        if (lastUserMessage && !classification && messages.length > 0) {
             classifyUserMessage(lastUserMessage);
         }
-    }, [messages, classification, isClassifying, userInfo]);
+    }, [messages, classification, userInfo]);
 
     const handleSelectSuggestion = (suggestion: string) => {
         if (status === 'streaming') {

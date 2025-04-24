@@ -26,6 +26,7 @@ export async function GET(req: Request) {
 
     // Classify the message
     const classification = await classifyUserMission(message, userInfo);
+    console.log('classification:', JSON.stringify(classification, null, 2));
 
     // Return classification result
     return NextResponse.json({
@@ -53,16 +54,8 @@ export async function POST(req: Request) {
         // If already classified, use the specific system prompt
         systemPrompt = await getMissionSystemPrompt(classifiedMissionId, userInfo || {});
     } else {
-        // Use routing to determine the user's task
-        const classification = await classifyUserMission(lastUserMessage, userInfo || {});
-
-        if (classification.confidence > 0.5) {
-            // If confidence is high, use task-specific system prompt
-            systemPrompt = await getMissionSystemPrompt(classification.missionId, userInfo || {});
-        } else {
-            // If confidence is low, use default system prompt
-            systemPrompt = await getDefaultSystemPrompt(userInfo || {});
-        }
+        // If confidence is low, use default system prompt
+        systemPrompt = await getDefaultSystemPrompt(userInfo || {});
     }
 
     const result = await streamText({
