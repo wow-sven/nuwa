@@ -22,7 +22,7 @@ export const FeatureToggles = () => {
         {FEATURE_TOGGLES_TEXTS.subheading}
       </SectionSubheading>
       <div className="w-full">
-        <div className="mb-9 grid grid-cols-3 gap-6 sm:grid-cols-3">
+        <div className="mb-9 grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6">
           {data.map((d) => (
             <ToggleButton
               key={d.id}
