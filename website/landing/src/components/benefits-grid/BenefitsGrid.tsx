@@ -32,19 +32,19 @@ const BENEFITS_GRID_TEXTS = {
   securityGovernance: {
     title: "Security Governance",
     subtitle: "Implement precise control over transaction security and permissions.",
-    imageSrc: "https://placehold.co/600x600.png",
+    imageSrc: "/images/landing/Security Governance.png",
     imageAlt: "Security Governance illustration"
   },
   usageBasedPricing: {
     title: "Usage-Based Pricing",
     subtitle: "Only pay when users interact with your agent.",
-    imageSrc: "https://placehold.co/800x600.png",
+    imageSrc: "/images/landing/Usage-Based Pricing.png",
     imageAlt: "Usage-Based Pricing illustration"
   },
   noSetupCost: {
     title: "No Setup Cost",
     subtitle: "Nuwa offers out-of-the-box solution, eliminating the need for setup costs.",
-    imageSrc: "https://placehold.co/600x600.png",
+    imageSrc: "/images/landing/No Setup Cost.png",
     imageAlt: "No Setup Cost illustration"
   },
   userSovereignty: {
