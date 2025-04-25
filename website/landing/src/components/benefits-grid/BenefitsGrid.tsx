@@ -9,6 +9,8 @@ import {
   FiUserCheck,
   FiUsers,
   FiShield,
+  FiDollarSign,
+  FiPackage,
 } from "react-icons/fi";
 import {
   SiEthereum,
@@ -86,7 +88,7 @@ const BenefitsGrid = () => {
         </SectionSubheading>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 h-full">
         {/* Integrations Block */}
         <motion.div
           variants={{
@@ -99,12 +101,12 @@ const BenefitsGrid = () => {
               boxShadow: "0px 6px 0px rgb(24, 24, 27)",
             },
           }}
-          className="col-span-1 sm:col-span-2 row-span-1 h-full rounded-lg border-2 border-zinc-900 bg-white p-4 flex flex-col overflow-hidden"
+          className="col-span-2 sm:col-span-2 row-span-1 h-full rounded-lg border-2 border-zinc-900 bg-white p-4 flex flex-col overflow-hidden"
         >
-          <div className="flex items-center justify-start h-8">
+          <div className="flex items-center justify-start h-4 md:h-8">
             <p className="text-lg sm:text-2xl font-medium">{BENEFITS_GRID_TEXTS.integrations.title}</p>
           </div>
-          <p className="mt-2 text-xs sm:text-base">{BENEFITS_GRID_TEXTS.integrations.subtitle}</p>
+          <p className="mb-2 mt-2 md:mt-2 text-xs sm:text-base">{BENEFITS_GRID_TEXTS.integrations.subtitle}</p>
 
           <div className="relative -mx-6 -mb-6 mt-auto grid grid-cols-3 place-content-center rounded-t-none border-t-2 border-zinc-900 pb-2">
             <div className="grid w-full place-content-center border-r-2 border-zinc-900 bg-[#627EEA] py-4 sm:py-6 text-white h-12 sm:h-16">
@@ -152,17 +154,17 @@ const BenefitsGrid = () => {
               boxShadow: "0px 6px 0px rgb(24, 24, 27)",
             },
           }}
-          className="col-span-1 sm:col-span-1 row-span-1 lg:row-span-2 h-full rounded-lg border-2 border-zinc-900 bg-white p-4 overflow-hidden"
+          className="col-span-1 sm:col-span-1 row-span-1 lg:row-span-2 rounded-lg border-2 border-zinc-900 bg-white p-4 overflow-hidden"
         >
-          <div className="flex h-full flex-col justify-between gap-4">
-            <div className="relative -mx-6 -mt-6 grid h-full place-content-center overflow-hidden border-b-2 border-zinc-900 bg-white shadow-inner shadow-zinc-500">
+          <div className="flex flex-col justify-between gap-4">
+            <div className="relative -mx-6 -mt-6 grid place-content-center overflow-hidden border-b-2 border-zinc-900 bg-white shadow-inner shadow-zinc-500 hidden sm:block">
 
               <Image
                 src={BENEFITS_GRID_TEXTS.securityGovernance.imageSrc}
                 alt={BENEFITS_GRID_TEXTS.securityGovernance.imageAlt}
                 width={600}
                 height={800}
-                className="mx-auto h-full p-4"
+                className="mx-auto h-full p-1"
               />
             </div>
             <div>
@@ -189,7 +191,7 @@ const BenefitsGrid = () => {
         >
 
           <div className="flex h-full flex-col justify-between gap-4">
-            <div className="relative -mx-6 -mt-6 grid h-full place-content-center overflow-hidden border-b-2 border-zinc-900 bg-white shadow-inner shadow-zinc-500">
+            <div className="relative -mx-6 -mt-6 grid h-full place-content-center overflow-hidden border-b-2 border-zinc-900 bg-white shadow-inner shadow-zinc-500 hidden sm:block">
               <Image
                 src={BENEFITS_GRID_TEXTS.usageBasedPricing.imageSrc}
                 alt={BENEFITS_GRID_TEXTS.usageBasedPricing.imageAlt}
@@ -199,6 +201,7 @@ const BenefitsGrid = () => {
               />
             </div>
             <div>
+              <FiDollarSign className="text-3xl sm:text-5xl text-blue-500 mb-2 block sm:hidden" />
               <p className="text-base sm:text-xl font-medium">{BENEFITS_GRID_TEXTS.usageBasedPricing.title}</p>
               <p className="mt-1 text-xs sm:text-base">{BENEFITS_GRID_TEXTS.usageBasedPricing.subtitle}</p>
             </div>
@@ -220,16 +223,17 @@ const BenefitsGrid = () => {
           className="col-span-1 sm:col-span-1 row-span-1 lg:row-span-2 h-full rounded-lg border-2 border-zinc-900 bg-white p-4 overflow-hidden"
         >
           <div className="flex h-full flex-col justify-between gap-6">
-            <div className="relative -mx-6 -mt-6 grid h-full place-content-center overflow-hidden border-b-2 border-zinc-900 bg-white shadow-inner shadow-zinc-500">
+            <div className="relative -mx-6 -mt-6 grid h-full place-content-center overflow-hidden border-b-2 border-zinc-900 bg-white shadow-inner shadow-zinc-500 hidden sm:block">
               <Image
                 src={BENEFITS_GRID_TEXTS.noSetupCost.imageSrc}
                 alt={BENEFITS_GRID_TEXTS.noSetupCost.imageAlt}
                 width={600}
                 height={600}
-                className="mx-auto h-48 sm:h-62 p-4 object-contain"
+                className="mx-auto h-276px sm:h-62 p-4 object-contain"
               />
             </div>
             <div>
+              <FiPackage className="text-3xl sm:text-5xl text-purple-500 mb-2 block sm:hidden" />
               <p className="text-lg sm:text-2xl font-medium">{BENEFITS_GRID_TEXTS.noSetupCost.title}</p>
               <p className="mt-1.5 text-xs sm:text-base">{BENEFITS_GRID_TEXTS.noSetupCost.subtitle}</p>
             </div>
