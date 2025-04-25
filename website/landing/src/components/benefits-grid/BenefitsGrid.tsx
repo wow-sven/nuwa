@@ -104,7 +104,7 @@ const BenefitsGrid = () => {
           className="col-span-2 sm:col-span-2 row-span-1 h-full rounded-lg border-2 border-zinc-900 bg-white p-4 flex flex-col overflow-hidden"
         >
           <div className="flex items-center justify-start h-4 md:h-8">
-            <p className="text-lg sm:text-2xl font-medium">{BENEFITS_GRID_TEXTS.integrations.title}</p>
+            <p className="text-md sm:text-2xl font-medium">{BENEFITS_GRID_TEXTS.integrations.title}</p>
           </div>
           <p className="mb-2 mt-2 md:mt-2 text-xs sm:text-base">{BENEFITS_GRID_TEXTS.integrations.subtitle}</p>
 
