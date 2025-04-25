@@ -3,18 +3,10 @@
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { FiAward } from "react-icons/fi";
-import { fetchLeaderboard } from "@/app/services/apiClient";
-import { LeaderboardUser } from "@/app/services/airtable";
+import { getLeaderboardData, LeaderboardUser } from "@/app/services/supabaseService";
 import { BarLoader } from "@/app/components/shared/BarLoader";
 
-// 使用Airtable数据接口
-interface User extends LeaderboardUser { }
-
-
-const TableRows = ({ user }: { user: User }) => {
-    // 使用字符串的最后一个字符作为数字用于条件判断
-    const idLastChar = parseInt(user.id.slice(-1), 10);
-
+const TableRows = ({ user }: { user: LeaderboardUser }) => {
     return (
         <motion.tr
             layoutId={`row-${user.id}`}
@@ -55,7 +47,7 @@ const TableRows = ({ user }: { user: User }) => {
 };
 
 const Table = () => {
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState<LeaderboardUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -63,7 +55,7 @@ const Table = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const data = await fetchLeaderboard();
+                const data = await getLeaderboardData();
                 setUsers(data);
                 setError(null);
             } catch (err) {

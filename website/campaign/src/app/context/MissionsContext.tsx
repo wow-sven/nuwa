@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Mission } from '../services/airtable';
-import { fetchMissions } from '../services/apiClient';
+import { getMissions } from '../services/airtable';
 
 // Create default empty missions array
 const defaultMissions: Mission[] = [];
@@ -39,7 +39,7 @@ export const MissionsProvider: React.FC<MissionsProviderProps> = ({ children }) 
         try {
             setLoading(true);
             setError(null);
-            const data = await fetchMissions();
+            const data = await getMissions();
             setMissions(data);
         } catch (err) {
             setError('Failed to fetch missions data');
