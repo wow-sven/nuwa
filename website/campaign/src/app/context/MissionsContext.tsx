@@ -1,8 +1,20 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Mission } from '../services/airtable';
-import { getMissions } from '../services/airtable';
+// 移除直接从airtable.ts导入Mission类型
+// Remove direct import of Mission type from airtable.ts
+
+// 定义Mission类型
+// Define Mission type
+interface Mission {
+    id: string;
+    title: string;
+    description: string;
+    suggestionText: string;
+    suggested?: boolean;
+    prompt?: string;
+    order?: number;
+}
 
 // Create default empty missions array
 const defaultMissions: Mission[] = [];
@@ -39,8 +51,16 @@ export const MissionsProvider: React.FC<MissionsProviderProps> = ({ children }) 
         try {
             setLoading(true);
             setError(null);
-            const data = await getMissions();
-            setMissions(data);
+            // 通过API路由获取数据
+            // Fetch data through API route
+            const response = await fetch('/api/airtable?action=getMissions');
+            const result = await response.json();
+
+            if (result.success) {
+                setMissions(result.data);
+            } else {
+                throw new Error(result.error || 'Failed to fetch missions');
+            }
         } catch (err) {
             setError('Failed to fetch missions data');
             console.error('Error fetching missions:', err);

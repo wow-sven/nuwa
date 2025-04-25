@@ -1,5 +1,5 @@
 import { Context } from 'telegraf';
-import { getMissions } from '../../services/airtable';
+import { getMissions } from '../airtable/airtable';
 import { checkTwitterBinding, sendTwitterBindingMessage } from './twitter-binding';
 import { getDefaultSystemPrompt, getMissionSystemPrompt, UserInfo } from '../chat/mission-router';
 import { conversationHistory, activeMissions } from '../bot/route';

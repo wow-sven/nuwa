@@ -1,7 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { getMissions } from '../../services/airtable';
+import { getMissions } from '../airtable/airtable';
 
 /**
  * 用户信息接口

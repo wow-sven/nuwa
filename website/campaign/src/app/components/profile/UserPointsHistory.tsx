@@ -3,18 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FiAward, FiRefreshCw } from "react-icons/fi";
-import { fetchUserRewardHistory, fetchMissions } from "@/app/services/apiClient";
+import { getUserPointsHistory, PointsHistoryItem } from "@/app/services/supabaseService";
 import { BarLoader } from "@/app/components/shared/BarLoader";
-
-interface PointsHistoryItem {
-    id: string;
-    points: number;
-    mission: string;
-    createdTime: string;
-    missionTitle?: string;
-    missionDescription?: string;
-    missionDetails?: string;
-}
 
 interface UserPointsHistoryProps {
     userName: string;
@@ -29,34 +19,8 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
     const fetchHistory = async () => {
         try {
             setLoading(true);
-
-            // 并行获取积分历史和所有任务信息
-            const [historyData, allMissions] = await Promise.all([
-                fetchUserRewardHistory(userName),
-                fetchMissions()
-            ]);
-
-            // 创建任务ID到任务详情的映射
-            const missionMap = new Map();
-            allMissions.forEach(mission => {
-                missionMap.set(mission.id, {
-                    title: mission.title,
-                    description: mission.description
-                });
-            });
-
-            // 将任务详情添加到历史记录中
-            const historyWithMissionDetails = historyData.map(item => {
-                const missionDetails = missionMap.get(item.mission);
-                return {
-                    ...item,
-                    missionTitle: missionDetails?.title || 'Unknown Mission',
-                    missionDescription: missionDetails?.description || '',
-                    missionDetails: item.missionDetails || '',
-                };
-            });
-
-            setHistory(historyWithMissionDetails);
+            const historyData = await getUserPointsHistory(userName);
+            setHistory(historyData);
             setError(null);
         } catch (err) {
             console.error('Error fetching points history:', err);
@@ -73,7 +37,6 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
     const handleRefresh = async () => {
         setIsRefreshing(true);
         await fetchHistory();
-        // 添加一个小延迟，使刷新动画更明显
         setTimeout(() => {
             setIsRefreshing(false);
         }, 500);

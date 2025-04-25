@@ -1,6 +1,19 @@
 import React from "react";
 import { useMissions } from "@/app/context/MissionsContext";
-import { Mission } from "@/app/services/airtable";
+// 移除直接从airtable.ts导入Mission类型
+// Remove direct import of Mission type from airtable.ts
+
+// 定义Mission类型
+// Define Mission type
+interface Mission {
+    id: string;
+    title: string;
+    description: string;
+    suggestionText: string;
+    suggested?: boolean;
+    prompt?: string;
+    order?: number;
+}
 
 // Standard image URL
 const UNIFIED_IMAGE_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2264&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";

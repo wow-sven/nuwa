@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
     getMissions
-} from '@/app/services/airtable';
+} from '@/app/api/airtable/airtable';
 
 export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;

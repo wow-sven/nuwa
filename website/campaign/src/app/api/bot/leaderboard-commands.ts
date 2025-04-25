@@ -1,5 +1,5 @@
 import { Context } from 'telegraf';
-import { getLeaderboardData } from '@/app/services/supabaseService';
+import { getLeaderboardData } from '../../services/supabaseService';
 
 /**
  * 处理 /leaderboard 命令
