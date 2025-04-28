@@ -21,11 +21,6 @@ export interface MessageContentProps {
     part: MessagePart;
 }
 
-export interface MessageBubbleProps {
-    part: MessagePart;
-    content: string;
-}
-
 export interface AvatarProps {
     role: MessageRole;
 } 

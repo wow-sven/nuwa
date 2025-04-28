@@ -18,7 +18,7 @@ export function InputContainer({
     };
 
     return (
-        <div className="p-4 space-y-4">
+        <div className="p-2 sm:p-4 space-y-2 sm:space-y-4">
             <ChatInput
                 value={input}
                 onChange={onInputChange}

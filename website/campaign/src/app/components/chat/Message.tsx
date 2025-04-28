@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UIMessage } from 'ai';
 import { Avatar } from './message/Avatar';
-import { MessageBubble } from './message/MessageBubble';
+import { MessageContent } from './message/MessageContent';
 import { getMessageContainerClass, getMessageContentClass, getMessageBubbleClass } from './message/styles';
 
 interface MessageProps {
@@ -31,13 +31,12 @@ export function Message({ message }: MessageProps) {
                                     key={`${message.id}-${i}`}
                                     className={`flex flex-col gap-4 ${getMessageBubbleClass(role)}`}
                                 >
-                                    <MessageBubble
+                                    <MessageContent
                                         part={{
                                             type: part.type,
                                             text: 'text' in part ? part.text : undefined,
                                             toolInvocation: 'toolInvocation' in part ? part.toolInvocation : undefined
                                         }}
-                                        content={'text' in part ? part.text || '' : ''}
                                     />
                                 </div>
                             ))}

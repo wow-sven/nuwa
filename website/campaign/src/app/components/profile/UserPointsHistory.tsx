@@ -103,10 +103,10 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
                 <table className="w-full relative">
                     <thead className="sticky top-0 bg-white z-7">
                         <tr className="border-b-[1px] border-slate-200 text-slate-400 text-sm uppercase">
-                            <th className="pl-4 w-8"></th>
-                            <th className="text-start p-4 font-medium">Mission</th>
-                            <th className="text-start p-4 font-medium">Points</th>
-                            <th className="text-start p-4 font-medium">Date</th>
+                            <th className="pl-2 sm:pl-4 w-8"></th>
+                            <th className="text-start p-2 sm:p-4 font-medium">Mission</th>
+                            <th className="text-start p-2 sm:p-4 font-medium">Points</th>
+                            <th className="text-start p-2 sm:p-4 font-medium hidden sm:table-cell">Date</th>
                         </tr>
                     </thead>
 
@@ -160,18 +160,19 @@ const TableRow = ({
             layoutId={`row-${item.id}`}
             className={`text-sm ${index % 2 ? "bg-slate-100" : "bg-white"}`}
         >
-            <td className="pl-4 w-8 text-lg">
+            <td className="pl-2 sm:pl-4 w-8 text-lg">
 
             </td>
 
-            <td className="p-4">
+            <td className="p-2 sm:p-4">
                 <div>
                     <span className="block mb-1 font-medium">{missionTitle}</span>
                     <span className="block text-xs text-slate-500">{item.missionDetails}</span>
+                    <span className="block text-xs text-slate-500 sm:hidden mt-1">{formattedDate}</span>
                 </div>
             </td>
 
-            <td className="p-4">
+            <td className="p-2 sm:p-4">
                 <div className={`flex items-center gap-2 font-medium ${item.points > 0 ? "text-green-500" : "text-red-500"
                     }`}>
                     <span>{item.points > 0 ? `+${item.points}` : item.points}</span>
@@ -179,7 +180,7 @@ const TableRow = ({
                 </div>
             </td>
 
-            <td className="p-4 font-medium text-slate-600">{formattedDate}</td>
+            <td className="p-2 sm:p-4 font-medium text-slate-600 hidden sm:table-cell">{formattedDate}</td>
         </motion.tr>
     );
 }; 

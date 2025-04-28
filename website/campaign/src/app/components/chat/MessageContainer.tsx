@@ -23,7 +23,7 @@ export function MessageContainer({
             ref={messagesContainerRef}
             role="log"
             aria-live="polite"
-            className={`flex-1 p-4 space-y-4 bg-white ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}
+            className={`flex-1 p-2 sm:p-4 space-y-2 sm:space-y-4 bg-white ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}
         >
             {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full">
@@ -38,13 +38,13 @@ export function MessageContainer({
                         />
                     ))}
                     {(status === 'streaming' || status === 'submitted') && (
-                        <div className="flex items-center justify-start gap-4 px-4">
-                            <div className="size-10 flex items-center rounded-full justify-center shrink-0">
+                        <div className="flex items-center justify-start gap-2 sm:gap-4 px-2 sm:px-4">
+                            <div className="size-8 sm:size-10 flex items-center rounded-full justify-center shrink-0">
                                 {status === 'submitted' && (
                                     <img
                                         src="/nuwa.svg"
                                         alt="Nuwa Logo"
-                                        className="size-6"
+                                        className="size-5 sm:size-6"
                                     />
                                 )}
                             </div>
@@ -54,25 +54,25 @@ export function MessageContainer({
                         </div>
                     )}
                     {status === 'error' && (
-                        <div className="flex items-center justify-start gap-4 px-4">
-                            <div className="size-10 flex items-center rounded-full justify-center shrink-0">
+                        <div className="flex items-center justify-start gap-2 sm:gap-4 px-2 sm:px-4">
+                            <div className="size-8 sm:size-10 flex items-center rounded-full justify-center shrink-0">
                                 <img
                                     src="/nuwa.svg"
                                     alt="Nuwa Logo"
-                                    className="size-6"
+                                    className="size-5 sm:size-6"
                                 />
                             </div>
-                            <div className="flex flex-col gap-2 bg-red-50 text-red-600 px-4 py-2 rounded-xl">
+                            <div className="flex flex-col gap-1 sm:gap-2 bg-red-50 text-red-600 px-3 sm:px-4 py-2 rounded-xl">
                                 <div className="flex items-center">
-                                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <svg className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span>There was an error, please try again</span>
+                                    <span className="text-sm sm:text-base">There was an error, please try again</span>
                                 </div>
                                 {onRetry && (
                                     <button
                                         onClick={onRetry}
-                                        className="self-start mt-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded-md transition-colors"
+                                        className="self-start mt-1 text-xs sm:text-sm bg-red-100 hover:bg-red-200 text-red-700 px-2 sm:px-3 py-1 rounded-md transition-colors"
                                     >
                                         Retry
                                     </button>

@@ -42,18 +42,18 @@ export default function ProfilePage() {
     const twitterHandle = session.user?.twitterHandle || '';
 
     return (
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
             <motion.div
                 initial="hidden"
                 animate="visible"
                 variants={fadeInUp}
-                className="max-w-6xl mx-auto mt-20"
+                className="max-w-6xl mx-auto mt-10 sm:mt-20"
             >
                 <div className="w-full">
                     <UserProfilePanel />
                 </div>
 
-                <div className="w-full mt-8">
+                <div className="w-full mt-4 sm:mt-8">
                     <UserPointsHistory userName={twitterHandle} />
                 </div>
             </motion.div>

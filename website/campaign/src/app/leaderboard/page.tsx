@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Leaderboard } from "@/app/components/leaderboard/Leaderboard";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import { BarLoader } from "@/app/components/shared/BarLoader";
 
 // 定义淡入动画变体
 const fadeInUp = {
@@ -30,7 +31,11 @@ export default function LeaderboardPage() {
     }, [status, router]);
 
     if (status === "loading") {
-        return <div className="flex justify-center items-center h-screen">Loading...</div>;
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <BarLoader />
+            </div>
+        );
     }
 
     if (!session) {
@@ -38,12 +43,12 @@ export default function LeaderboardPage() {
     }
 
     return (
-        <main className="container mx-auto px-4 py-8">
+        <main className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
             <motion.div
                 initial="hidden"
                 animate="visible"
                 variants={fadeInUp}
-                className="max-w-6xl mx-auto mt-20"
+                className="max-w-6xl mx-auto mt-6 sm:mt-10 md:mt-20"
             >
                 <div className="w-full">
                     <Leaderboard />

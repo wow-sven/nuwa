@@ -13,36 +13,34 @@ const TableRows = ({ user }: { user: LeaderboardUser }) => {
             layoutId={`row-${user.id}`}
             className={`text-sm ${(user.rank ?? 0) % 2 === 0 ? "bg-white" : "bg-slate-100"}`}
         >
-            <td className="p-4">
+            <td className="p-2 sm:p-4">
                 <div
-                    className={`flex items-center gap-2 font-medium ${user.rank === 1 && "text-violet-500"
-                        }`}
+                    className={`flex items-center justify-center gap-2 font-medium`}
                 >
                     <span>#{user.rank}</span>
-                    {user.rank === 1 && <FiAward className="text-xl" />}
                 </div>
             </td>
 
-            <td className="p-4 flex items-center gap-3 overflow-hidden">
+            <td className="p-2 sm:p-4 flex items-center gap-2 sm:gap-3 overflow-hidden">
                 <a
                     href={`https://x.com/${user.handle}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                    className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity"
                 >
                     <img
                         src={user.avatar}
                         alt={`${user.name}'s avatar`}
-                        className="w-10 h-10 rounded-full bg-slate-300 object-cover object-top shrink-0"
+                        className="w-8 h-8 md:w-10 md:h-10 sm:w-10 sm:h-10 rounded-full bg-slate-300 object-cover object-top shrink-0"
                     />
                     <div>
-                        <span className="block mb-1 font-medium">{user.name}</span>
+                        <span className="block mb-0.5 sm:mb-1 font-medium text-sm sm:text-base">{user.name}</span>
                         <span className="block text-xs text-slate-500">@{user.handle}</span>
                     </div>
                 </a>
             </td>
 
-            <td className="p-4 font-medium">{user.points}</td>
+            <td className="p-2 sm:p-4 font-medium">{user.points}</td>
         </motion.tr>
     );
 };
@@ -95,23 +93,25 @@ export const Leaderboard = () => {
     }
 
     return (
-        <div className="p-8 w-full">
-            <div className="w-full bg-white shadow-lg rounded-lg overflow-x-scroll max-w-4xl mx-auto">
+        <div className="p-2 sm:p-4 md:p-8 w-full">
+            <div className="w-full bg-white shadow-lg rounded-lg max-w-4xl mx-auto">
                 <PanelHeader title="Leaderboard" />
-                <table className="w-full">
-                    <thead>
-                        <tr className="border-b-[1px] border-slate-200 text-slate-400 text-sm uppercase">
-                            <th className="text-start p-4 font-medium">Rank</th>
-                            <th className="text-start p-4 font-medium">User</th>
-                            <th className="text-start p-4 font-medium">Points</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {users.map((user) => (
-                            <TableRows key={user.id} user={user} />
-                        ))}
-                    </tbody>
-                </table>
+                <div className="overflow-x-auto overflow-y-auto max-h-[60vh] sm:max-h-[70vh]">
+                    <table className="w-full relative">
+                        <thead className="sticky top-0 z-7 bg-white">
+                            <tr className="border-b-[1px] border-slate-200 text-slate-400 text-xs sm:text-sm uppercase">
+                                <th className="text-start p-2 sm:p-4 font-medium">Rank</th>
+                                <th className="text-start p-2 sm:p-4 font-medium">User</th>
+                                <th className="text-start p-2 sm:p-4 font-medium">Points</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {users.map((user) => (
+                                <TableRows key={user.id} user={user} />
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );

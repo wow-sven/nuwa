@@ -136,7 +136,7 @@ export function Chat() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-120px)] bg-background rounded-xl">
+        <div className="flex flex-col h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)] bg-background rounded-xl">
             <AnimatePresence mode="wait">
                 {showGridCards ? (
                     <Missions
@@ -155,18 +155,20 @@ export function Chat() {
                     >
                         <div className="flex flex-col h-full">
                             {messages.length > 0 && (
-                                <div className="flex justify-between p-2">
-                                    <div>
+                                <div className="flex flex-col sm:flex-row sm:justify-between p-2 sm:p-3">
+                                    <div className="order-2 sm:order-1">
                                         {classification && (
-                                            <div className="text-xs text-gray-500">
+                                            <div className="hidden sm:block text-xs text-gray-500">
                                                 Current Mission: {missions.find(m => m.id === classification.missionId)?.title || 'Unknown'} (ID: {classification.missionId})
                                             </div>
                                         )}
                                     </div>
-                                    <NeubrutalismButton
-                                        text="Start New Chat"
-                                        onClick={handleNewChat}
-                                    />
+                                    <div className="order-1 sm:order-2">
+                                        <NeubrutalismButton
+                                            text="Start New Chat"
+                                            onClick={handleNewChat}
+                                        />
+                                    </div>
                                 </div>
                             )}
                             <MessageContainer
@@ -176,7 +178,7 @@ export function Chat() {
                                 messagesEndRef={messagesEndRef as React.RefObject<HTMLDivElement>}
                                 onRetry={handleRetry}
                             />
-                            <div className="p-4 space-y-4">
+                            <div className="p-2 sm:p-4 space-y-2 sm:space-y-4">
                                 {messages.length === 0 && (
                                     <Missions
                                         showGridCards={showGridCards}
