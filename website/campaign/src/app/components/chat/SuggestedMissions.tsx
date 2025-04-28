@@ -27,7 +27,7 @@ export function SuggestedMissions({ onSelectSuggestion }: SuggestedMissionsProps
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2 }}
-            className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full mt-4"
+            className="grid grid-cols-2 gap-2 w-full mt-4"
         >
             {suggestedMissions.map((mission, index) => (
                 <motion.div
@@ -40,7 +40,7 @@ export function SuggestedMissions({ onSelectSuggestion }: SuggestedMissionsProps
                 >
                     <button
                         onClick={() => onSelectSuggestion(mission.suggestionText)}
-                        className="text-left border border-gray-200 rounded-xl px-4 py-3 text-sm w-full h-auto flex flex-col justify-start items-start hover:bg-gray-100 transition-colors"
+                        className="text-left border border-gray-200 rounded-xl px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm w-full h-auto flex flex-col justify-start items-start hover:bg-gray-100 transition-colors"
                     >
                         <span className="font-medium">{mission.title}</span>
                         <span className="text-gray-500">

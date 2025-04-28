@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { FloatingNav } from "./FloatingNav";
 import { MobileNav } from "./MobileNav";
-import { SiInstagram, SiLinkedin, SiYoutube } from "react-icons/si";
+import { SiGithub, SiInstagram, SiLinkedin, SiYoutube } from "react-icons/si";
 import { FaTwitter } from "react-icons/fa";
 import { MobileNavProvider } from "./MobileNavContext";
 import { FiHome, FiAward, FiUser } from "react-icons/fi";
@@ -36,19 +36,11 @@ export const navItems: NavItem[] = [
 export const SOCIAL_CTAS = [
     {
         Component: FaTwitter,
-        href: "#",
+        href: "https://twitter.com/NuwaDev",
     },
     {
-        Component: SiInstagram,
-        href: "#",
-    },
-    {
-        Component: SiLinkedin,
-        href: "#",
-    },
-    {
-        Component: SiYoutube,
-        href: "#",
+        Component: SiGithub,
+        href: "https://github.com/rooch-network/nuwa",
     },
 ];
 

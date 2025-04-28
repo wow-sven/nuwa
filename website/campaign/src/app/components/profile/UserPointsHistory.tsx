@@ -6,6 +6,7 @@ import { FiAward, FiRefreshCw } from "react-icons/fi";
 import { getUserPointsHistory, PointsHistoryItem } from "@/app/services/supabaseService";
 import { BarLoader } from "@/app/components/shared/BarLoader";
 import { useMissions } from "@/app/context/MissionsContext";
+import { PanelHeader } from "@/app/components/shared/PanelHeader";
 
 interface UserPointsHistoryProps {
     userName: string;
@@ -86,37 +87,41 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
 
     return (
         <div className="w-full bg-white shadow-lg rounded-lg">
-            <div className="flex justify-between items-center p-4 border-b border-slate-200">
-                <h3 className="text-lg font-medium">Points History</h3>
-                <button
-                    onClick={handleRefresh}
-                    className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
-                    title="Refresh data"
-                >
-                    <FiRefreshCw className="w-5 h-5" />
-                </button>
-            </div>
-            <table className="w-full">
-                <thead>
-                    <tr className="border-b-[1px] border-slate-200 text-slate-400 text-sm uppercase">
-                        <th className="pl-4 w-8"></th>
-                        <th className="text-start p-4 font-medium">Mission</th>
-                        <th className="text-start p-4 font-medium">Points</th>
-                        <th className="text-start p-4 font-medium">Date</th>
-                    </tr>
-                </thead>
+            <PanelHeader
+                title="Points History"
+                rightElement={
+                    <button
+                        onClick={handleRefresh}
+                        className={`p-2 rounded-full hover:bg-gray-100 transition-colors ${isRefreshing ? 'animate-spin' : ''}`}
+                        title="Refresh data"
+                    >
+                        <FiRefreshCw className="w-5 h-5" />
+                    </button>
+                }
+            />
+            <div className="max-h-[500px] overflow-auto">
+                <table className="w-full relative">
+                    <thead className="sticky top-0 bg-white z-7">
+                        <tr className="border-b-[1px] border-slate-200 text-slate-400 text-sm uppercase">
+                            <th className="pl-4 w-8"></th>
+                            <th className="text-start p-4 font-medium">Mission</th>
+                            <th className="text-start p-4 font-medium">Points</th>
+                            <th className="text-start p-4 font-medium">Date</th>
+                        </tr>
+                    </thead>
 
-                <tbody>
-                    {history.map((item, index) => (
-                        <TableRow
-                            key={item.id}
-                            item={item}
-                            index={index}
-                            getMissionTitle={getMissionTitle}
-                        />
-                    ))}
-                </tbody>
-            </table>
+                    <tbody>
+                        {history.map((item, index) => (
+                            <TableRow
+                                key={item.id}
+                                item={item}
+                                index={index}
+                                getMissionTitle={getMissionTitle}
+                            />
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

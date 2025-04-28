@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { FiAward } from "react-icons/fi";
 import { getLeaderboardData, LeaderboardUser } from "@/app/services/supabaseService";
 import { BarLoader } from "@/app/components/shared/BarLoader";
+import { PanelHeader } from "@/app/components/shared/PanelHeader";
 
 const TableRows = ({ user }: { user: LeaderboardUser }) => {
     return (
@@ -46,7 +47,7 @@ const TableRows = ({ user }: { user: LeaderboardUser }) => {
     );
 };
 
-const Table = () => {
+export const Leaderboard = () => {
     const [users, setUsers] = useState<LeaderboardUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -94,30 +95,24 @@ const Table = () => {
     }
 
     return (
-        <div className="w-full bg-white shadow-lg rounded-lg overflow-x-scroll max-w-4xl mx-auto">
-            <table className="w-full">
-                <thead>
-                    <tr className="border-b-[1px] border-slate-200 text-slate-400 text-sm uppercase">
-                        <th className="text-start p-4 font-medium">Rank</th>
-                        <th className="text-start p-4 font-medium">User</th>
-                        <th className="text-start p-4 font-medium">Points</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {users.map((user) => (
-                        <TableRows key={user.id} user={user} />
-                    ))}
-                </tbody>
-            </table>
-        </div>
-    );
-};
-
-export const Leaderboard = () => {
-    return (
         <div className="p-8 w-full">
-            <Table />
+            <div className="w-full bg-white shadow-lg rounded-lg overflow-x-scroll max-w-4xl mx-auto">
+                <PanelHeader title="Leaderboard" />
+                <table className="w-full">
+                    <thead>
+                        <tr className="border-b-[1px] border-slate-200 text-slate-400 text-sm uppercase">
+                            <th className="text-start p-4 font-medium">Rank</th>
+                            <th className="text-start p-4 font-medium">User</th>
+                            <th className="text-start p-4 font-medium">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {users.map((user) => (
+                            <TableRows key={user.id} user={user} />
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }; 

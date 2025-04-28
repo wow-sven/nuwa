@@ -50,19 +50,11 @@ export function Missions({
     return (
         <div className="flex flex-col w-full px-8">
             <motion.div
-                className="flex items-center justify-between mb-4"
+                className="flex items-center justify-end mb-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.2 }}
             >
-                <motion.h2
-                    className="text-lg font-medium text-slate-800"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1.2 }}
-                >
-                    Suggested Missions
-                </motion.h2>
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
