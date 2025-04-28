@@ -1,40 +1,15 @@
 'use client'
 
 import { motion } from "framer-motion";
-import { FiUser, FiAward, FiHome } from "react-icons/fi";
-import { IconType } from "react-icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-
-interface NavItem {
-    title: string;
-    icon: IconType;
-    path: string;
-}
+import { navItems } from "./NavigationWrapper";
+import Image from "next/image";
 
 export const FloatingNav = () => {
     const pathname = usePathname();
     const { data: session, status } = useSession();
-
-    const navItems: NavItem[] = [
-        {
-            title: "Home",
-            icon: FiHome,
-            path: "/",
-
-        },
-        {
-            title: "Leaderboard",
-            icon: FiAward,
-            path: "/leaderboard",
-        },
-        {
-            title: "My Profile",
-            icon: FiUser,
-            path: "/profile",
-        },
-    ];
 
     // 检查当前路径是否匹配任何导航项
     const isPathValid = navItems.some(item => pathname === item.path);
@@ -55,6 +30,13 @@ export const FloatingNav = () => {
             className="fixed top-4 z-50 w-full flex justify-center"
         >
             <div className="flex items-center justify-center space-x-4 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-lg border border-slate-200">
+                <Image
+                    src="/nuwa.svg"
+                    alt="Nuwa Logo"
+                    width={30}
+                    height={30}
+                    className="mr-2"
+                />
                 {navItems.map((item) => (
                     <Link
                         key={item.path}
