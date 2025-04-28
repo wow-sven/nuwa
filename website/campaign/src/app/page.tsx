@@ -40,17 +40,17 @@ export default function Home() {
     );
   }
 
-  if (!session) {
-    return <GridHoverHero />;
-  }
+  // if (!session) {
+  //   return <GridHoverHero />;
+  // }
 
   return (
-    <main className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
+    <main className="container mx-auto px-2 sm:px-4 sm:py-4">
       <motion.div
         initial="hidden"
         animate="visible"
         variants={fadeInUp}
-        className="max-w-6xl mx-auto mt-6 sm:mt-10 md:mt-20"
+        className="max-w-6xl mx-auto sm:mt-10 md:mt-20"
       >
         <div className="w-full">
           <Chat />

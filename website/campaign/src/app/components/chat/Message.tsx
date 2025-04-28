@@ -21,25 +21,49 @@ export function Message({ message }: MessageProps) {
                 animate={{ y: 0, opacity: 1 }}
                 data-role={role}
             >
-                <div className={`flex gap-4 w-full ${getMessageContainerClass(role)}`}>
-                    <Avatar role={role} />
+                <div className={`flex flex-col sm:flex-row w-full ${getMessageContainerClass(role)}`}>
+                    <div className="hidden sm:flex justify-start sm:justify-start">
+                        <Avatar role={role} />
+                    </div>
 
-                    <div className={`flex flex-col gap-4 ${getMessageContentClass(role)}`}>
-                        <div className="flex flex-col gap-2 w-full">
-                            {parts.map((part, i) => (
-                                <div
-                                    key={`${message.id}-${i}`}
-                                    className={`flex flex-col gap-4 ${getMessageBubbleClass(role)}`}
-                                >
-                                    <MessageContent
-                                        part={{
-                                            type: part.type,
-                                            text: 'text' in part ? part.text : undefined,
-                                            toolInvocation: 'toolInvocation' in part ? part.toolInvocation : undefined
-                                        }}
-                                    />
-                                </div>
-                            ))}
+                    <div className={`flex flex-col gap-2 ${getMessageContentClass(role)}`}>
+                        <div className="flex flex-col gap-2">
+                            {parts.map((part, i) => {
+                                if (part.type !== 'text' && part.type !== 'tool-invocation') {
+                                    return null;
+                                }
+                                // 在移动端不显示 tool-invocation
+                                if (part.type === 'tool-invocation') {
+                                    return (
+                                        <div
+                                            key={`${message.id}-${i}`}
+                                            className={`hidden sm:flex flex-col ${getMessageBubbleClass(role)}`}
+                                        >
+                                            <MessageContent
+                                                part={{
+                                                    type: part.type,
+                                                    text: 'text' in part ? (part.text as string) : undefined,
+                                                    toolInvocation: 'toolInvocation' in part ? part.toolInvocation : undefined
+                                                }}
+                                            />
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <div
+                                        key={`${message.id}-${i}`}
+                                        className={`flex flex-col ${getMessageBubbleClass(role)}`}
+                                    >
+                                        <MessageContent
+                                            part={{
+                                                type: part.type,
+                                                text: 'text' in part ? (part.text as string) : undefined,
+                                                toolInvocation: 'toolInvocation' in part ? part.toolInvocation : undefined
+                                            }}
+                                        />
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

@@ -48,7 +48,7 @@ export function Missions({
     }
 
     return (
-        <div className="flex flex-col w-full px-8">
+        <div className="flex flex-col w-full px-2 sm:px-4">
             <motion.div
                 className="flex items-center justify-end mb-4"
                 initial={{ opacity: 0 }}

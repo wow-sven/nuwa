@@ -12,7 +12,7 @@ export const getMessageContainerClass = (role: MessageRole): string => {
 export const getMessageContentClass = (role: MessageRole): string => {
     switch (role) {
         case 'user':
-            return 'items-end max-w-2xl md:max-w-3xl';
+            return 'items-end justify-end sm:max-w-2xl md:max-w-3xl';
         default:
             return 'w-full';
     }
@@ -21,8 +21,8 @@ export const getMessageContentClass = (role: MessageRole): string => {
 export const getMessageBubbleClass = (role: MessageRole): string => {
     switch (role) {
         case 'user':
-            return 'bg-indigo-600 text-white [&_*]:text-white px-3 py-2 rounded-xl';
+            return 'bg-indigo-600 items-end justify-end  text-white [&_*]:text-white px-3 py-2 rounded-xl';
         default:
-            return 'bg-muted px-3 py-2 rounded-xl';
+            return 'bg-muted md:px-3 py-2 rounded-xl';
     }
 }; 
