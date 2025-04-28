@@ -38,7 +38,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Nuwa Campaign" />
         <meta name="theme-color" content="#000000" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} h-dvh`}>
         <Providers>
           <NavigationWrapper>
             {children}
