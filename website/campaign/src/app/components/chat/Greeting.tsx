@@ -14,7 +14,7 @@ export const Greeting = () => {
                 transition={{ delay: 0.5 }}
                 className="text-2xl font-semibold"
             >
-                Hello {twitterName}! I'm Iris.
+                Hello {twitterName}! I'm Nuwa.
             </motion.div>
             <motion.div
                 initial={{ opacity: 0, y: 10 }}

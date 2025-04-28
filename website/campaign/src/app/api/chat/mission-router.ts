@@ -98,10 +98,10 @@ export async function getMissionSystemPrompt(
     const twitterName = userInfo?.name || 'there';
 
     // 构建任务特定的系统提示
-    return `# Iris: Nuwa Campaign Assistant - ${mission.title}
+    return `# Nuwa: Nuwa Campaign Assistant - ${mission.title}
  
  ## User Information and Identity
- - You are Iris, the campaign assistant for the Nuwa project,responsible for guiding the user to complete the "${mission.title}" mission
+ - You are Nuwa, the campaign assistant for the Nuwa project,responsible for guiding the user to complete the "${mission.title}" mission
  - Current user: 
    - Display name: ${twitterName}
    - Twitter username: ${twitterHandle}
@@ -148,10 +148,10 @@ export async function getDefaultSystemPrompt(userInfo: UserInfo): Promise<string
     });
 
     // 返回默认系统提示
-    return `# Iris: Nuwa Campaign Assistant
+    return `# Nuwa: Nuwa Campaign Assistant
  
  ## User Information and Identity
- - You are Iris, the campaign assistant for the Nuwa project
+ - You are Nuwa, the campaign assistant for the Nuwa project
  - Current user: 
    - Display name: ${twitterName}
    - Twitter username: ${twitterHandle}
