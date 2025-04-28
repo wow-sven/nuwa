@@ -79,7 +79,7 @@ export const tools = {
             cursor: z.string().optional().describe('Pagination cursor'),
         }),
         // Call the adapter function
-        execute: async ({ userName, sinceTime, untilTime, cursor }) => 
+        execute: async ({ userName, sinceTime, untilTime, cursor }) =>
             twitterAdapter.getStandardUserMentions(userName, sinceTime, untilTime, cursor),
     }),
 
@@ -88,9 +88,9 @@ export const tools = {
         description: 'Get a single tweet by its ID in a standardized format.',
         parameters: z.object({
             // tweet_ids: z.string().describe('A single tweet ID.'), // Renamed parameter
-            tweetId: z.string().describe('A single tweet ID.'), 
+            tweetId: z.string().describe('A single tweet ID.'),
         }),
-         // Call the adapter function, handle potential null return
+        // Call the adapter function, handle potential null return
         execute: async ({ tweetId }) => {
             const tweet = await twitterAdapter.getStandardTweetById(tweetId); // Use adapter
             if (!tweet) {
@@ -110,8 +110,8 @@ export const tools = {
             untilTime: z.number().optional().describe('Unix timestamp (seconds)'),
             cursor: z.string().optional().describe('Pagination cursor'),
         }),
-         // Call the adapter function
-        execute: async ({ tweetId, sinceTime, untilTime, cursor }) => 
+        // Call the adapter function
+        execute: async ({ tweetId, sinceTime, untilTime, cursor }) =>
             twitterAdapter.getStandardTweetReplies(tweetId, sinceTime, untilTime, cursor),
     }),
 
@@ -125,8 +125,8 @@ export const tools = {
             includeReplies: z.boolean().optional().default(true).describe('Include replies?'),
             cursor: z.string().optional().describe('Pagination cursor'),
         }),
-         // Call the adapter function
-        execute: async ({ tweetId, sinceTime, untilTime, includeReplies, cursor }) => 
+        // Call the adapter function
+        execute: async ({ tweetId, sinceTime, untilTime, includeReplies, cursor }) =>
             twitterAdapter.getStandardTweetQuotes(tweetId, sinceTime, untilTime, includeReplies, cursor),
     }),
 
@@ -142,7 +142,7 @@ export const tools = {
     }),
 
     // --- Other Tools ---
-    
+
     // 11. 奖励用户代币 (No change)
     rewardUserPoints: tool({
         description: 'Reward points to a user for completing a mission',
@@ -154,11 +154,11 @@ export const tools = {
         }),
         execute: async ({ userName, points, missionId, missionDetails }) => {
             try {
-                 await rewardUserPoints({ userName, points, missionId, missionDetails });
-                 return { success: true, message: `Successfully rewarded ${points} points to ${userName}.` };
+                await rewardUserPoints({ userName, points, missionId, missionDetails });
+                return { success: true, message: `Successfully rewarded ${points} points to ${userName}.` };
             } catch (error) {
-                 console.error('Error in rewardUserPoints tool:', error);
-                 return { success: false, message: `Failed to reward points: ${error instanceof Error ? error.message : String(error)}` };
+                console.error('Error in rewardUserPoints tool:', error);
+                return { success: false, message: `Failed to reward points: ${error instanceof Error ? error.message : String(error)}` };
             }
         },
     }),
@@ -168,13 +168,13 @@ export const tools = {
         description: 'Check if a user has already received rewards for a specific mission',
         parameters: z.object({
             userName: z.string().describe('The username to check'),
-            mission: z.string().describe('The mission to check'),
+            missionId: z.string().describe('The id of the mission to check'),
         }),
-        execute: async ({ userName, mission }) => {
-             // Call the function from supabaseService
-             // No try-catch needed here as checkUserRewardHistory in service returns object, doesn't throw
-             // Re-check supabaseService: checkUserRewardHistory does NOT throw, it returns object. OK.
-            return checkUserRewardHistory({ userName, mission });
+        execute: async ({ userName, missionId }) => {
+            // Call the function from supabaseService
+            // No try-catch needed here as checkUserRewardHistory in service returns object, doesn't throw
+            // Re-check supabaseService: checkUserRewardHistory does NOT throw, it returns object. OK.
+            return checkUserRewardHistory({ userName, missionId });
         },
     }),
 
@@ -189,12 +189,12 @@ export const tools = {
         }),
         execute: async ({ userName, points, missionId, missionDetails }) => {
             // Call the function from supabaseService
-             try {
-                 await deductUserPoints({ userName, points, missionId, missionDetails });
-                 return { success: true, message: `Successfully deducted ${points} points from ${userName}.` };
+            try {
+                await deductUserPoints({ userName, points, missionId, missionDetails });
+                return { success: true, message: `Successfully deducted ${points} points from ${userName}.` };
             } catch (error) {
-                 console.error('Error in deductUserPoints tool:', error);
-                 return { success: false, message: `Failed to deduct points: ${error instanceof Error ? error.message : String(error)}` };
+                console.error('Error in deductUserPoints tool:', error);
+                return { success: false, message: `Failed to deduct points: ${error instanceof Error ? error.message : String(error)}` };
             }
         },
     }),
@@ -228,7 +228,7 @@ export const tools = {
                 return {
                     points: points,
                     message: `User ${userName} has ${points} points.`
-                 };
+                };
             } catch (error) {
                 console.error(`Tool Error: Failed to get points for ${userName}:`, error);
                 const errorMessage = error instanceof Error ? error.message : String(error);
@@ -248,16 +248,16 @@ export const tools = {
         }),
         // Call the adapter function
         execute: async ({ userName }) => {
-             try {
+            try {
                 // return await twitterService.checkUserFollowsNuwaDev(userName); // Old call
                 return await twitterAdapter.checkUserFollowsNuwaDev(userName); // Use adapter
             } catch (error) {
-                 console.error(`Error in checkUserFollowsNuwaDev tool for ${userName}:`, error);
-                 // Return error structure consistent with the service function's potential errors
-                 return { 
-                     followsNuwaDev: false, 
-                     error: `Failed to check follow status: ${error instanceof Error ? error.message : String(error)}` 
-                 };
+                console.error(`Error in checkUserFollowsNuwaDev tool for ${userName}:`, error);
+                // Return error structure consistent with the service function's potential errors
+                return {
+                    followsNuwaDev: false,
+                    error: `Failed to check follow status: ${error instanceof Error ? error.message : String(error)}`
+                };
             }
         }
     }),
@@ -291,15 +291,15 @@ export const tools = {
         parameters: z.object({
             tweetId: z.string().describe('The unique identifier of the tweet to be scored.'),
         }),
-        execute: async function ({ tweetId }) { 
+        execute: async function ({ tweetId }) {
             try {
                 // 1. Check if the tweet has already been scored (from supabaseService)
                 const exists = await checkTweetExists(tweetId);
                 if (exists) {
                     return {
-                        success: false, 
+                        success: false,
                         message: `Tweet ${tweetId} has already been scored. No action taken.`,
-                        score: null, 
+                        score: null,
                         reasoning: null
                     };
                 }
@@ -308,7 +308,7 @@ export const tools = {
                 console.log(`Fetching standardized tweet data for ${tweetId}...`);
                 // const tweetDataToUse = await twitterService.getTweetsByIds(tweetId); // Old call
                 const standardTweet = await twitterAdapter.getStandardTweetById(tweetId); // Use adapter
-                
+
                 if (!standardTweet) {
                     throw new Error(`Standard tweet data not found for ID ${tweetId} via twitterAdapter.`);
                 }
@@ -322,7 +322,7 @@ export const tools = {
                 // 5. Return the result
                 return {
                     success: true,
-                    message: `Tweet ${tweetId} successfully scored and saved. Score: ${score}/100.`, 
+                    message: `Tweet ${tweetId} successfully scored and saved. Score: ${score}/100.`,
                     score: score,
                     reasoning: reasoning
                 };

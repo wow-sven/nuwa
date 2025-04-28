@@ -12,7 +12,7 @@ export interface LeaderboardUser {
 export interface PointsHistoryItem {
     id: string;
     points: number;
-    mission: string;
+    missionId: string;
     createdTime: string;
     missionTitle?: string;
     missionDescription?: string;
@@ -43,9 +43,9 @@ export async function getUserPointsByHandle(twitterHandle: string): Promise<numb
     }
 
     if (!data) {
-         // Should ideally not happen if error is null and code is not PGRST116, but good practice to check
-         console.error(`No data returned for handle ${twitterHandle} despite no error.`);
-         throw new Error(`User data not found for handle: ${twitterHandle}`);
+        // Should ideally not happen if error is null and code is not PGRST116, but good practice to check
+        console.error(`No data returned for handle ${twitterHandle} despite no error.`);
+        throw new Error(`User data not found for handle: ${twitterHandle}`);
     }
 
     return data.points;
@@ -69,7 +69,7 @@ export async function getUserPointsHistory(twitterHandle: string): Promise<Point
         return data.map(item => ({
             id: item.id,
             points: item.points,
-            mission: item.mission,
+            missionId: item.mission_id,
             createdTime: item.created_at,
             missionDetails: item.mission_details || ''
         }));
@@ -138,7 +138,7 @@ export async function rewardUserPoints({ userName, points, missionId, missionDet
             .insert({
                 reward_to: userName,
                 points: points,
-                mission: missionId,
+                mission_id: missionId,
                 mission_details: missionDetails || '',
             });
 
@@ -178,7 +178,7 @@ export async function rewardUserPoints({ userName, points, missionId, missionDet
 }
 
 // Function to check user reward history for a specific mission
-export async function checkUserRewardHistory({ userName, mission }: { userName: string, mission: string }) {
+export async function checkUserRewardHistory({ userName, missionId }: { userName: string, missionId: string }) {
     try {
         const supabase = await createClient();
 
@@ -187,7 +187,7 @@ export async function checkUserRewardHistory({ userName, mission }: { userName: 
             .from('points_reward_log')
             .select('mission_details')
             .eq('reward_to', userName)
-            .eq('mission', mission)
+            .eq('mission_id', missionId)
             .limit(1);
 
         if (error) {
@@ -203,8 +203,8 @@ export async function checkUserRewardHistory({ userName, mission }: { userName: 
             hasReceivedReward: hasReceived,
             missionDetails: hasReceived ? data[0].mission_details || '' : '',
             message: hasReceived
-                ? `User ${userName} has already received rewards for mission: ${mission}`
-                : `User ${userName} has not received rewards for mission: ${mission} yet`
+                ? `User ${userName} has already received rewards for mission: ${missionId}`
+                : `User ${userName} has not received rewards for mission: ${missionId} yet`
         };
     } catch (error) {
         return {
@@ -254,7 +254,7 @@ export async function deductUserPoints({ userName, points, missionId, missionDet
             .insert({
                 reward_to: userName,
                 points: -points, // Negative points for deduction
-                mission: missionId,
+                mission_id: missionId,
                 mission_details: missionDetails || '',
             });
 
@@ -328,7 +328,7 @@ export async function addTweetScore(tweetId: string, tweetData: object, score: n
 
     if (error) {
         console.error(`Error adding tweet score for tweet ID ${tweetId}:`, error);
-        // Check for unique constraint violation (duplicate tweet ID)
+        //  for unique constraint violation (duplicate tweet ID)
         if (error.code === '23505') { // PostgreSQL unique violation code
             throw new Error(`Tweet with ID ${tweetId} already exists.`);
         }

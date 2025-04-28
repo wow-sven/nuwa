@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { FiAward, FiRefreshCw } from "react-icons/fi";
 import { getUserPointsHistory, PointsHistoryItem } from "@/app/services/supabaseService";
 import { BarLoader } from "@/app/components/shared/BarLoader";
+import { useMissions } from "@/app/context/MissionsContext";
 
 interface UserPointsHistoryProps {
     userName: string;
@@ -15,6 +16,7 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const { missions } = useMissions();
 
     const fetchHistory = async () => {
         try {
@@ -42,27 +44,10 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
         }, 500);
     };
 
-    const shift = (id: string, direction: "up" | "down") => {
-        const index = history.findIndex((item) => item.id === id);
-        let historyCopy = [...history];
-
-        if (direction === "up") {
-            if (index > 0) {
-                [historyCopy[index], historyCopy[index - 1]] = [
-                    historyCopy[index - 1],
-                    historyCopy[index],
-                ];
-            }
-        } else {
-            if (index < historyCopy.length - 1) {
-                [historyCopy[index], historyCopy[index + 1]] = [
-                    historyCopy[index + 1],
-                    historyCopy[index],
-                ];
-            }
-        }
-
-        setHistory(historyCopy);
+    // 根据任务ID获取任务标题
+    const getMissionTitle = (missionId: string) => {
+        const mission = missions.find(m => m.id === missionId);
+        return mission ? mission.title : 'Unknown Mission';
     };
 
     if (loading && !isRefreshing) {
@@ -127,7 +112,7 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
                             key={item.id}
                             item={item}
                             index={index}
-                            shift={shift}
+                            getMissionTitle={getMissionTitle}
                         />
                     ))}
                 </tbody>
@@ -139,11 +124,11 @@ export const UserPointsHistory = ({ userName }: UserPointsHistoryProps) => {
 const TableRow = ({
     item,
     index,
-    shift
+    getMissionTitle,
 }: {
     item: PointsHistoryItem;
     index: number;
-    shift: (id: string, direction: "up" | "down") => void;
+    getMissionTitle: (missionId: string) => string;
 }) => {
     // 使用原生JavaScript格式化日期
     const formatDate = (dateString: string) => {
@@ -163,6 +148,7 @@ const TableRow = ({
     };
 
     const formattedDate = item.createdTime ? formatDate(item.createdTime) : 'Unknown date';
+    const missionTitle = getMissionTitle(item.missionId);
 
     return (
         <motion.tr
@@ -175,7 +161,7 @@ const TableRow = ({
 
             <td className="p-4">
                 <div>
-                    <span className="block mb-1 font-medium">{item.missionTitle}</span>
+                    <span className="block mb-1 font-medium">{missionTitle}</span>
                     <span className="block text-xs text-slate-500">{item.missionDetails}</span>
                 </div>
             </td>
