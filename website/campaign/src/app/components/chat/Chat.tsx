@@ -144,7 +144,7 @@ export function Chat() {
     };
 
     return (
-        <div className="flex flex-col h-[calc(100vh-100px)] sm:h-[calc(100vh-120px)] bg-background rounded-xl">
+        <div className="flex flex-col h-dvh sm:h-[calc(100vh-120px)] bg-background rounded-xl">
             <AnimatePresence mode="wait">
                 {showGridCards ? (
                     <Missions
