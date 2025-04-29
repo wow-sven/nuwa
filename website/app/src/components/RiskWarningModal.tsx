@@ -10,15 +10,15 @@ interface RiskWarningModalProps {
 export function RiskWarningModal({ isOpen, onClose }: RiskWarningModalProps) {
   const [isChecked, setIsChecked] = useState(true);
   const [, setHasSeenRiskWarning] = useLocalStorageState<boolean | undefined>(
-    "nuwa-hasSeenRiskWarning"
+    "nuwa-hasSeenRiskWarning",
   );
 
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-[500px] max-w-[90vw]">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50">
+      <div className="w-[500px] max-w-[90vw] rounded-lg bg-white p-6 dark:bg-gray-800">
+        <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
           Alpha Test Warning
         </h2>
         <div className="space-y-4 text-gray-600 dark:text-gray-300">
@@ -38,7 +38,7 @@ export function RiskWarningModal({ isOpen, onClose }: RiskWarningModalProps) {
             id="understand"
             checked={isChecked}
             onChange={(e) => setIsChecked(e.target.checked)}
-            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+            className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
           />
           <label
             htmlFor="understand"
@@ -54,13 +54,13 @@ export function RiskWarningModal({ isOpen, onClose }: RiskWarningModalProps) {
               onClose();
             }}
             disabled={!isChecked}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="rounded-lg bg-purple-600 px-4 py-2 text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Confirm
           </button>
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

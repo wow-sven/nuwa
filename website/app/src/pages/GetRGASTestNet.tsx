@@ -40,8 +40,8 @@ export const GetRGASTestnet = () => {
       setHasClaimed(true);
       toast.success(
         `Successfully claimed ${Math.floor(
-          (data.gas || 5000000000) / 100000000
-        )} RGAS!`
+          (data.gas || 5000000000) / 100000000,
+        )} RGAS!`,
       );
     } catch (error) {
       console.error("Claim failed:", error);
@@ -58,13 +58,13 @@ export const GetRGASTestnet = () => {
         <title>Get RGAS - Nuwa</title>
       </Helmet>
 
-      <h1 className="text-3xl font-bold mb-6 text-center dark:text-white">
+      <h1 className="mb-6 text-center text-3xl font-bold dark:text-white">
         Get Testnet RGAS
       </h1>
 
-      <div className="max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-        <div className="text-center mb-6">
-          <h2 className="text-xl font-semibold mb-2 dark:text-white">
+      <div className="mx-auto max-w-md rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
+        <div className="mb-6 text-center">
+          <h2 className="mb-2 text-xl font-semibold dark:text-white">
             Testnet Faucet
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
@@ -73,9 +73,9 @@ export const GetRGASTestnet = () => {
         </div>
 
         <div className="space-y-4">
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+          <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
             <div className="flex flex-col items-center">
-              <h3 className="font-medium dark:text-white mb-1">Testnet RGAS</h3>
+              <h3 className="mb-1 font-medium dark:text-white">Testnet RGAS</h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 50 RGAS per claim
               </p>
@@ -91,24 +91,23 @@ export const GetRGASTestnet = () => {
           <button
             onClick={handleClaim}
             disabled={isClaiming || hasClaimed || !currentAddress}
-            className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-colors
-                            ${
-                              !currentAddress
-                                ? "bg-gray-400 cursor-not-allowed"
-                                : isClaiming
-                                ? "bg-gray-400 cursor-wait"
-                                : hasClaimed
-                                ? "bg-green-500 cursor-default"
-                                : "bg-blue-500 hover:bg-blue-600"
-                            }`}
+            className={`w-full rounded-lg px-4 py-3 font-medium text-white transition-colors ${
+              !currentAddress
+                ? "cursor-not-allowed bg-gray-400"
+                : isClaiming
+                  ? "cursor-wait bg-gray-400"
+                  : hasClaimed
+                    ? "cursor-default bg-green-500"
+                    : "bg-blue-500 hover:bg-blue-600"
+            }`}
           >
             {!currentAddress
               ? "Connect Wallet"
               : isClaiming
-              ? "Claiming..."
-              : hasClaimed
-              ? "Claimed"
-              : "Claim 50 RGAS"}
+                ? "Claiming..."
+                : hasClaimed
+                  ? "Claimed"
+                  : "Claim 50 RGAS"}
           </button>
 
           {hasClaimed && (

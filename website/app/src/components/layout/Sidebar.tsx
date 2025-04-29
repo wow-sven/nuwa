@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { MagnifyingGlassIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import useAllAgents from "@/hooks/useAllAgents";
 import useAgentJoined from "@/hooks/useAgentJoined";
+import { useBreakpoint } from "@/hooks/useBreakpoint";
+import clsx from "clsx";
 
 interface SidebarProps {
   onCollapse: (isCollapsed: boolean) => void;
@@ -34,7 +36,7 @@ export function Sidebar({
     return (allAgents || []).filter(
       (agent) =>
         agent.name.toLowerCase().includes(query) ||
-        agent.username.toLowerCase().includes(query)
+        agent.username.toLowerCase().includes(query),
     );
   }, [joinedAgents, allAgents, searchQuery]);
 
@@ -50,15 +52,25 @@ export function Sidebar({
     onCollapse(newCollapsedState);
   };
 
+  const isMdScreen = useBreakpoint("md");
+
   return (
     <div
-      className={`fixed left-0 top-16 h-[calc(100vh-4rem)] dark:bg-gray-900 border-gray-200 dark:border-gray-800 transition-all duration-300 ease-in-out z-50 ${
-        isCollapsed ? "w-16 bg-gray-50" : "w-64 bg-gray-50"
-      }`}
+      className={clsx(
+        "fixed left-0 top-16 z-50 h-[calc(100vh-4rem)] transition-all duration-300 ease-in-out",
+        isCollapsed ? "w-16 bg-gray-50" : "w-64 bg-gray-50",
+        isMdScreen || !isCollapsed
+          ? "border-gray-200 dark:border-gray-800 dark:bg-gray-900"
+          : "bg-transparent",
+      )}
     >
-      <div className="flex flex-col h-full">
+      <div className="flex h-full flex-col">
         {/* Header with Collapse Button and Search */}
-        <div className="px-2 py-2">
+        <div
+          className={clsx("px-2 py-2", {
+            "px-0": isCollapsed && !isMdScreen,
+          })}
+        >
           <div
             className={`flex items-center ${
               isCollapsed ? "justify-center" : "space-x-2"
@@ -69,33 +81,39 @@ export function Sidebar({
                 isCollapsed ? "hidden" : "w-auto"
               }`}
             >
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
               <input
                 type="text"
                 placeholder="Search agents..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-2 rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-10 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-gray-800 dark:bg-gray-800"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transform rounded-full p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  <XMarkIcon className="w-4 h-4 text-gray-400" />
+                  <XMarkIcon className="h-4 w-4 text-gray-400" />
                 </button>
               )}
             </div>
             <button
               onClick={handleCollapse}
-              className="p-2 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-0 focus:ring-offset-0 transition-colors duration-200 rounded-lg text-gray-600 dark:text-gray-300"
+              className={clsx(
+                "rounded-lg bg-gray-50 p-2 text-gray-600 transition-colors duration-200 hover:bg-gray-100 focus:outline-none focus:ring-0 focus:ring-offset-0 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700",
+                {
+                  "relative -left-3 opacity-80 shadow-lg dark:bg-gray-500":
+                    isCollapsed && !isMdScreen,
+                },
+              )}
             >
-              <div className="relative w-5 h-5">
+              <div className="relative h-5 w-5">
                 <svg
                   className={`absolute inset-0 transition-all duration-300 ease-in-out ${
                     isCollapsed
-                      ? "opacity-100 rotate-0"
-                      : "opacity-0 -rotate-180"
+                      ? "rotate-0 opacity-100"
+                      : "-rotate-180 opacity-0"
                   }`}
                   fill="none"
                   stroke="currentColor"
@@ -111,8 +129,8 @@ export function Sidebar({
                 <svg
                   className={`absolute inset-0 transition-all duration-300 ease-in-out ${
                     isCollapsed
-                      ? "opacity-0 rotate-180"
-                      : "opacity-100 rotate-0"
+                      ? "rotate-180 opacity-0"
+                      : "rotate-0 opacity-100"
                   }`}
                   fill="none"
                   stroke="currentColor"
@@ -131,21 +149,60 @@ export function Sidebar({
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Expanded State Content */}
-          <div
-            className={`transition-all duration-300 ease-in-out ${
-              isCollapsed
-                ? "opacity-0 h-0 overflow-hidden"
-                : "opacity-100 h-auto"
-            }`}
-          >
-            <div className="px-4 pt-2">
-              <div className="space-y-3 h-[calc(100vh-12rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+        {(isMdScreen || !isCollapsed) && (
+          <div className="flex flex-1 flex-col overflow-hidden">
+            {/* Expanded State Content */}
+            <div
+              className={`transition-all duration-300 ease-in-out ${
+                isCollapsed
+                  ? "h-0 overflow-hidden opacity-0"
+                  : "h-auto opacity-100"
+              }`}
+            >
+              <div className="px-4 pt-2">
+                <div className="scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent h-[calc(100vh-12rem)] space-y-3 overflow-y-auto pr-2">
+                  {filteredAgents.map((agent) => (
+                    <div
+                      key={agent.username}
+                      className={`flex cursor-pointer items-start space-x-3 rounded-lg p-2 transition-colors ${
+                        agent.username === currentAgentUsername
+                          ? "bg-purple-200 dark:bg-purple-500/50"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }`}
+                      onClick={() => navigate(`/agent/${agent.username}`)}
+                    >
+                      <img
+                        src={agent.avatar}
+                        alt={agent.name}
+                        className="aspect-square h-10 min-h-[40px] w-10 min-w-[40px] flex-shrink-0 rounded-full object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {agent.name}
+                        </h3>
+                        <p className="line-clamp-2 text-xs text-gray-500 dark:text-gray-400">
+                          @{agent.username}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Collapsed State Avatars */}
+            <div
+              className={`transition-all duration-300 ease-in-out ${
+                isCollapsed
+                  ? "h-auto opacity-100"
+                  : "h-0 overflow-hidden opacity-0"
+              }`}
+            >
+              <div className="space-y-3 px-2 py-2">
                 {filteredAgents.map((agent) => (
                   <div
                     key={agent.username}
-                    className={`flex items-start space-x-3 p-2 rounded-lg transition-colors cursor-pointer ${
+                    className={`flex cursor-pointer justify-center rounded-lg p-2 transition-colors ${
                       agent.username === currentAgentUsername
                         ? "bg-purple-200 dark:bg-purple-500/50"
                         : "hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -155,51 +212,14 @@ export function Sidebar({
                     <img
                       src={agent.avatar}
                       alt={agent.name}
-                      className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-full aspect-square object-cover flex-shrink-0"
+                      className="aspect-square h-10 min-h-[40px] w-10 min-w-[40px] rounded-full object-cover"
                     />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {agent.name}
-                      </h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
-                        @{agent.username}
-                      </p>
-                    </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-
-          {/* Collapsed State Avatars */}
-          <div
-            className={`transition-all duration-300 ease-in-out ${
-              isCollapsed
-                ? "opacity-100 h-auto"
-                : "opacity-0 h-0 overflow-hidden"
-            }`}
-          >
-            <div className="px-2 py-2 space-y-3">
-              {filteredAgents.map((agent) => (
-                <div
-                  key={agent.username}
-                  className={`flex justify-center cursor-pointer rounded-lg p-2 transition-colors ${
-                    agent.username === currentAgentUsername
-                      ? "bg-purple-200 dark:bg-purple-500/50"
-                      : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                  }`}
-                  onClick={() => navigate(`/agent/${agent.username}`)}
-                >
-                  <img
-                    src={agent.avatar}
-                    alt={agent.name}
-                    className="min-w-[40px] min-h-[40px] w-10 h-10 rounded-full aspect-square object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

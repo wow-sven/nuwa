@@ -11,7 +11,7 @@ const initializeTheme = () => {
       theme = parsed;
     }
     const systemPrefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)"
+      "(prefers-color-scheme: dark)",
     ).matches;
 
     document.documentElement.className =
@@ -40,9 +40,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       defaultValue: window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
         : "light",
-    }
+    },
   );
-  console.log("🚀 ~ ThemeProvider.tsx:43 ~ ThemeProvider ~ theme:", theme);
 
   useEffect(() => {
     document.documentElement.className = theme || "light";

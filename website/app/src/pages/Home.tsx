@@ -12,17 +12,17 @@ export const Home = () => {
 
   const trendingAgents = useMemo(
     () => agents.filter((agent) => agent.isTrending),
-    [agents]
+    [agents],
   );
   const featuredAgents = useMemo(
     () => agents.filter((agent) => agent.isFeatured),
-    [agents]
+    [agents],
   );
 
   if (isPending) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-purple-500"></div>
       </div>
     );
   }
@@ -34,19 +34,19 @@ export const Home = () => {
         description="Nuwa - The Web3 AI Agent Platform. Experience the future of autonomous AI agents on blockchain, managing crypto assets and executing on-chain operations."
         keywords="AI, Web3, Agent, Crypto, Nuwa, Blockchain, Autonomous AI, DeFi, Smart Contracts, AI Platform"
       />
-      <div className="min-h-screen flex flex-col">
+      <div className="flex min-h-screen flex-col">
         <div className="flex-1">
           <Hero />
           <div className="container mx-auto px-4 py-8">
             <div className="mb-12">
-              <div className="flex items-end mb-6">
-                <h2 className="text-4xl font-bold text-gray-900 dark:text-white">
+              <div className="mb-2 flex items-end justify-between md:mb-6">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white md:text-4xl">
                   Explore Agents
                 </h2>
                 <Link
                   // cSpell:ignore allagents
                   to="/allagents"
-                  className="mx-4 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors mb-1"
+                  className="mx-4 mb-1 text-sm text-purple-600 transition-colors hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
                 >
                   View All Agents
                 </Link>
@@ -54,10 +54,10 @@ export const Home = () => {
 
               {/* Trending Agents */}
               <div className="mb-12">
-                <h3 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-400">
+                <h3 className="mb-4 text-base font-semibold text-gray-600 dark:text-gray-400 md:text-xl">
                   Trending Agents
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-1 lg:grid-cols-4">
                   {trendingAgents.slice(0, 4).map((agent) => (
                     <AgentCard key={agent.agent_address} agent={agent} />
                   ))}
@@ -66,10 +66,10 @@ export const Home = () => {
 
               {/* Featured Agents */}
               <div className="mb-12">
-                <h3 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-400">
+                <h3 className="mb-4 text-xl font-semibold text-gray-600 dark:text-gray-400">
                   Featured Agents
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-1 lg:grid-cols-4">
                   {featuredAgents.slice(0, 4).map((agent) => (
                     <AgentCard key={agent.agent_address} agent={agent} />
                   ))}

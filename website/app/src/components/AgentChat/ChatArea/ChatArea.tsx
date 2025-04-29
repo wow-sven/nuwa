@@ -20,11 +20,11 @@ export function ChatArea() {
   }
 
   const currentChannel = channels?.find(
-    (channel) => channel.id === selectedChannel
+    (channel) => channel.id === selectedChannel,
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden bg-white dark:bg-gray-800">
+    <div className="md:min-h-auto sticky top-0 z-10 flex h-full min-h-[60vh] flex-1 flex-col overflow-hidden bg-white dark:bg-gray-800 md:relative">
       {/* Chat header with agent name */}
       <div className="flex-none border-b border-gray-200 dark:border-gray-700">
         <div className="p-4">
@@ -33,8 +33,8 @@ export function ChatArea() {
               {currentChannel?.title || "Unnamed Channel"}
             </h2>
             {isAIThinking && (
-              <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-purple-100 dark:bg-purple-700/40 text-purple-600 dark:text-purple-300">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
+              <div className="flex items-center space-x-2 rounded-full bg-purple-100 px-3 py-1.5 text-purple-600 dark:bg-purple-700/40 dark:text-purple-300">
+                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-purple-500"></div>
                 <span className="text-sm">AI is thinking...</span>
               </div>
             )}
@@ -43,7 +43,7 @@ export function ChatArea() {
       </div>
 
       {/* Message list with auto-scroll */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 md:overflow-hidden">
         <MessageList
           channelId={selectedChannel}
           agentName={agent.name}

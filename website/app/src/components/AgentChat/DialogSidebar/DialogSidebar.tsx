@@ -77,9 +77,9 @@ export function DialogSidebar({
   };
 
   return (
-    <div className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
+    <div className="w-full border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 sm:w-64">
       {/* Dialog list header */}
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+      <div className="border-b border-gray-200 p-4 dark:border-gray-700">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Dialog List
@@ -87,13 +87,13 @@ export function DialogSidebar({
           <SessionKeyGuard onClick={() => setShowInput(true)}>
             <button
               disabled={isPending}
-              className={`p-2 rounded-lg transition-colors ${
+              className={`rounded-lg p-2 transition-colors ${
                 isPending
-                  ? "bg-purple-100 dark:bg-purple-900/30 text-purple-400 dark:text-purple-500 cursor-not-allowed"
-                  : "bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                  ? "cursor-not-allowed bg-purple-100 text-purple-400 dark:bg-purple-900/30 dark:text-purple-500"
+                  : "bg-purple-50 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/30"
               }`}
             >
-              <PlusIcon className="w-5 h-5" />
+              <PlusIcon className="h-5 w-5" />
             </button>
           </SessionKeyGuard>
         </div>
@@ -107,7 +107,7 @@ export function DialogSidebar({
                 setError(null);
               }}
               placeholder="Enter topic name"
-              className="w-full px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             />
             {error && (
               <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
@@ -116,7 +116,7 @@ export function DialogSidebar({
               <button
                 onClick={handleCreateTopic}
                 disabled={isPending || !topicName.trim()}
-                className="flex-1 px-3 py-1 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 rounded-lg bg-purple-600 px-3 py-1 text-sm text-white hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Create
               </button>
@@ -126,7 +126,7 @@ export function DialogSidebar({
                   setTopicName("");
                   setError(null);
                 }}
-                className="flex-1 px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                className="flex-1 rounded-lg bg-gray-200 px-3 py-1 text-sm text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
@@ -135,29 +135,29 @@ export function DialogSidebar({
         )}
       </div>
       {/* Scrollable list of dialogs */}
-      <div className="overflow-y-auto max-h-[calc(100vh-10rem)]">
+      <div className="max-h-[calc(100vh-10rem)] overflow-y-auto">
         {/* Single dialog item */}
         {channels.map((channel) => (
           <div
             key={channel.id}
-            className={`py-2.5 px-4 cursor-pointer transition-colors border-b dark:border-gray-700 ${
+            className={`cursor-pointer border-b px-4 py-2.5 transition-colors dark:border-gray-700 ${
               selectedChannel === channel.id
                 ? "border-l-4 border-l-purple-500 dark:border-l-purple-400"
                 : "hover:border-l-4 hover:border-l-purple-300 dark:hover:border-l-purple-500"
             }`}
             onClick={() => onChannelSelect(channel.id)}
           >
-            <div className="flex items-center space-x-3 w-full bg-transparent hover:ring-none hover:border-none">
+            <div className="hover:ring-none flex w-full items-center space-x-3 bg-transparent hover:border-none">
               <ChatBubbleLeftIcon
-                className={`w-4 h-5 ${
+                className={`h-5 w-4 ${
                   selectedChannel === channel.id
                     ? "text-purple-600 dark:text-purple-400"
                     : "text-gray-400"
                 }`}
               />
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <p
-                  className={`text-sm font-medium truncate ${
+                  className={`truncate text-sm font-medium ${
                     selectedChannel === channel.id
                       ? "text-purple-700 dark:text-purple-300"
                       : "text-gray-600 dark:text-gray-300"

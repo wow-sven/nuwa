@@ -40,5 +40,5 @@ createRoot(document.getElementById("root")!).render(
         </RoochProvider>
       </QueryClientProvider>
     </Theme>
-  </StrictMode>
+  </StrictMode>,
 );

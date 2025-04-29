@@ -26,27 +26,27 @@ function MemberItem({ member }: MemberItemProps) {
       toShortStr(new RoochAddress(member.address).toBech32Address());
 
   const profileUrl = `/profile/${new RoochAddress(
-    member.address
+    member.address,
   ).toBech32Address()}`;
 
   return (
     <Link
       to={profileUrl}
-      className={`flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer transition-colors duration-150`}
+      className={`flex cursor-pointer items-center space-x-3 rounded-lg p-2 transition-colors duration-150 hover:bg-gray-100 dark:hover:bg-gray-700/50`}
     >
-      <img src={avatar} alt={name} className="w-8 h-8 rounded-full" />
-      <div className="flex-1 min-w-0">
+      <img src={avatar} alt={name} className="h-8 w-8 rounded-full" />
+      <div className="min-w-0 flex-1">
         <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+          <p className="truncate text-sm font-medium text-gray-900 dark:text-gray-100">
             {name}
           </p>
           {member.isAgent && (
-            <span className="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+            <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-xs text-blue-800 dark:bg-blue-900 dark:text-blue-200">
               Agent
             </span>
           )}
         </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
           @{username}
         </p>
       </div>
@@ -83,21 +83,21 @@ export function MembersList() {
   });
 
   return (
-    <div className="p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
+    <div className="flex h-fit flex-col p-4 md:h-full">
+      <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <UserGroupIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          <UserGroupIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
           <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Members({members.length})
           </h3>
         </div>
       </div>
-      <div className="space-y-2 overflow-y-auto flex-1">
+      <div className="flex-1 space-y-2 overflow-y-auto">
         {sortedMembers.map((member) => {
           const isAgent = Boolean(
             agentAddress &&
               new RoochAddress(member.address).toBech32Address() ===
-                agentAddress.toBech32Address()
+                agentAddress.toBech32Address(),
           );
           return (
             <MemberItem

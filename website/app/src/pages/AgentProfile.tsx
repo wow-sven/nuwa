@@ -25,13 +25,13 @@ export function AgentProfile({ address }: AgentProfileProps) {
         ogUrl={`https://nuwa.dev/agents/${address}`}
       />
       <div className="h-full overflow-auto bg-gray-50 dark:bg-gray-900">
-        <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="mx-auto max-w-4xl px-4 py-8">
           {/* Back Button */}
           <button
             onClick={() => navigate(-1)}
-            className="mb-6 flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            className="mb-6 flex items-center text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
           >
-            <ArrowLeftIcon className="w-5 h-5 mr-2" />
+            <ArrowLeftIcon className="mr-2 h-5 w-5" />
             <span>Back</span>
           </button>
 

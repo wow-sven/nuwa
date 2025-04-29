@@ -70,7 +70,7 @@ function AgentChatContent({ initialChannelTitle }: AgentChatContentProps) {
         setSelectedChannel(channels[0].id);
         navigate(
           `/agent/${username}/${encodeChannelTitle(channels[0].title)}`,
-          { replace: true }
+          { replace: true },
         );
       }
     }
@@ -102,13 +102,13 @@ function AgentChatContent({ initialChannelTitle }: AgentChatContentProps) {
     const channelExists = channels.some(
       (c) =>
         c.title === initialChannelTitle ||
-        c.title === initialChannelTitle.replace(/\s+/g, "_")
+        c.title === initialChannelTitle.replace(/\s+/g, "_"),
     );
     if (!channelExists) {
       return (
-        <div className="flex items-center justify-center h-full">
+        <div className="flex h-full items-center justify-center">
           <div className="text-center">
-            <h2 className="text-xl font-semibold mb-2">
+            <h2 className="mb-2 text-xl font-semibold">
               Can't find the specified dialog
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
@@ -121,9 +121,9 @@ function AgentChatContent({ initialChannelTitle }: AgentChatContentProps) {
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-full flex-col bg-gray-50 dark:bg-gray-900 md:overflow-hidden">
       {/* Main Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 flex-col md:flex-row md:overflow-hidden">
         {/* Left sidebar showing dialog list */}
         <DialogSidebar
           channels={channels}

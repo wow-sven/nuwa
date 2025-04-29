@@ -13,7 +13,7 @@ export const DocSidebar: React.FC = () => {
   const location = useLocation();
 
   return (
-    <nav className="w-64 p-6 space-y-1 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+    <nav className="w-64 space-y-1 border-r border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-gray-900">
       <div className="mb-8">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Documentation
@@ -26,10 +26,10 @@ export const DocSidebar: React.FC = () => {
         <Link
           key={doc.path}
           to={doc.path}
-          className={`block px-4 py-2 rounded-lg transition-all duration-200 ${
+          className={`block rounded-lg px-4 py-2 transition-all duration-200 ${
             location.pathname === doc.path
-              ? "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium"
-              : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100"
+              ? "bg-purple-50 font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-100"
           }`}
         >
           {doc.title}
