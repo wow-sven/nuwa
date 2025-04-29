@@ -47,7 +47,7 @@ const LinksOverlay = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed right-4 top-4 z-40 h-[calc(100vh_-_32px)] w-[calc(100%_-_32px)] overflow-hidden"
+            className="fixed right-4 top-4 z-40 h-dvh w-[calc(100%_-_32px)] overflow-hidden"
         >
             <AnimatePresence mode="wait">
                 <motion.div key="logo">
@@ -200,7 +200,7 @@ const HamburgerButton = ({ active, setActive }: HamburgerButtonProps) => {
 
 const FooterCTAs = () => {
     return (
-        <div className="absolute bottom-6 left-6 flex gap-4 md:flex-col">
+        <div className="absolute top-6 left-24 flex gap-4">
             {SOCIAL_CTAS.map((l, idx) => {
                 return (
                     <motion.a
