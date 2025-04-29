@@ -56,12 +56,6 @@ importers:
       mermaid:
         specifier: ^11.5.0
         version: 11.6.0
-      prettier:
-        specifier: ^3.5.3
-        version: 3.5.3
-      prettier-plugin-tailwindcss:
-        specifier: ^0.6.11
-        version: 0.6.11(prettier@3.5.3)
       react:
         specifier: ^18.2.0
         version: 18.3.1
@@ -132,6 +126,12 @@ importers:
       postcss:
         specifier: 8.4.35
         version: 8.4.35
+      prettier:
+        specifier: ^3.5.3
+        version: 3.5.3
+      prettier-plugin-tailwindcss:
+        specifier: ^0.6.11
+        version: 0.6.11(prettier@3.5.3)
       tailwindcss:
         specifier: 3.4.1
         version: 3.4.1
