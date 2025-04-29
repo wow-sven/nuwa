@@ -6,6 +6,7 @@ import { NavigationWrapper } from "./components/navigation/NavigationWrapper";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { MobileNavProvider } from "@/app/components/navigation/MobileNavContext";
 import { MessagesProvider } from "@/app/context/MessagesContext";
+import { GridCardsProvider } from "@/app/context/GridCardsContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -44,10 +45,12 @@ export default function RootLayout({
         <Providers>
           <MobileNavProvider>
             <MessagesProvider>
-              <NavigationWrapper>
-                {children}
-              </NavigationWrapper>
-              <PWAInstallPrompt />
+              <GridCardsProvider>
+                <NavigationWrapper>
+                  {children}
+                </NavigationWrapper>
+                <PWAInstallPrompt />
+              </GridCardsProvider>
             </MessagesProvider>
           </MobileNavProvider>
         </Providers>

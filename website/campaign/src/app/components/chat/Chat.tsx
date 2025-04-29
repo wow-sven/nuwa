@@ -11,6 +11,7 @@ import { InputContainer } from './InputContainer';
 import NeubrutalismButton from '@/app/components/shared/NeubrutalismButton';
 import { useMissions } from '@/app/context/MissionsContext';
 import { useMessages } from '@/app/context/MessagesContext';
+import { useGridCards } from '@/app/context/GridCardsContext';
 
 // Define classification state interface
 interface ClassificationState {
@@ -23,6 +24,7 @@ export function Chat() {
     const { data: session } = useSession();
     const { missions } = useMissions();
     const { setHasMessages } = useMessages();
+    const { showGridCards, setShowGridCards } = useGridCards();
     const userInfo = {
         name: session?.user?.name || "visitor",
         twitterHandle: session?.user?.twitterHandle || "visitor"
@@ -42,7 +44,6 @@ export function Chat() {
     });
 
     const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
-    const [showGridCards, setShowGridCards] = useState(false);
 
     // Classify user messages when new messages are added
     useEffect(() => {

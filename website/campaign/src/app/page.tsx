@@ -40,9 +40,9 @@ export default function Home() {
     );
   }
 
-  // if (!session) {
-  //   return <GridHoverHero />;
-  // }
+  if (!session) {
+    return <GridHoverHero />;
+  }
 
   return (
     <main className="container mx-auto px-2 sm:px-4 sm:py-4">
