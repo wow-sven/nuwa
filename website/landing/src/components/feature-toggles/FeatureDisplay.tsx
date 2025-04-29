@@ -45,9 +45,6 @@ export const FeatureDisplay = ({
             </motion.div>
           </AnimatePresence>
         </div>
-        <Button>
-          <span className="font-bold">Learn Details</span>
-        </Button>
       </div>
       <div className="relative col-span-1 min-h-80 border-l-0 border-t-2 border-zinc-900 bg-zinc-100 shadow-inner shadow-zinc-500 md:col-span-5 md:border-l-2 md:border-t-0">
         <AnimatePresence mode="popLayout">
