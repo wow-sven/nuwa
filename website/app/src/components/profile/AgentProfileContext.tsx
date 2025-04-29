@@ -29,7 +29,7 @@ interface AgentProfileProviderProps {
 }
 
 const AgentProfileContext = createContext<AgentProfileContextType | undefined>(
-  undefined
+  undefined,
 );
 
 export const AgentProfileProvider = ({
@@ -44,7 +44,7 @@ export const AgentProfileProvider = ({
       address: packageId,
       module: "agent",
       name: "Agent",
-    }
+    },
   );
 
   const { agent, refetch: refetchAgent } = useAgent(agentId);
@@ -85,7 +85,7 @@ export const useAgentProfile = () => {
   const context = useContext(AgentProfileContext);
   if (context === undefined) {
     throw new Error(
-      "useAgentProfile must be used within a AgentProfileProvider"
+      "useAgentProfile must be used within a AgentProfileProvider",
     );
   }
   return context;

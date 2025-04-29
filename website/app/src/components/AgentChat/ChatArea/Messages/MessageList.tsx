@@ -100,7 +100,7 @@ export function MessageList({
       setCurrentQueryPage(page);
       return true;
     },
-    [loadedPages, currentQueryPage]
+    [loadedPages, currentQueryPage],
   );
 
   // Optimization 3: More efficiently detect pages that need loading
@@ -132,7 +132,7 @@ export function MessageList({
             if (!loadedPages.includes(page)) {
               setTimeout(
                 () => triggerPageLoad(page),
-                (latestPage - page) * 200
+                (latestPage - page) * 200,
               );
             }
           }
@@ -204,7 +204,7 @@ export function MessageList({
 
         // Only trigger page load when new messages might be on new page
         const newLatestPage = Math.floor(
-          (messageCount - 1) / MESSAGES_PER_PAGE
+          (messageCount - 1) / MESSAGES_PER_PAGE,
         );
         if (newLatestPage > Math.max(...loadedPages, 0)) {
           triggerPageLoad(newLatestPage);
@@ -216,7 +216,7 @@ export function MessageList({
         // User is at bottom, directly load latest messages and maintain scroll
         // Check if new page needs to be loaded
         const newLatestPage = Math.floor(
-          (messageCount - 1) / MESSAGES_PER_PAGE
+          (messageCount - 1) / MESSAGES_PER_PAGE,
         );
         if (newLatestPage > Math.max(...loadedPages, 0)) {
           triggerPageLoad(newLatestPage);
@@ -354,11 +354,14 @@ export function MessageList({
 
           // load pages in order
           for (let page = startPage; page <= latestPage; page++) {
-            setTimeout(() => {
-              if (!loadedPages.includes(page)) {
-                setCurrentQueryPage(page);
-              }
-            }, (page - startPage) * 200);
+            setTimeout(
+              () => {
+                if (!loadedPages.includes(page)) {
+                  setCurrentQueryPage(page);
+                }
+              },
+              (page - startPage) * 200,
+            );
           }
         } else {
           setCurrentQueryPage(0);
@@ -416,7 +419,7 @@ export function MessageList({
       setAllMessages((prev) => {
         const existingIndices = new Set(prev.map((m) => m.index));
         const newMessages = pageMessages.filter(
-          (msg) => !existingIndices.has(msg.index)
+          (msg) => !existingIndices.has(msg.index),
         );
         const combinedMessages = [...prev, ...newMessages];
         return combinedMessages.sort((a, b) => a.index - b.index);
@@ -561,7 +564,7 @@ export function MessageList({
     (message: Message) => {
       return message.sender === currentAddress;
     },
-    [currentAddress]
+    [currentAddress],
   );
 
   const isAI = useCallback(
@@ -569,7 +572,7 @@ export function MessageList({
       if (!agentAddress) return false;
       try {
         const messageSender = new RoochAddress(
-          message.sender
+          message.sender,
         ).toBech32Address();
         const agentAddr = new RoochAddress(agentAddress).toBech32Address();
         return messageSender === agentAddr;
@@ -578,7 +581,7 @@ export function MessageList({
         return false;
       }
     },
-    [agentAddress]
+    [agentAddress],
   );
 
   // Manually trigger loading (internal use, no button exposed)
@@ -617,7 +620,7 @@ export function MessageList({
       (m) =>
         isAI(m) &&
         m.reply_to === lastMessageToAgent.index &&
-        m.index > lastMessageToAgent.index
+        m.index > lastMessageToAgent.index,
     );
 
     // only set thinking state when there is no reply
@@ -627,33 +630,33 @@ export function MessageList({
   return (
     <div
       ref={messagesContainerRef}
-      className="h-full overflow-y-auto p-4 space-y-4 relative"
+      className="relative h-[50vh] space-y-4 overflow-y-auto p-4 md:h-full"
     >
       {/* Top loading status */}
       {isLoadingMoreUp && (
-        <div className="text-center text-gray-500 py-2">
+        <div className="py-2 text-center text-gray-500">
           Loading more messages...
         </div>
       )}
 
       {/* Reached top notification */}
       {reachedTop && !isLoadingMoreUp && (
-        <div className="text-center text-gray-500 py-2">
+        <div className="py-2 text-center text-gray-500">
           This is the beginning of the conversation
         </div>
       )}
 
       {/* Message loading status */}
       {allMessages.length === 0 && isMessagesLoading && (
-        <div className="flex justify-center py-4 flex-col items-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mb-2"></div>
+        <div className="flex flex-col items-center justify-center py-4">
+          <div className="mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-indigo-500"></div>
           <div className="text-gray-500">Loading messages...</div>
         </div>
       )}
 
       {/* Message list */}
       {allMessages.length === 0 && !isMessagesLoading ? (
-        <div className="text-center text-gray-500 py-2">
+        <div className="py-2 text-center text-gray-500">
           No messages yet, start chatting!
         </div>
       ) : (
@@ -677,7 +680,7 @@ export function MessageList({
       {showScrollToBottom && (
         <button
           onClick={scrollToBottom}
-          className="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-indigo-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center space-x-2 hover:bg-indigo-700 transition-colors z-50"
+          className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 transform items-center space-x-2 rounded-full bg-indigo-600 px-4 py-2 text-white shadow-lg transition-colors hover:bg-indigo-700"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

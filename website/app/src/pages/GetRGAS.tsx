@@ -12,19 +12,19 @@ export const GetRGAS = () => {
         <title>Get RGAS - Nuwa</title>
       </Helmet>
 
-      <h1 className="text-3xl font-bold mb-6 text-center dark:text-white">
+      <h1 className="mb-6 text-center text-3xl font-bold dark:text-white">
         Get RGAS
       </h1>
 
       {/* Tabs */}
-      <div className="flex justify-center mb-8">
-        <div className="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+      <div className="mb-8 flex justify-center">
+        <div className="flex overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
           <button
             onClick={() => setActiveTab("claim")}
             className={`px-6 py-3 text-sm font-medium ${
               activeTab === "claim"
                 ? "bg-blue-500 text-white"
-                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                : "bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
             }`}
           >
             Get Free RGAS
@@ -34,7 +34,7 @@ export const GetRGAS = () => {
             className={`px-6 py-3 text-sm font-medium ${
               activeTab === "buy"
                 ? "bg-blue-500 text-white"
-                : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                : "bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
             }`}
           >
             Buy RGAS
@@ -43,7 +43,7 @@ export const GetRGAS = () => {
       </div>
 
       {/* Content Area */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <div className="rounded-lg bg-white p-6 shadow-md dark:bg-gray-800">
         {activeTab === "claim" ? <ClaimFreeRGAS /> : <BuyRGAS />}
       </div>
     </div>

@@ -156,9 +156,9 @@ export function AgentTasksPanel() {
   };
 
   return (
-    <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+    <div className="mt-8 overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
       <div className="px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Tasks
           </h2>
@@ -176,10 +176,10 @@ export function AgentTasksPanel() {
                 }
               }}
             >
-              <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+              <button className="flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
                 {!isAddingTask ? (
                   <>
-                    <PlusIcon className="w-4 h-4 mr-2" />
+                    <PlusIcon className="mr-2 h-4 w-4" />
                     Add Task
                   </>
                 ) : isJsonMode ? (
@@ -193,13 +193,13 @@ export function AgentTasksPanel() {
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => handleCopyJson(taskSpecs[0])}
-                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
               >
-                <ClipboardIcon className="w-4 h-4 mr-2" />
+                <ClipboardIcon className="mr-2 h-4 w-4" />
                 Copy JSON
               </button>
               <div className="flex items-center text-gray-500 dark:text-gray-400">
-                <LockClosedIcon className="w-4 h-4 mr-2" />
+                <LockClosedIcon className="mr-2 h-4 w-4" />
                 <span className="text-sm">Only the owner can edit</span>
               </div>
             </div>
@@ -207,14 +207,14 @@ export function AgentTasksPanel() {
         </div>
 
         {taskSpecs.length === 0 ? (
-          <div className="text-center py-8 px-4">
-            <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
-              <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+          <div className="px-4 py-8 text-center">
+            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-800/50">
+              <InboxIcon className="h-16 w-16 text-gray-300 dark:text-gray-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">
               No tasks yet
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+            <p className="mx-auto max-w-sm text-sm text-gray-500 dark:text-gray-400">
               This agent has not set any tasks yet.
               {isOwner
                 ? 'Click the "Add Task" button to create the first task.'
@@ -226,7 +226,7 @@ export function AgentTasksPanel() {
             {isJsonMode ? (
               <div className="space-y-4">
                 <textarea
-                  className="w-full h-96 font-mono text-sm p-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                  className="h-96 w-full rounded-lg border border-gray-300 bg-white p-4 font-mono text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:focus:border-purple-400"
                   value={jsonInput}
                   onChange={(e) => setJsonInput(e.target.value)}
                 />
@@ -236,12 +236,12 @@ export function AgentTasksPanel() {
                       setJsonInput(JSON.stringify(agentTask || [], null, 2));
                       setIsJsonMode(false);
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                   >
                     Cancel
                   </button>
                   <SessionKeyGuard onClick={handleSubmitTask}>
-                    <button className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors">
+                    <button className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700">
                       Save
                     </button>
                   </SessionKeyGuard>
@@ -252,31 +252,31 @@ export function AgentTasksPanel() {
                 {taskSpecs.map((task, index) => (
                   <div
                     key={index}
-                    className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700"
+                    className="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800/50"
                   >
                     {editingTaskIndex === index ? (
                       <div className="space-y-4">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="mb-4 flex items-center justify-between">
                           <div className="flex items-center space-x-3">
-                            <span className="text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-full">
+                            <span className="rounded-full bg-purple-50 px-3 py-1 text-sm font-medium text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
                               Task #{index + 1}
                             </span>
                           </div>
                           <div className="flex gap-2">
                             <button
                               onClick={handleCancelEdit}
-                              className="px-3 py-1 text-sm text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                              className="rounded-lg bg-gray-100 px-3 py-1 text-sm text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={() => handleDeleteTask(index)}
-                              className="px-3 py-1 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30"
+                              className="rounded-lg bg-red-50 px-3 py-1 text-sm text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
                             >
                               Delete
                             </button>
                             <SessionKeyGuard onClick={handleSaveTask}>
-                              <button className="px-3 py-1 text-sm text-white bg-purple-600 rounded-lg hover:bg-purple-700">
+                              <button className="rounded-lg bg-purple-600 px-3 py-1 text-sm text-white hover:bg-purple-700">
                                 Save
                               </button>
                             </SessionKeyGuard>
@@ -285,7 +285,7 @@ export function AgentTasksPanel() {
 
                         <div className="space-y-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                               Name
                             </label>
                             <input
@@ -299,13 +299,13 @@ export function AgentTasksPanel() {
                                 };
                                 setTaskSpecs(newTasks);
                               }}
-                              className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                              className="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:focus:border-purple-400"
                               placeholder="Input task name"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                               Description
                             </label>
                             <textarea
@@ -318,14 +318,14 @@ export function AgentTasksPanel() {
                                 };
                                 setTaskSpecs(newTasks);
                               }}
-                              className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                              className="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:focus:border-purple-400"
                               placeholder="Input task description"
                               rows={3}
                             />
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                               Resolver
                             </label>
                             <input
@@ -339,13 +339,13 @@ export function AgentTasksPanel() {
                                 };
                                 setTaskSpecs(newTasks);
                               }}
-                              className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                              className="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:focus:border-purple-400"
                               placeholder="Input resolver"
                             />
                           </div>
 
                           <div>
-                            <div className="flex items-center justify-between mb-2">
+                            <div className="mb-2 flex items-center justify-between">
                               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Arguments
                               </label>
@@ -368,18 +368,18 @@ export function AgentTasksPanel() {
                                 };
                                 setTaskSpecs(newTasks);
                               }}
-                              className="w-full flex items-center justify-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 bg-purple-50 dark:bg-purple-900/20 py-2 rounded-lg mb-3"
+                              className="mb-3 flex w-full items-center justify-center rounded-lg bg-purple-50 py-2 text-sm text-purple-600 hover:text-purple-700 dark:bg-purple-900/20 dark:text-purple-400 dark:hover:text-purple-300"
                             >
-                              <PlusIcon className="w-4 h-4 mr-1" />
+                              <PlusIcon className="mr-1 h-4 w-4" />
                               Add Argument
                             </button>
                             <div className="space-y-3">
                               {(task.arguments || []).map((arg, argIndex) => (
                                 <div
                                   key={argIndex}
-                                  className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+                                  className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
                                 >
-                                  <div className="flex items-start justify-between mb-2">
+                                  <div className="mb-2 flex items-start justify-between">
                                     <div className="flex-1 space-y-2">
                                       <input
                                         type="text"
@@ -390,7 +390,7 @@ export function AgentTasksPanel() {
                                             { ...arg, name: e.target.value };
                                           setTaskSpecs(newTasks);
                                         }}
-                                        className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-transparent p-2 text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:focus:border-purple-400"
                                         placeholder="Argument Name"
                                       />
                                       <input
@@ -405,7 +405,7 @@ export function AgentTasksPanel() {
                                             };
                                           setTaskSpecs(newTasks);
                                         }}
-                                        className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-transparent p-2 text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:focus:border-purple-400"
                                         placeholder="Type Description"
                                       />
                                       <textarea
@@ -419,12 +419,12 @@ export function AgentTasksPanel() {
                                             };
                                           setTaskSpecs(newTasks);
                                         }}
-                                        className="block w-full text-sm bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                        className="block w-full rounded-lg border border-gray-300 bg-transparent p-2 text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:focus:border-purple-400"
                                         placeholder="Argument Description"
                                         rows={2}
                                       />
                                     </div>
-                                    <div className="flex items-center space-x-2 ml-2">
+                                    <div className="ml-2 flex items-center space-x-2">
                                       <label className="flex items-center">
                                         <input
                                           type="checkbox"
@@ -439,7 +439,7 @@ export function AgentTasksPanel() {
                                             };
                                             setTaskSpecs(newTasks);
                                           }}
-                                          className="w-4 h-4 text-purple-600 dark:text-purple-400 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 dark:focus:ring-purple-400"
+                                          className="h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500 dark:border-gray-600 dark:text-purple-400 dark:focus:ring-purple-400"
                                         />
                                         <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                                           Required
@@ -454,7 +454,7 @@ export function AgentTasksPanel() {
 
                           <div className="grid grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Price (RGas)
                               </label>
                               <input
@@ -468,12 +468,12 @@ export function AgentTasksPanel() {
                                   };
                                   setTaskSpecs(newTasks);
                                 }}
-                                className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                className="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:focus:border-purple-400"
                                 placeholder="Input price"
                               />
                             </div>
                             <div>
-                              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Type
                               </label>
                               <select
@@ -486,7 +486,7 @@ export function AgentTasksPanel() {
                                   };
                                   setTaskSpecs(newTasks);
                                 }}
-                                className="block w-full text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none"
+                                className="block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:focus:border-purple-400"
                               >
                                 <option value="on-chain">On-Chain</option>
                                 <option value="off-chain">Off-Chain</option>
@@ -498,22 +498,22 @@ export function AgentTasksPanel() {
                     ) : (
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-full">
+                          <div className="mb-3 flex items-center justify-between">
+                            <span className="rounded-full bg-purple-50 px-3 py-1 text-sm font-medium text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
                               Task #{index + 1}
                             </span>
                             <button
                               onClick={() => handleEditTask(index)}
-                              className="flex items-center text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
+                              className="flex items-center text-sm text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
                             >
-                              <PencilIcon className="w-4 h-4 mr-1" />
+                              <PencilIcon className="mr-1 h-4 w-4" />
                               Edit
                             </button>
                           </div>
 
                           <div className="space-y-3">
                             <div>
-                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                                 Name
                               </label>
                               <h4 className="font-medium text-gray-900 dark:text-gray-100">
@@ -522,7 +522,7 @@ export function AgentTasksPanel() {
                             </div>
 
                             <div>
-                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                                 Description
                               </label>
                               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -531,18 +531,18 @@ export function AgentTasksPanel() {
                             </div>
 
                             <div>
-                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                              <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                                 Resolver
                               </label>
                               <div className="flex items-center gap-2">
-                                <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-sm rounded-lg">
+                                <span className="rounded-lg bg-purple-50 px-3 py-1 text-sm text-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
                                   {task.resolver || "No resolver specified"}
                                 </span>
                               </div>
                             </div>
 
                             <div>
-                              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                              <label className="mb-2 block text-xs font-medium text-gray-500 dark:text-gray-400">
                                 Arguments
                               </label>
                               {task.arguments && task.arguments.length > 0 ? (
@@ -550,29 +550,29 @@ export function AgentTasksPanel() {
                                   {task.arguments.map((arg, argIndex) => (
                                     <div
                                       key={argIndex}
-                                      className="p-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+                                      className="rounded-lg border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800"
                                     >
                                       <div className="flex items-center gap-2">
-                                        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                           {arg.name}
                                         </span>
                                         <span className="text-xs text-gray-500 dark:text-gray-400">
                                           ({arg.type_desc})
                                         </span>
                                         {arg.required && (
-                                          <span className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
+                                          <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-500 dark:bg-red-900/20 dark:text-red-400">
                                             Required
                                           </span>
                                         )}
                                       </div>
-                                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                      <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                                         {arg.description || "No description"}
                                       </p>
                                     </div>
                                   ))}
                                 </div>
                               ) : (
-                                <div className="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 p-2 rounded-lg border border-gray-200 dark:border-gray-700">
+                                <div className="rounded-lg border border-gray-200 bg-white p-2 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                                   No arguments defined
                                 </div>
                               )}
@@ -583,7 +583,7 @@ export function AgentTasksPanel() {
                                 <span className="text-sm text-gray-500 dark:text-gray-400">
                                   Price:
                                 </span>
-                                <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm rounded-lg">
+                                <span className="rounded-lg bg-blue-50 px-3 py-1 text-sm text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
                                   {task.price || 0} RGas
                                 </span>
                               </div>
@@ -591,7 +591,7 @@ export function AgentTasksPanel() {
                                 <span className="text-sm text-gray-500 dark:text-gray-400">
                                   Type:
                                 </span>
-                                <span className="px-3 py-1 bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 text-sm rounded-lg">
+                                <span className="rounded-lg bg-gray-50 px-3 py-1 text-sm text-gray-700 dark:bg-gray-800/50 dark:text-gray-300">
                                   {task.on_chain ? "On-Chain" : "Off-Chain"}
                                 </span>
                               </div>
@@ -610,18 +610,18 @@ export function AgentTasksPanel() {
             {taskSpecs.map((task, index) => (
               <div
                 key={index}
-                className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700"
+                className="rounded-xl border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800/50"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center mb-3">
-                      <span className="text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-1 rounded-full">
+                    <div className="mb-3 flex items-center">
+                      <span className="rounded-full bg-purple-50 px-3 py-1 text-sm font-medium text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
                         Task #{index + 1}
                       </span>
                     </div>
 
                     <div className="mb-3">
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                         Name
                       </label>
                       <h4 className="font-medium text-gray-900 dark:text-gray-100">
@@ -630,7 +630,7 @@ export function AgentTasksPanel() {
                     </div>
 
                     <div className="mb-4">
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                         Description
                       </label>
                       <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -639,18 +639,18 @@ export function AgentTasksPanel() {
                     </div>
 
                     <div className="mb-4">
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                      <label className="mb-1 block text-xs font-medium text-gray-500 dark:text-gray-400">
                         Resolver
                       </label>
                       <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 text-sm rounded-lg flex-1">
+                        <span className="flex-1 rounded-lg bg-purple-50 px-3 py-1 text-sm text-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
                           {task.resolver || "No resolver specified"}
                         </span>
                       </div>
                     </div>
 
                     <div className="mb-4">
-                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                      <label className="mb-2 block text-xs font-medium text-gray-500 dark:text-gray-400">
                         Arguments
                       </label>
                       {task.arguments && task.arguments.length > 0 ? (
@@ -658,17 +658,17 @@ export function AgentTasksPanel() {
                           {task.arguments.map((arg, argIndex) => (
                             <div
                               key={argIndex}
-                              className="p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+                              className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
                             >
-                              <div className="flex items-center gap-2 mb-2">
-                                <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                              <div className="mb-2 flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                   {arg.name}
                                 </span>
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
                                   ({arg.type_desc})
                                 </span>
                                 {arg.required && (
-                                  <span className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded-full">
+                                  <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-500 dark:bg-red-900/20 dark:text-red-400">
                                     Required
                                   </span>
                                 )}
@@ -680,7 +680,7 @@ export function AgentTasksPanel() {
                           ))}
                         </div>
                       ) : (
-                        <div className="text-sm text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                        <div className="rounded-lg border border-gray-200 bg-white p-3 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
                           No arguments defined
                         </div>
                       )}
@@ -691,7 +691,7 @@ export function AgentTasksPanel() {
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           Price:
                         </span>
-                        <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-sm rounded-lg">
+                        <span className="rounded-lg bg-blue-50 px-3 py-1 text-sm text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
                           {task.price || 0} RGas
                         </span>
                       </div>
@@ -699,7 +699,7 @@ export function AgentTasksPanel() {
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           Type:
                         </span>
-                        <span className="px-3 py-1 bg-gray-50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 text-sm rounded-lg">
+                        <span className="rounded-lg bg-gray-50 px-3 py-1 text-sm text-gray-700 dark:bg-gray-800/50 dark:text-gray-300">
                           {task.on_chain ? "On-Chain" : "Off-Chain"}
                         </span>
                       </div>

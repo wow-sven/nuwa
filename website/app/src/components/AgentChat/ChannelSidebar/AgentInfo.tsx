@@ -26,11 +26,11 @@ export function AgentInfo() {
   const navigate = useNavigate();
   const { agent, selectedChannel, memberCount } = useAgentChat();
   const { balance, isPending: isBalancePending } = useAgentBalance(
-    agent?.agent_address
+    agent?.agent_address,
   );
 
   const { isJoined, refetch: refetchIsjoined } = useChannelJoinedStatus(
-    selectedChannel || ""
+    selectedChannel || "",
   );
   const { refetch: refetchJoinedAgent } = useAgentJoined();
   const { refetch: refetchChannelMembers } = useChannelMembers({
@@ -55,8 +55,8 @@ export function AgentInfo() {
 
   if (!agent) {
     return (
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="text-center text-gray-500 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg">
+      <div className="border-b border-gray-200 p-4 dark:border-gray-700">
+        <div className="rounded-lg bg-gray-50 p-3 text-center text-gray-500 dark:bg-gray-800/50">
           No agent information available
         </div>
       </div>
@@ -64,7 +64,7 @@ export function AgentInfo() {
   }
 
   return (
-    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="border-b border-gray-200 p-4 dark:border-gray-700">
       <div className="flex flex-col space-y-4">
         {/* Header Section with Avatar and Basic Info */}
         <div className="flex items-start space-x-4">
@@ -76,7 +76,7 @@ export function AgentInfo() {
                 "https://api.dicebear.com/7.x/bottts/svg?seed=" + agent.id
               }
               alt="AI Avatar"
-              className="w-16 h-16 rounded-full ring-2 ring-purple-100 dark:ring-purple-900/30"
+              className="h-16 w-16 rounded-full ring-2 ring-purple-100 dark:ring-purple-900/30"
             />
           </div>
 
@@ -101,11 +101,11 @@ export function AgentInfo() {
         {/* Stats Section */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-            <UserGroupIcon className="w-4 h-4 mr-1" />
+            <UserGroupIcon className="mr-1 h-4 w-4" />
             <span>{memberCount || 0}</span>
           </div>
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-            <CurrencyDollarIcon className="w-4 h-4 mr-1" />
+            <CurrencyDollarIcon className="mr-1 h-4 w-4" />
             {isBalancePending ? (
               <span className="animate-pulse">...</span>
             ) : (
@@ -120,16 +120,16 @@ export function AgentInfo() {
         <div className="flex flex-col space-y-2">
           <button
             onClick={() => navigate(`/profile/${agent.agent_address}`)}
-            className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg transition-colors"
+            className="flex w-full items-center justify-center space-x-2 rounded-lg bg-purple-50 px-4 py-2 text-purple-700 transition-colors hover:bg-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:hover:bg-purple-900/30"
           >
-            <UserCircleIcon className="w-5 h-5" />
+            <UserCircleIcon className="h-5 w-5" />
             <span className="font-medium">View Profile</span>
           </button>
 
           {isJoined && (
             <SessionKeyGuard onClick={handleLeaveChannel}>
-              <button className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg transition-colors">
-                <ArrowLeftOnRectangleIcon className="w-5 h-5" />
+              <button className="flex w-full items-center justify-center space-x-2 rounded-lg bg-red-50 px-4 py-2 text-red-700 transition-colors hover:bg-red-100 dark:bg-red-900/20 dark:text-red-300 dark:hover:bg-red-900/30">
+                <ArrowLeftOnRectangleIcon className="h-5 w-5" />
                 <span className="font-medium">
                   {leaveIsPending ? "Leaving..." : "Leave Channel"}
                 </span>

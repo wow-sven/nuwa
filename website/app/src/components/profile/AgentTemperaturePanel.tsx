@@ -101,19 +101,19 @@ export function AgentTemperaturePanel() {
   };
 
   return (
-    <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+    <div className="mt-8 overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
       <div className="px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Temperature
           </h2>
           {isOwner ? (
             <SessionKeyGuard onClick={handleTemperatureEdit}>
-              <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                <PencilIcon className="w-4 h-4 mr-2" />
+              <button className="flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                <PencilIcon className="mr-2 h-4 w-4" />
                 {isSaving ? (
                   <svg
-                    className="w-5 h-5 animate-spin mx-auto text-white"
+                    className="mx-auto h-5 w-5 animate-spin text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -141,7 +141,7 @@ export function AgentTemperaturePanel() {
             </SessionKeyGuard>
           ) : (
             <div className="flex items-center text-gray-500 dark:text-gray-400">
-              <LockClosedIcon className="w-4 h-4 mr-2" />
+              <LockClosedIcon className="mr-2 h-4 w-4" />
               <span className="text-sm">Only the owner can edit</span>
             </div>
           )}
@@ -163,9 +163,9 @@ export function AgentTemperaturePanel() {
                       temperature: parseFloat(e.target.value),
                     }))
                   }
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700"
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 dark:bg-gray-700"
                 />
-                <span className="text-lg font-medium text-gray-700 dark:text-gray-300 min-w-[3rem] text-center">
+                <span className="min-w-[3rem] text-center text-lg font-medium text-gray-700 dark:text-gray-300">
                   {editForm.temperature.toFixed(1)}
                 </span>
               </div>
@@ -177,7 +177,7 @@ export function AgentTemperaturePanel() {
           ) : (
             <div className="space-y-2">
               <div className="flex items-center space-x-4">
-                <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                <div className="h-2.5 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
                     className="h-2.5 rounded-full"
                     style={{
@@ -186,7 +186,7 @@ export function AgentTemperaturePanel() {
                     }}
                   ></div>
                 </div>
-                <span className="text-lg font-medium text-gray-700 dark:text-gray-300 min-w-[3rem] text-center">
+                <span className="min-w-[3rem] text-center text-lg font-medium text-gray-700 dark:text-gray-300">
                   {temperatureValue.toFixed(1)}
                 </span>
               </div>

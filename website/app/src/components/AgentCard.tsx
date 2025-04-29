@@ -1,6 +1,5 @@
 import { Agent } from "../types/agent";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 
 interface AgentCardProps {
   agent: Agent;
@@ -8,43 +7,14 @@ interface AgentCardProps {
 
 export function AgentCard({ agent }: AgentCardProps) {
   const navigate = useNavigate();
-  // const [isLiked, setIsLiked] = useState(false)
-  // const [isStarred, setIsStarred] = useState(false)
-
-  // const shortenAddress = (address: string) => {
-  //   return `${address.slice(0, 6)}...${address.slice(-4)}`
-  // }
-
-  // const getTimeAgo = () => {
-  //   // mock created date in the past 1-6 months
-  //   const now = new Date()
-  //   const monthsAgo = Math.floor(Math.random() * 5) + 1 // 1-6 months
-  //   const createdAt = new Date(now.setMonth(now.getMonth() - monthsAgo))
-  //   const diffInDays = Math.floor((new Date().getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
-
-  //   if (diffInDays > 30) {
-  //     const months = Math.floor(diffInDays / 30)
-  //     return `${months}mo`
-  //   }
-  //   return `${diffInDays}d`
-  // }
-
-  // const getPopularity = () => {
-  //   // if trending, return higher popularity value (85-99)
-  //   if (agent.isTrending) {
-  //     return Math.floor(Math.random() * 15) + 85
-  //   }
-  //   // otherwise return lower popularity value (30-84)
-  //   return Math.floor(Math.random() * 55) + 30
-  // }
 
   return (
     <div
-      className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden cursor-pointer group border border-gray-100 dark:border-gray-700"
+      className="group cursor-pointer overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm transition-all duration-200 hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
       onClick={() => navigate(`/agent/${agent.username}`)}
     >
       {/* Cover Image */}
-      <div className="h-32 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 relative">
+      <div className="relative h-20 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 md:h-32">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/10 to-pink-600/10"></div>
         {/* Star Button */}
         {/* <div
@@ -63,16 +33,16 @@ export function AgentCard({ agent }: AgentCardProps) {
       </div>
 
       {/* Profile Section */}
-      <div className="px-4 pb-4 flex flex-col items-center h-[280px] justify-between">
+      <div className="flex min-h-[240px] flex-col items-center justify-between px-4 pb-4 md:h-[280px]">
         {/* Avatar and Name Section */}
         <div className="w-full">
           <div className="relative -mt-12 flex flex-col items-center">
             <img
               src={agent.avatar}
               alt={agent.name}
-              className="w-16 h-16 mb-2 rounded-full"
+              className="mb-2 h-16 w-16 rounded-full"
             />
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 text-center">
+            <h3 className="text-center text-lg font-semibold text-gray-900 dark:text-gray-100">
               {agent.name}
             </h3>
             <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -81,7 +51,7 @@ export function AgentCard({ agent }: AgentCardProps) {
           </div>
 
           {/* Bio with max height and scroll */}
-          <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 text-center max-w-sm mx-auto overflow-y-auto">
+          <p className="mx-auto my-3 max-w-sm overflow-y-auto text-center text-sm text-gray-600 dark:text-gray-300">
             {agent.description}
           </p>
         </div>
@@ -132,13 +102,13 @@ export function AgentCard({ agent }: AgentCardProps) {
               e.stopPropagation();
               navigate(`/agent/${agent.username}`);
             }}
-            className="group relative w-full px-8 py-3 text-sm font-semibold rounded-lg border-2 border-purple-600 bg-white dark:bg-gray-900 transition-all duration-500 ease-in-out overflow-hidden"
+            className="group relative w-full overflow-hidden rounded-lg border-2 border-purple-600 bg-white px-8 py-3 text-sm font-semibold transition-all duration-500 ease-in-out dark:bg-gray-900"
           >
-            <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 dark:text-white group-hover:text-white transition-colors duration-500">
+            <span className="relative z-10 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent transition-colors duration-500 group-hover:text-white dark:text-white">
               Chat Now
             </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-in-out origin-left"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 ease-in-out origin-right delay-100"></div>
+            <div className="absolute inset-0 origin-left scale-x-0 transform bg-gradient-to-r from-purple-600 to-pink-600 transition-transform duration-500 ease-in-out group-hover:scale-x-100"></div>
+            <div className="absolute inset-0 origin-right scale-x-0 transform bg-gradient-to-r from-purple-600 to-pink-600 transition-transform delay-100 duration-500 ease-in-out group-hover:scale-x-100"></div>
           </button>
         </div>
       </div>

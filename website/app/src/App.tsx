@@ -38,7 +38,7 @@ const AgentChat = lazy(() =>
       default: module.AgentChat,
       preload: preloadAgent,
     };
-  })
+  }),
 );
 
 function AppContent() {
@@ -52,7 +52,7 @@ function AppContent() {
     "nuwa-hasSeenRiskWarning",
     {
       defaultValue: false,
-    }
+    },
   );
 
   // Scroll to top when route changes
@@ -79,7 +79,7 @@ function AppContent() {
   }, [location.pathname]);
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
       <Header isDarkMode={theme === "dark"} />
 
       {/* Main Content */}
@@ -90,7 +90,7 @@ function AppContent() {
         />
         <div
           className={`flex-1 overflow-auto ${
-            isSidebarCollapsed ? "ml-16" : "ml-64"
+            isSidebarCollapsed ? "md:ml-16" : "md:ml-64"
           } transition-all duration-300`}
         >
           <Suspense fallback={<LoadingScreen />}>

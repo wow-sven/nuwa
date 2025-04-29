@@ -173,7 +173,7 @@ export function AgentProfilePanel() {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+    <div className="overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
       {/* Cover Image */}
       <div className="h-32 bg-gradient-to-r from-purple-600 to-pink-600"></div>
 
@@ -184,24 +184,24 @@ export function AgentProfilePanel() {
           <img
             src={isEditing ? previewAvatar || agent?.avatar : agent?.avatar}
             alt={agent?.username}
-            className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-800 bg-white dark:bg-gray-800"
+            className="h-32 w-32 rounded-full border-4 border-white bg-white dark:border-gray-800 dark:bg-gray-800"
           />
         </div>
 
         {/* Name and Username */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="mb-4 flex items-start justify-between">
           <div className="flex-1">
             {isEditing ? (
               <>
                 <div className="mb-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Avatar URL
                   </label>
                   <input
                     type="text"
                     value={editForm.avatar}
                     onChange={(e) => handleAvatarChange(e.target.value)}
-                    className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${
+                    className={`block w-full rounded-lg border bg-transparent p-2 text-sm focus:border-purple-500 focus:outline-none dark:focus:border-purple-400 ${
                       avatarError ? "border-red-500" : ""
                     }`}
                     placeholder="Enter Avatar URL"
@@ -211,7 +211,7 @@ export function AgentProfilePanel() {
                   )}
                 </div>
                 <div className="mb-2">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Name
                   </label>
                   <input
@@ -223,7 +223,7 @@ export function AgentProfilePanel() {
                         name: e.target.value,
                       }))
                     }
-                    className={`block w-full text-sm bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${
+                    className={`block w-full rounded-lg border bg-transparent p-2 text-sm focus:border-purple-500 focus:outline-none dark:focus:border-purple-400 ${
                       formErrors.name ? "border-red-500" : ""
                     }`}
                     placeholder="Enter Name"
@@ -246,11 +246,11 @@ export function AgentProfilePanel() {
           </div>
           {isOwner && (
             <SessionKeyGuard onClick={handleEdit}>
-              <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                <PencilIcon className="w-4 h-4 mr-2" />
+              <button className="flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                <PencilIcon className="mr-2 h-4 w-4" />
                 {isSaving ? (
                   <svg
-                    className="w-5 h-5 animate-spin mx-auto text-white"
+                    className="mx-auto h-5 w-5 animate-spin text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -283,7 +283,7 @@ export function AgentProfilePanel() {
         <div className="max-w-2xl">
           {isEditing ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Description
               </label>
               <textarea
@@ -294,7 +294,7 @@ export function AgentProfilePanel() {
                     description: e.target.value,
                   }))
                 }
-                className={`block w-full text-sm text-gray-600 dark:text-gray-300 bg-transparent border rounded-lg p-2 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none ${
+                className={`block w-full rounded-lg border bg-transparent p-2 text-sm text-gray-600 focus:border-purple-500 focus:outline-none dark:text-gray-300 dark:focus:border-purple-400 ${
                   formErrors.description ? "border-red-500" : ""
                 }`}
                 placeholder="Input description"
@@ -315,9 +315,9 @@ export function AgentProfilePanel() {
         <div className="mt-4">
           <Link
             to={`/agent/${agent?.username}`}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors"
+            className="inline-flex items-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
           >
-            <ChatBubbleLeftIcon className="w-4 h-4 mr-2" />
+            <ChatBubbleLeftIcon className="mr-2 h-4 w-4" />
             Start Chat
           </Link>
         </div>

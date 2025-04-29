@@ -31,9 +31,9 @@ export function AgentMemoriesPanel() {
   });
 
   return (
-    <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+    <div className="mt-8 overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
       <div className="px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               Agent Memory
@@ -41,10 +41,10 @@ export function AgentMemoriesPanel() {
             <div className="flex space-x-2">
               <button
                 onClick={() => setActiveMemoryTab("all")}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                   activeMemoryTab === "all"
-                    ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                    : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                 }`}
               >
                 Agent Self Memory
@@ -52,10 +52,10 @@ export function AgentMemoriesPanel() {
               {currentAddress && (
                 <button
                   onClick={() => setActiveMemoryTab("user")}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                     activeMemoryTab === "user"
-                      ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
-                      : "text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
+                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                   }`}
                 >
                   Agent Memories About You
@@ -67,18 +67,18 @@ export function AgentMemoriesPanel() {
             onClick={
               activeMemoryTab === "all" ? refetchMemories : refetchUserMemories
             }
-            className="flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            className="flex items-center rounded-lg bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
           >
-            <ArrowPathIcon className="w-4 h-4 mr-1.5" />
+            <ArrowPathIcon className="mr-1.5 h-4 w-4" />
             Refresh
           </button>
         </div>
 
         {activeMemoryTab === "all" ? (
           isLoadingMemories ? (
-            <div className="flex justify-center items-center py-8">
+            <div className="flex items-center justify-center py-8">
               <svg
-                className="w-8 h-8 animate-spin text-purple-500"
+                className="h-8 w-8 animate-spin text-purple-500"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -99,10 +99,10 @@ export function AgentMemoriesPanel() {
               </svg>
             </div>
           ) : memoriesError ? (
-            <div className="text-center py-8 px-4">
-              <div className="mx-auto w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center mb-4">
+            <div className="px-4 py-8 text-center">
+              <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20">
                 <svg
-                  className="w-16 h-16 text-red-400"
+                  className="h-16 w-16 text-red-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -115,28 +115,28 @@ export function AgentMemoriesPanel() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">
                 Load failed
               </h3>
-              <p className="text-sm text-red-500 dark:text-red-400 max-w-sm mx-auto mb-4">
+              <p className="mx-auto mb-4 max-w-sm text-sm text-red-500 dark:text-red-400">
                 {memoriesError || "Load memory failed"}
               </p>
               <button
                 onClick={refetchMemories}
-                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
               >
                 Retry
               </button>
             </div>
           ) : allMemories.length === 0 ? (
-            <div className="text-center py-8 px-4">
-              <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
-                <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+            <div className="px-4 py-8 text-center">
+              <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-800/50">
+                <InboxIcon className="h-16 w-16 text-gray-300 dark:text-gray-600" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">
                 No memories
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+              <p className="mx-auto max-w-sm text-sm text-gray-500 dark:text-gray-400">
                 The agent has not created any memories yet.
               </p>
             </div>
@@ -145,12 +145,12 @@ export function AgentMemoriesPanel() {
               {allMemories.map((memory, index) => (
                 <div
                   key={index}
-                  className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                  className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center mb-2">
-                        <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
+                      <div className="mb-2 flex items-center">
+                        <span className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
                           Memories #{index + 1}
                         </span>
                       </div>
@@ -164,7 +164,7 @@ export function AgentMemoriesPanel() {
                       )}
                     </div>
                     <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <ClockIcon className="w-4 h-4 mr-1" />
+                      <ClockIcon className="mr-1 h-4 w-4" />
                       {new Date(memory.timestamp).toLocaleString()}
                     </div>
                   </div>
@@ -173,9 +173,9 @@ export function AgentMemoriesPanel() {
             </div>
           )
         ) : isLoadingUserMemories ? (
-          <div className="flex justify-center items-center py-8">
+          <div className="flex items-center justify-center py-8">
             <svg
-              className="w-8 h-8 animate-spin text-purple-500"
+              className="h-8 w-8 animate-spin text-purple-500"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -196,10 +196,10 @@ export function AgentMemoriesPanel() {
             </svg>
           </div>
         ) : userMemoriesError ? (
-          <div className="text-center py-8 px-4">
-            <div className="mx-auto w-24 h-24 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center mb-4">
+          <div className="px-4 py-8 text-center">
+            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-lg bg-red-50 dark:bg-red-900/20">
               <svg
-                className="w-16 h-16 text-red-400"
+                className="h-16 w-16 text-red-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -212,28 +212,28 @@ export function AgentMemoriesPanel() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">
               Load failed
             </h3>
-            <p className="text-sm text-red-500 dark:text-red-400 max-w-sm mx-auto mb-4">
+            <p className="mx-auto mb-4 max-w-sm text-sm text-red-500 dark:text-red-400">
               {userMemoriesError || "Load memory failed"}
             </p>
             <button
               onClick={refetchUserMemories}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              className="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
             >
               Retry
             </button>
           </div>
         ) : userMemories.length === 0 ? (
-          <div className="text-center py-8 px-4">
-            <div className="mx-auto w-24 h-24 bg-gray-50 dark:bg-gray-800/50 rounded-lg flex items-center justify-center mb-4">
-              <InboxIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+          <div className="px-4 py-8 text-center">
+            <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-lg bg-gray-50 dark:bg-gray-800/50">
+              <InboxIcon className="h-16 w-16 text-gray-300 dark:text-gray-600" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">
               No memories about you
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+            <p className="mx-auto max-w-sm text-sm text-gray-500 dark:text-gray-400">
               The agent has not created any memories about you yet.
             </p>
           </div>
@@ -242,12 +242,12 @@ export function AgentMemoriesPanel() {
             {userMemories.map((memory, index) => (
               <div
                 key={index}
-                className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+                className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800/50"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center mb-2">
-                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded">
+                    <div className="mb-2 flex items-center">
+                      <span className="rounded bg-purple-50 px-2 py-1 text-xs font-medium text-purple-600 dark:bg-purple-900/20 dark:text-purple-400">
                         Memory #{index + 1}
                       </span>
                     </div>
@@ -261,7 +261,7 @@ export function AgentMemoriesPanel() {
                     )}
                   </div>
                   <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                    <ClockIcon className="w-4 h-4 mr-1" />
+                    <ClockIcon className="mr-1 h-4 w-4" />
                     {new Date(memory.timestamp).toLocaleString()}
                   </div>
                 </div>

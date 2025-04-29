@@ -78,19 +78,19 @@ export function AgentPromptPanel() {
   };
 
   return (
-    <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+    <div className="mt-8 overflow-hidden rounded-xl bg-white shadow-sm dark:bg-gray-800">
       <div className="px-6 py-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Prompt
           </h2>
           {isOwner ? (
             <SessionKeyGuard onClick={handlePromptEdit}>
-              <button className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                <PencilIcon className="w-4 h-4 mr-2" />
+              <button className="flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                <PencilIcon className="mr-2 h-4 w-4" />
                 {isSavingPop ? (
                   <svg
-                    className="w-5 h-5 animate-spin mx-auto text-white"
+                    className="mx-auto h-5 w-5 animate-spin text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -118,7 +118,7 @@ export function AgentPromptPanel() {
             </SessionKeyGuard>
           ) : (
             <div className="flex items-center text-gray-500 dark:text-gray-400">
-              <LockClosedIcon className="w-4 h-4 mr-2" />
+              <LockClosedIcon className="mr-2 h-4 w-4" />
               <span className="text-sm">Only the owner can edit</span>
             </div>
           )}
@@ -135,13 +135,13 @@ export function AgentPromptPanel() {
                     prompt: e.target.value,
                   }))
                 }
-                className={`block w-full text-gray-600 dark:text-gray-300 bg-transparent border rounded-lg p-4 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none font-mono text-sm leading-relaxed ${
+                className={`block w-full rounded-lg border bg-transparent p-4 font-mono text-sm leading-relaxed text-gray-600 focus:border-purple-500 focus:outline-none dark:text-gray-300 dark:focus:border-purple-400 ${
                   formErrors.prompt ? "border-red-500" : ""
                 }`}
                 placeholder="Input the prompt of the AI role..."
                 rows={12}
               />
-              <div className="flex justify-between items-center mt-1">
+              <div className="mt-1 flex items-center justify-between">
                 {formErrors.prompt && (
                   <p className="text-sm text-red-500">{formErrors.prompt}</p>
                 )}
@@ -152,7 +152,7 @@ export function AgentPromptPanel() {
               </div>
             </>
           ) : (
-            <pre className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 font-mono text-sm leading-relaxed bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
+            <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 font-mono text-sm leading-relaxed text-gray-600 dark:bg-gray-800/50 dark:text-gray-300">
               {agent?.instructions}
             </pre>
           )}

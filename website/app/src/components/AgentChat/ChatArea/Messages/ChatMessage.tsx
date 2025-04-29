@@ -71,7 +71,7 @@ export function ChatMessage({
     return message.attachments.some((attachment) => {
       try {
         const data = JSON.parse(
-          attachment.attachment_json
+          attachment.attachment_json,
         ) as TransferAttachment;
         return data.amount && data.coin_type && data.to;
       } catch (error) {
@@ -86,7 +86,7 @@ export function ChatMessage({
     const attachment = message.attachments.find((attachment) => {
       try {
         const data = JSON.parse(
-          attachment.attachment_json
+          attachment.attachment_json,
         ) as TransferAttachment;
         return data.amount && data.coin_type && data.to;
       } catch (error) {
@@ -127,7 +127,7 @@ export function ChatMessage({
   const handleShare = () => {
     const shareText = `${message.content}\n\n${window.location.href}`;
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-      shareText
+      shareText,
     )}`;
     window.open(twitterUrl, "_blank");
   };
@@ -249,12 +249,12 @@ export function ChatMessage({
     };
 
     return (
-      <div className="text-center py-1 text-sm text-gray-500">
+      <div className="py-1 text-center text-sm text-gray-500">
         <span className="inline-flex items-center gap-1.5">
           <span>{getActionIcon()}</span>
           {getActionEventMessage(actionEvent)}
           {actionEvent.error ? (
-            <span className="text-red-500 ml-1">
+            <span className="ml-1 text-red-500">
               — Error: {actionEvent.error}
             </span>
           ) : (
@@ -268,7 +268,7 @@ export function ChatMessage({
   // For action events, return a simplified centered message
   if (isActionEvent) {
     return (
-      <div className="flex justify-center w-full my-1">
+      <div className="my-1 flex w-full justify-center">
         <div className="w-full">{renderActionEvent()}</div>
       </div>
     );
@@ -286,25 +286,25 @@ export function ChatMessage({
   // for normal messages, use the existing format
   return (
     <div className="flex w-full">
-      <div className="w-full flex gap-3">
+      <div className="flex w-full gap-3">
         {!isCurrentUser && (
-          <div className="flex-shrink-0 w-8 h-8">
+          <div className="h-8 w-8 flex-shrink-0">
             {isAI ? (
               // Wrap the avatar in a Link component if agentId is provided
               agent ? (
                 <Link
                   to={`/profile/${agent.username}`}
-                  className="block w-8 h-8 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all"
+                  className="block h-8 w-8 cursor-pointer rounded-full transition-all hover:ring-2 hover:ring-blue-300"
                   title={`View ${agent.name || "AI Agent"}'s profile`}
                 >
                   {agent?.avatar ? (
                     <img
                       src={agent.avatar}
                       alt={agent.name || "AI Agent"}
-                      className="w-8 h-8 rounded-full object-cover"
+                      className="h-8 w-8 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-blue-500 text-sm font-bold text-white">
                       {agent.name
                         ? agent.name.substring(0, 2).toUpperCase()
                         : "AI"}
@@ -313,7 +313,7 @@ export function ChatMessage({
                 </Link>
               ) : (
                 // Original div if no agentId provided
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center text-white text-sm font-bold">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-r from-purple-500 to-blue-500 text-sm font-bold text-white">
                   {"AI"}
                 </div>
               )
@@ -321,28 +321,28 @@ export function ChatMessage({
               // User avatar with profile link
               <Link
                 to={`/profile/${senderAddress}`}
-                className="block w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
+                className="block h-8 w-8 cursor-pointer rounded-full transition-all hover:ring-2 hover:ring-blue-300"
                 title={`View ${shortenAddress(senderAddress)}'s profile`}
               >
                 {userInfo?.avatar ? (
                   <img
                     src={userInfo.avatar}
                     alt={userInfo.name || shortenAddress(senderAddress)}
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="h-8 w-8 rounded-full object-cover"
                   />
                 ) : (
-                  <UserCircleIcon className="w-8 h-8 text-gray-400" />
+                  <UserCircleIcon className="h-8 w-8 text-gray-400" />
                 )}
               </Link>
             )}
           </div>
         )}
         <div
-          className={`flex flex-col flex-1 w-[calc(100%-48px)] ${
+          className={`flex w-[calc(100%-48px)] flex-1 flex-col ${
             isCurrentUser ? "items-end" : "items-start"
           }`}
         >
-          <div className="flex gap-2 text-xs text-gray-500 mb-1">
+          <div className="mb-1 flex gap-2 text-xs text-gray-500">
             <span className="font-medium">
               {isCurrentUser ? (
                 "You"
@@ -351,7 +351,7 @@ export function ChatMessage({
               ) : (
                 <Link
                   to={`/profile/${senderAddress}`}
-                  className="hover:text-blue-600 hover:underline transition-colors"
+                  className="transition-colors hover:text-blue-600 hover:underline"
                   title={`View ${shortenAddress(senderAddress)}'s profile`}
                 >
                   {displayName}
@@ -367,19 +367,19 @@ export function ChatMessage({
             <span>•</span>
             <span>{formatTimestamp(timestamp)}</span>
             {hasPaidContent && (
-              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+              <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">
                 Paid Message
               </span>
             )}
             {isCurrentUser && isToAI && (
-              <span className="ml-2 text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+              <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">
                 To Agent
               </span>
             )}
           </div>
           {replyToMessage && (
             <div
-              className={`mb-1 text-xs rounded px-2 py-1 ${
+              className={`mb-1 rounded px-2 py-1 text-xs ${
                 isAI
                   ? "bg-purple-100 text-purple-700 dark:bg-purple-800/50 dark:text-purple-200"
                   : "bg-gray-100 text-gray-500 dark:bg-gray-800"
@@ -391,7 +391,7 @@ export function ChatMessage({
                   {`@` + replyToUserInfo?.username ||
                     replyToUserInfo?.name ||
                     shortenAddress(
-                      new RoochAddress(replyToMessage.sender).toBech32Address()
+                      new RoochAddress(replyToMessage.sender).toBech32Address(),
                     )}
                 </span>
                 <span>
@@ -404,18 +404,18 @@ export function ChatMessage({
               </div>
             </div>
           )}
-          <div className="relative group max-w-full w-fit">
+          <div className="group relative w-fit max-w-full">
             <div
-              className={`rounded-lg px-2 py-0.5 w-full ${
+              className={`w-full rounded-lg px-2 py-0.5 ${
                 isAI
                   ? "bg-purple-200 text-purple-900 dark:bg-purple-900 dark:text-white"
                   : hasTransferAttachment
-                  ? "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-800 dark:text-white dark:border-gray-700"
-                  : "bg-gray-100 text-gray-900 border border-gray-200 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    ? "border border-gray-200 bg-gray-100 text-gray-900 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                    : "border border-gray-200 bg-gray-100 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               }`}
             >
               {hasTransferAttachment && transferAttachment && (
-                <div className="p-2 my-2 bg-purple-300/80 dark:bg-black/20 rounded-xl">
+                <div className="my-2 rounded-xl bg-purple-300/80 p-2 dark:bg-black/20">
                   <div className="flex items-center gap-2 text-sm">
                     <span className="text-yellow-600 dark:text-yellow-400">
                       💸
@@ -447,11 +447,11 @@ export function ChatMessage({
                 </div>
               )}
               {
-                <div className="flex flex-col justify-between items-start w-full text-wrap">
-                  <div className="text-sm leading-tight w-fit max-w-full text-wrap">
+                <div className="flex w-full flex-col items-start justify-between text-wrap">
+                  <div className="w-fit max-w-full text-wrap text-sm leading-tight">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
-                      className="text-wrap w-full prose prose-sm max-w-none dark:prose-invert prose-p:m-0 prose-ul:m-0 prose-ol:m-0 prose-li:m-0 prose-pre:m-0 prose-headings:m-0 prose-hr:m-0 prose-blockquote:m-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:mb-0 chart-area-markdown"
+                      className="chart-area-markdown prose prose-sm w-full max-w-none text-wrap dark:prose-invert prose-headings:m-0 prose-p:m-0 prose-blockquote:m-0 prose-pre:m-0 prose-ol:m-0 prose-ul:m-0 prose-li:m-0 prose-hr:m-0 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0 [&_p:last-child]:mb-0"
                       components={{
                         pre: ({ children }) => children,
                         code: ({
@@ -479,14 +479,14 @@ export function ChatMessage({
                                   border:
                                     "1px solid var(--tw-prose-pre-border, #e2e8f0)",
                                 }}
-                                className="dark:!bg-gray-800 dark:border-gray-700"
+                                className="dark:border-gray-700 dark:!bg-gray-800"
                               >
                                 {String(children).replace(/\n$/, "")}
                               </SyntaxHighlighter>
                             </div>
                           ) : (
                             <code
-                              className={`px-1.5 py-0.5 rounded text-wrap ${
+                              className={`text-wrap rounded px-1.5 py-0.5 ${
                                 isCurrentUser
                                   ? "bg-blue-200/70 text-blue-800 dark:bg-blue-500/30 dark:text-white"
                                   : "bg-gray-200/70 text-gray-800 dark:bg-gray-500/30 dark:text-white"
@@ -506,46 +506,46 @@ export function ChatMessage({
               }
 
               {/* move buttons to outside of bubble */}
-              <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute -right-1 -top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
                   onClick={handleCopy}
-                  className="p-1 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition-colors"
+                  className="rounded-full bg-gray-800/80 p-1 text-white transition-colors hover:bg-gray-700"
                   title="Copy message"
                 >
                   {copied ? (
-                    <CheckIcon className="w-3 h-3 text-green-500" />
+                    <CheckIcon className="h-3 w-3 text-green-500" />
                   ) : (
-                    <ClipboardDocumentIcon className="w-3 h-3" />
+                    <ClipboardDocumentIcon className="h-3 w-3" />
                   )}
                 </button>
                 <button
                   onClick={handleShare}
-                  className="p-1 rounded-full bg-gray-800/80 text-white hover:bg-gray-700 transition-colors"
+                  className="rounded-full bg-gray-800/80 p-1 text-white transition-colors hover:bg-gray-700"
                   title="Share to Twitter"
                 >
-                  <ShareIcon className="w-3 h-3" />
+                  <ShareIcon className="h-3 w-3" />
                 </button>
               </div>
             </div>
           </div>
         </div>
         {isCurrentUser && (
-          <div className="flex-shrink-0 w-8 h-8">
+          <div className="h-8 w-8 flex-shrink-0">
             {/* Add RoochScan link for current user's avatar too */}
             {senderAddress && (
               <Link
                 to={`/profile/${senderAddress}`}
-                className="block w-8 h-8 cursor-pointer hover:ring-2 hover:ring-blue-300 transition-all rounded-full"
+                className="block h-8 w-8 cursor-pointer rounded-full transition-all hover:ring-2 hover:ring-blue-300"
                 title={`View your profile`}
               >
                 {userInfo?.avatar ? (
                   <img
                     src={userInfo.avatar}
                     alt={userInfo.name || shortenAddress(senderAddress)}
-                    className="w-8 h-8 rounded-full object-cover"
+                    className="h-8 w-8 rounded-full object-cover"
                   />
                 ) : (
-                  <UserCircleIcon className="w-8 h-8 text-blue-400" />
+                  <UserCircleIcon className="h-8 w-8 text-blue-400" />
                 )}
               </Link>
             )}

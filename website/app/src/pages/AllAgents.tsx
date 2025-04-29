@@ -8,7 +8,7 @@ import { useMemo, useState } from "react";
 export const AllAgents = () => {
   const [page, setPage] = useState(1);
   const [lastCursor, setLastCursor] = useState<IndexerStateIDView | undefined>(
-    undefined
+    undefined,
   );
   const [allAgents, setAllAgents] = useState<any[]>([]);
   const { agents, isPending, isError, hasNext, cursor } = useAllAgents({
@@ -20,10 +20,10 @@ export const AllAgents = () => {
     if (agents.length > 0) {
       // Use Set to deduplicate based on agent_address
       const existingAddresses = new Set(
-        allAgents.map((agent) => agent.agent_address)
+        allAgents.map((agent) => agent.agent_address),
       );
       const newAgents = agents.filter(
-        (agent) => !existingAddresses.has(agent.agent_address)
+        (agent) => !existingAddresses.has(agent.agent_address),
       );
       setAllAgents((prev) => [...prev, ...newAgents]);
     }
@@ -38,7 +38,7 @@ export const AllAgents = () => {
 
   if (isPending && page === 1) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <LoadingScreen />
       </div>
     );
@@ -46,7 +46,7 @@ export const AllAgents = () => {
 
   if (isError) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-xl text-red-500">Error loading agents</div>
       </div>
     );
@@ -61,8 +61,8 @@ export const AllAgents = () => {
       />
       <div className="min-h-screen">
         <div className="container mx-auto px-4 py-12">
-          <h1 className="text-3xl font-bold mb-8">All Agents</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <h1 className="mb-8 text-3xl font-bold">All Agents</h1>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             {allAgents.map((ai) => (
               <AgentCard key={ai.agent_address} agent={ai} />
             ))}
@@ -72,7 +72,7 @@ export const AllAgents = () => {
               <button
                 onClick={handleLoadMore}
                 disabled={isPending}
-                className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg bg-blue-500 px-6 py-2 text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isPending ? "Loading..." : "Load More"}
               </button>

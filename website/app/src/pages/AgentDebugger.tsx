@@ -67,7 +67,7 @@ function AgentDebuggerContent() {
 
   // Parse Actions from AI response
   const parseActions = (
-    response: string
+    response: string,
   ): Array<{ name: string; params: any }> => {
     const actions: Array<{ name: string; params: any }> = [];
     const lines = response.split("\n");
@@ -91,7 +91,7 @@ function AgentDebuggerContent() {
 
   // Extract response::say content from actions
   const extractResponseContent = (
-    actions: Array<{ name: string; params: any }>
+    actions: Array<{ name: string; params: any }>,
   ): string => {
     const sayAction = actions.find((action) => action.name === "response::say");
     return sayAction?.params?.content || "";
@@ -143,7 +143,7 @@ function AgentDebuggerContent() {
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify(chatRequest),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -165,7 +165,7 @@ function AgentDebuggerContent() {
     } catch (error) {
       setError(
         "Failed to call OpenAI API: " +
-          (error instanceof Error ? error.message : String(error))
+          (error instanceof Error ? error.message : String(error)),
       );
       console.error(error);
     } finally {
@@ -229,7 +229,7 @@ function AgentDebuggerContent() {
 
       if (!response.return_values?.[0]?.decoded_value) {
         throw new Error(
-          "Failed to get response from contract: " + JSON.stringify(response)
+          "Failed to get response from contract: " + JSON.stringify(response),
         );
       }
 
@@ -237,7 +237,7 @@ function AgentDebuggerContent() {
       const chatRequest = JSON.parse(chatRequestJson);
       // Extract the system prompt from the chat request
       const systemMessage = (chatRequest.messages as ChatMessage[]).find(
-        (msg) => msg.role === "system"
+        (msg) => msg.role === "system",
       );
       if (!systemMessage?.content) {
         throw new Error("Invalid response format: missing system message");
@@ -248,7 +248,7 @@ function AgentDebuggerContent() {
     } catch (error) {
       console.error("Send message error:", error);
       setError(
-        error instanceof Error ? error.message : "Failed to send message"
+        error instanceof Error ? error.message : "Failed to send message",
       );
       // Remove the user message if the request failed
       setMessages((prev) => prev.slice(0, -1));
@@ -305,16 +305,16 @@ function AgentDebuggerContent() {
 
   return (
     <>
-      <div className="h-screen flex flex-col overflow-hidden">
+      <div className="flex h-screen flex-col overflow-hidden">
         {/* Header */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex-shrink-0">
-          <div className="max-w-[1800px] mx-auto flex items-center justify-between">
+        <div className="flex-shrink-0 border-b border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mx-auto flex max-w-[1800px] items-center justify-between">
             <div className="flex items-center">
               <button
                 onClick={() => navigate(-1)}
-                className="flex items-center text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                className="flex items-center text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
               >
-                <ArrowLeftIcon className="w-5 h-5 mr-2" />
+                <ArrowLeftIcon className="mr-2 h-5 w-5" />
                 <span>Back</span>
               </button>
               <h1 className="ml-6 text-xl font-bold text-gray-900 dark:text-white">
@@ -325,11 +325,11 @@ function AgentDebuggerContent() {
               <SessionKeyGuard onClick={handleSavePrompt}>
                 <button
                   disabled={isSavingPrompt}
-                  className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                  className="flex items-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
                 >
                   {isSavingPrompt ? (
                     <svg
-                      className="w-5 h-5 animate-spin mx-auto text-white"
+                      className="mx-auto h-5 w-5 animate-spin text-white"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -350,7 +350,7 @@ function AgentDebuggerContent() {
                     </svg>
                   ) : (
                     <>
-                      <PencilIcon className="w-4 h-4 mr-2" />
+                      <PencilIcon className="mr-2 h-4 w-4" />
                       Save Prompt
                     </>
                   )}
@@ -358,7 +358,7 @@ function AgentDebuggerContent() {
               </SessionKeyGuard>
             ) : (
               <div className="flex items-center text-gray-500 dark:text-gray-400">
-                <LockClosedIcon className="w-4 h-4 mr-2" />
+                <LockClosedIcon className="mr-2 h-4 w-4" />
                 <span className="text-sm">Only the owner can edit</span>
               </div>
             )}
@@ -366,17 +366,17 @@ function AgentDebuggerContent() {
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
           {/* Left Panel - Prompt Editor */}
-          <div className="w-1/2 flex flex-col border-r border-gray-200 dark:border-gray-700 overflow-hidden">
-            <div className="flex-1 p-6 overflow-y-auto">
+          <div className="flex w-1/2 flex-col overflow-hidden border-r border-gray-200 dark:border-gray-700">
+            <div className="flex-1 overflow-y-auto p-6">
               {error && (
-                <div className="mb-4 p-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-100 rounded-lg">
+                <div className="mb-4 rounded-lg bg-red-100 p-4 text-red-700 dark:bg-red-900 dark:text-red-100">
                   {error}
                 </div>
               )}
 
-              <div className="flex items-center space-x-4 mb-4">
+              <div className="mb-4 flex items-center space-x-4">
                 <input
                   type="text"
                   value={apiKey}
@@ -385,7 +385,7 @@ function AgentDebuggerContent() {
                     setOpenaiApiKey(e.target.value);
                   }}
                   placeholder="Enter your OpenAI API Key"
-                  className="w-80 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="w-80 rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
 
                 <div className="flex items-center space-x-2">
@@ -399,7 +399,7 @@ function AgentDebuggerContent() {
                     min="0"
                     max="2"
                     step="0.1"
-                    className="w-20 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-20 rounded-md border border-gray-300 px-2 py-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
 
@@ -412,7 +412,7 @@ function AgentDebuggerContent() {
                     value={mockRgasAmount}
                     onChange={handleRgasInputChange}
                     placeholder="RGAS amount"
-                    className="w-32 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    className="w-32 rounded-md border border-gray-300 px-2 py-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     RGAS
@@ -422,13 +422,13 @@ function AgentDebuggerContent() {
 
               {/* Prompt Editor */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Agent Prompt
                 </label>
                 <textarea
                   value={agentPrompt}
                   onChange={(e) => setAgentPrompt(e.target.value)}
-                  className="block w-full text-gray-600 dark:text-gray-300 bg-transparent border border-gray-300 dark:border-gray-600 rounded-lg p-4 focus:border-purple-500 dark:focus:border-purple-400 focus:outline-none font-mono text-sm leading-relaxed"
+                  className="block w-full rounded-lg border border-gray-300 bg-transparent p-4 font-mono text-sm leading-relaxed text-gray-600 focus:border-purple-500 focus:outline-none dark:border-gray-600 dark:text-gray-300 dark:focus:border-purple-400"
                   placeholder="Enter the AI role prompt..."
                   rows={12}
                 />
@@ -436,10 +436,10 @@ function AgentDebuggerContent() {
 
               {/* Rendered Prompt */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Rendered Prompt
                 </label>
-                <pre className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 font-mono text-sm leading-relaxed bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg">
+                <pre className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 font-mono text-sm leading-relaxed text-gray-600 dark:bg-gray-800/50 dark:text-gray-300">
                   {renderedPrompt}
                 </pre>
               </div>
@@ -447,9 +447,9 @@ function AgentDebuggerContent() {
           </div>
 
           {/* Right Panel - Chat */}
-          <div className="w-1/2 flex flex-col overflow-hidden">
+          <div className="flex w-1/2 flex-col overflow-hidden">
             {/* Chat Messages */}
-            <div className="flex-1 p-6 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-6">
                 {messages.map((message, index) => (
                   <div
@@ -477,12 +477,12 @@ function AgentDebuggerContent() {
                             {message.actions.map((action, actionIndex) => (
                               <div
                                 key={actionIndex}
-                                className="border border-gray-300 dark:border-gray-600 rounded-md p-4 bg-white dark:bg-gray-800"
+                                className="rounded-md border border-gray-300 bg-white p-4 dark:border-gray-600 dark:bg-gray-800"
                               >
-                                <h4 className="text-blue-500 dark:text-blue-400 font-medium mb-2">
+                                <h4 className="mb-2 font-medium text-blue-500 dark:text-blue-400">
                                   {action.name}
                                 </h4>
-                                <pre className="bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto text-xs">
+                                <pre className="overflow-x-auto rounded bg-gray-50 p-2 text-xs dark:bg-gray-900">
                                   {JSON.stringify(action.params, null, 2)}
                                 </pre>
                               </div>
@@ -496,7 +496,7 @@ function AgentDebuggerContent() {
             </div>
 
             {/* Chat Input */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 flex-shrink-0">
+            <div className="flex-shrink-0 border-t border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
               <div className="flex gap-4">
                 <textarea
                   value={userInput}
@@ -508,14 +508,14 @@ function AgentDebuggerContent() {
                     }
                   }}
                   placeholder="Enter message..."
-                  className="flex-1 min-h-[80px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white resize-none"
+                  className="min-h-[80px] flex-1 resize-none rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                 />
                 <button
                   onClick={handleSendMessage}
                   disabled={!userInput.trim() || !apiKey || loading}
-                  className={`px-6 self-end h-10 rounded-md text-white ${
+                  className={`h-10 self-end rounded-md px-6 text-white ${
                     !userInput.trim() || !apiKey || loading
-                      ? "bg-gray-400 cursor-not-allowed"
+                      ? "cursor-not-allowed bg-gray-400"
                       : "bg-blue-500 hover:bg-blue-600"
                   }`}
                 >

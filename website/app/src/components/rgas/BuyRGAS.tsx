@@ -14,7 +14,7 @@ export const BuyRGAS = () => {
     const fetchBtcRate = async () => {
       try {
         const response = await fetch(
-          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd"
+          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd",
         );
         const data = await response.json();
         setBtcUsdRate(data.bitcoin.usd);
@@ -80,14 +80,14 @@ export const BuyRGAS = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-start mb-6">
+      <div className="mb-6 flex items-start justify-between">
         <h2 className="text-2xl font-semibold dark:text-white">Buy RGAS</h2>
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-          <div className="flex items-center space-x-2 mb-1">
-            <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">¥</span>
+        <div className="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-1 flex items-center space-x-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500">
+              <span className="text-sm font-bold text-white">¥</span>
             </div>
-            <span className="font-medium text-sm dark:text-white">
+            <span className="text-sm font-medium dark:text-white">
               RGAS Price
             </span>
           </div>
@@ -99,16 +99,16 @@ export const BuyRGAS = () => {
               = $1 USD
             </div>
           </div>
-          <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">
+          <div className="mt-1 text-[10px] text-gray-400 dark:text-gray-500">
             BTC/USD: ${formatAmountDisplay(btcUsdRate, 4)}
           </div>
         </div>
       </div>
 
-      <div className="max-w-md mx-auto">
+      <div className="mx-auto max-w-md">
         {/* FROM area */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-2">
-          <div className="flex justify-between items-center mb-2">
+        <div className="mb-2 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-2 flex items-center justify-between">
             <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
               FROM
             </label>
@@ -122,11 +122,11 @@ export const BuyRGAS = () => {
               value={fromAmount}
               onChange={handleFromAmountChange}
               placeholder="0"
-              className="w-full text-3xl bg-transparent border-none outline-none dark:text-white"
+              className="w-full border-none bg-transparent text-3xl outline-none dark:text-white"
             />
-            <div className="flex items-center space-x-2 ml-4">
-              <div className="w-8 h-8 rounded-full bg-orange-400 flex items-center justify-center">
-                <span className="text-white font-bold">₿</span>
+            <div className="ml-4 flex items-center space-x-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-400">
+                <span className="font-bold text-white">₿</span>
               </div>
               <span className="font-semibold dark:text-white">BTC</span>
             </div>
@@ -134,8 +134,8 @@ export const BuyRGAS = () => {
         </div>
 
         {/* Exchange icon */}
-        <div className="flex justify-center -my-2 relative z-10">
-          <div className="bg-purple-400 rounded-full w-10 h-10 flex items-center justify-center">
+        <div className="relative z-10 -my-2 flex justify-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-purple-400">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-6 w-6 text-white"
@@ -154,8 +154,8 @@ export const BuyRGAS = () => {
         </div>
 
         {/* TO area */}
-        <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-6">
-          <div className="flex justify-between items-center mb-2">
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+          <div className="mb-2 flex items-center justify-between">
             <label className="text-sm font-medium text-gray-600 dark:text-gray-400">
               TO
             </label>
@@ -169,11 +169,11 @@ export const BuyRGAS = () => {
               value={toAmount}
               onChange={handleToAmountChange}
               placeholder="0"
-              className="w-full text-3xl bg-transparent border-none outline-none dark:text-white"
+              className="w-full border-none bg-transparent text-3xl outline-none dark:text-white"
             />
-            <div className="flex items-center space-x-2 ml-4">
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                <span className="text-white font-bold">¥</span>
+            <div className="ml-4 flex items-center space-x-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500">
+                <span className="font-bold text-white">¥</span>
               </div>
               <span className="font-semibold dark:text-white">RGAS</span>
             </div>
@@ -184,9 +184,9 @@ export const BuyRGAS = () => {
         <button
           onClick={handleSubmit}
           disabled={!fromAmount || parseFloat(fromAmount) <= 0 || isSubmitting}
-          className={`w-full py-3 rounded-lg text-white font-semibold ${
+          className={`w-full rounded-lg py-3 font-semibold text-white ${
             !fromAmount || parseFloat(fromAmount) <= 0 || isSubmitting
-              ? "bg-gray-400 cursor-not-allowed"
+              ? "cursor-not-allowed bg-gray-400"
               : "bg-blue-500 hover:bg-blue-600"
           }`}
         >

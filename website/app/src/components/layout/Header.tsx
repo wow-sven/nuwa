@@ -23,7 +23,7 @@ export function Header({ isDarkMode }: HeaderProps) {
   const address = useCurrentAddress();
   const connectionStatus = useConnectionStatus();
   const { balance: rGas, refetchBalance } = useRgasBalance(
-    address?.genRoochAddress().toHexAddress()
+    address?.genRoochAddress().toHexAddress(),
   );
   const subscribeOnRequest = useSubscribeOnRequest();
   const { userInfo } = useUserInfo(address?.genRoochAddress().toHexAddress());
@@ -77,11 +77,11 @@ export function Header({ isDarkMode }: HeaderProps) {
     ) {
       hasShownProfileToast.current = true;
       toast(
-        <div className="flex flex-col gap-1 text-sm w-full">
+        <div className="flex w-full flex-col gap-1 text-sm">
           <div className="font-bold">Create your profile</div>
           <Link
             to={`/profile/${address?.genRoochAddress().toBech32Address()}`}
-            className="text-purple-500 hover:text-purple-600 font-medium dark:text-purple-200 dark:hover:text-purple-300"
+            className="font-medium text-purple-500 hover:text-purple-600 dark:text-purple-200 dark:hover:text-purple-300"
           >
             Click here to set up your profile
           </Link>
@@ -92,7 +92,7 @@ export function Header({ isDarkMode }: HeaderProps) {
           className:
             "mt-4 bg-purple-50 border border-purple-200 text-purple-800 dark:bg-purple-900 dark:border-purple-800 dark:text-purple-300",
           icon: <span>👤</span>,
-        }
+        },
       );
     }
   }, [connectionStatus, address, userInfo, rGas]);
@@ -107,11 +107,11 @@ export function Header({ isDarkMode }: HeaderProps) {
       window.location.pathname !== "/getrgas-testnet"
     ) {
       toast(
-        <div className="flex flex-col gap-1 text-sm w-full">
+        <div className="flex w-full flex-col gap-1 text-sm">
           <div>No RGAS balance</div>
           <Link
             to="/getrgas-testnet"
-            className="text-purple-500 hover:text-purple-600 font-medium dark:text-purple-200 dark:hover:text-purple-300"
+            className="font-medium text-purple-500 hover:text-purple-600 dark:text-purple-200 dark:hover:text-purple-300"
           >
             Click here to get FREE RGAS
           </Link>
@@ -122,7 +122,7 @@ export function Header({ isDarkMode }: HeaderProps) {
           className:
             "mt-4 bg-purple-50 border border-purple-200 text-purple-800 dark:bg-purple-900 dark:border-purple-800 dark:text-purple-300",
           icon: <span>💜</span>,
-        }
+        },
       );
     }
   }, [rGas, address]);
@@ -146,8 +146,8 @@ export function Header({ isDarkMode }: HeaderProps) {
   };
 
   return (
-    <div className="fixed top-0 right-0 left-0 h-16 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
-      <div className="h-full flex items-center justify-between px-4">
+    <div className="fixed left-0 right-0 top-0 z-10 h-16 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+      <div className="flex h-full items-center justify-between px-2 md:px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center">
           <img
@@ -157,7 +157,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                 : "/nuwa-logo-horizontal.svg"
             }
             alt="Nuwa Logo"
-            className="h-8 w-auto"
+            className="h-6 w-auto md:h-8"
           />
         </Link>
 
@@ -165,7 +165,7 @@ export function Header({ isDarkMode }: HeaderProps) {
         <div className="flex items-center space-x-4">
           <Link
             to="/docs/intro"
-            className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+            className="text-sm font-medium text-gray-600 transition-colors hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400"
           >
             Docs
           </Link>
@@ -173,7 +173,7 @@ export function Header({ isDarkMode }: HeaderProps) {
             <ThemeToggle />
           </div>
           {connectionStatus !== "connected" ? (
-            <ConnectButton className="px-4 py-2 text-sm font-medium text-purple-600 dark:!text-white hover:text-purple-700 dark:hover:text-purple-200 dark:hover:!bg-slate-400 transition-colors">
+            <ConnectButton className="px-4 py-2 text-sm font-medium text-purple-600 transition-colors hover:text-purple-700 dark:!text-white dark:hover:!bg-slate-400 dark:hover:text-purple-200">
               Connect Wallet
             </ConnectButton>
           ) : (
@@ -182,13 +182,13 @@ export function Header({ isDarkMode }: HeaderProps) {
                 <img
                   src={user?.avatar}
                   alt={user?.name}
-                  className="w-8 h-8 rounded-full"
+                  className="h-8 w-8 rounded-full"
                 />
                 <div className="flex flex-col text-left">
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     {user?.name ||
                       formatAddress(
-                        address?.genRoochAddress().toBech32Address()
+                        address?.genRoochAddress().toBech32Address(),
                       )}
                   </span>
                   <span className="text-xs text-gray-600 dark:text-gray-400">
@@ -206,7 +206,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                 leaveFrom="transform opacity-100 scale-100"
                 leaveTo="transform opacity-0 scale-95"
               >
-                <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white dark:!bg-black/95 shadow-lg ring-1 ring-black/5 dark:ring-white/10 focus:outline-none">
+                <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black/5 focus:outline-none dark:!bg-black/95 dark:ring-white/10">
                   <div className="py-1">
                     <Menu.Item>
                       {({ active }) => (
@@ -216,7 +216,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                             active
                               ? "!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400"
                               : "dark:!text-gray-300"
-                          } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
+                          } block !bg-transparent px-4 py-2 text-sm text-gray-700 transition-colors hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400`}
                         >
                           AI Studio
                         </Link>
@@ -232,7 +232,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                             active
                               ? "!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400"
                               : "dark:!text-gray-300"
-                          } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
+                          } block !bg-transparent px-4 py-2 text-sm text-gray-700 transition-colors hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400`}
                         >
                           Profile
                         </Link>
@@ -246,7 +246,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                             active
                               ? "!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400"
                               : "dark:!text-gray-300"
-                          } block px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
+                          } block !bg-transparent px-4 py-2 text-sm text-gray-700 transition-colors hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400`}
                         >
                           Get RGAS
                         </Link>
@@ -260,7 +260,7 @@ export function Header({ isDarkMode }: HeaderProps) {
                             active
                               ? "!bg-gray-100 dark:!bg-purple-500/10 dark:!text-purple-400"
                               : "dark:!text-gray-300"
-                          } block w-full text-left px-4 py-2 text-sm text-gray-700 hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400 transition-colors !bg-transparent`}
+                          } block w-full !bg-transparent px-4 py-2 text-left text-sm text-gray-700 transition-colors hover:!bg-gray-100 dark:hover:!bg-purple-500/10 dark:hover:!text-purple-400`}
                         >
                           Log Out
                         </button>
