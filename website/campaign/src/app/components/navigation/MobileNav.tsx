@@ -9,17 +9,24 @@ import { useSession } from "next-auth/react";
 import { navItems } from "./NavigationWrapper";
 import Image from "next/image";
 import { MobileNavContext } from "@/app/components/navigation/MobileNavContext";
+import { useMessages } from "@/app/context/MessagesContext";
 
 export const MobileNav = () => {
     const { data: session, status } = useSession();
     const pathname = usePathname();
     const { active, setActive } = useContext(MobileNavContext);
+    const { hasMessages } = useMessages();
 
     // 检查当前路径是否匹配任何导航项
     const isPathValid = navItems.some(item => pathname === item.path);
 
     // 如果用户未登录或路径无效，返回 null
     if (status === "unauthenticated" || !session || !isPathValid) {
+        return null;
+    }
+
+    // 如果有消息，不显示导航按钮
+    if (hasMessages) {
         return null;
     }
 

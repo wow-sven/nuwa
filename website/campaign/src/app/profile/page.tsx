@@ -6,6 +6,7 @@ import { UserProfilePanel } from "@/app/components/profile/UserProfilePanel";
 import { UserPointsHistory } from "@/app/components/profile/UserPointsHistory";
 import { motion } from "framer-motion";
 import { useEffect } from "react";
+import { BarLoader } from "@/app/components/shared/BarLoader";
 
 // 定义淡入动画变体
 const fadeInUp = {
@@ -31,7 +32,11 @@ export default function ProfilePage() {
     }, [status, router]);
 
     if (status === "loading") {
-        return <div className="flex justify-center items-center h-screen">Loading...</div>;
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <BarLoader />
+            </div>
+        );
     }
 
     if (!session) {

@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "./components/providers/Providers";
 import { NavigationWrapper } from "./components/navigation/NavigationWrapper";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
+import { MobileNavProvider } from "@/app/components/navigation/MobileNavContext";
+import { MessagesProvider } from "@/app/context/MessagesContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -40,10 +42,14 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} h-dvh`}>
         <Providers>
-          <NavigationWrapper>
-            {children}
-          </NavigationWrapper>
-          <PWAInstallPrompt />
+          <MobileNavProvider>
+            <MessagesProvider>
+              <NavigationWrapper>
+                {children}
+              </NavigationWrapper>
+              <PWAInstallPrompt />
+            </MessagesProvider>
+          </MobileNavProvider>
         </Providers>
       </body>
     </html>

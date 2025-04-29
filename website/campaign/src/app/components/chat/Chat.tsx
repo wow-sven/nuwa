@@ -10,6 +10,7 @@ import { MessageContainer } from './MessageContainer';
 import { InputContainer } from './InputContainer';
 import NeubrutalismButton from '@/app/components/shared/NeubrutalismButton';
 import { useMissions } from '@/app/context/MissionsContext';
+import { useMessages } from '@/app/context/MessagesContext';
 
 // Define classification state interface
 interface ClassificationState {
@@ -21,6 +22,7 @@ interface ClassificationState {
 export function Chat() {
     const { data: session } = useSession();
     const { missions } = useMissions();
+    const { setHasMessages } = useMessages();
     const userInfo = {
         name: session?.user?.name || "visitor",
         twitterHandle: session?.user?.twitterHandle || "visitor"
@@ -86,6 +88,11 @@ export function Chat() {
             classifyUserMessage(lastUserMessage);
         }
     }, [messages, classification, userInfo]);
+
+    // 更新消息状态
+    useEffect(() => {
+        setHasMessages(messages.length > 0);
+    }, [messages, setHasMessages]);
 
     const handleSelectSuggestion = (suggestion: string) => {
         if (status === 'streaming') {
