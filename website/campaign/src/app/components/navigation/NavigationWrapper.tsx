@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FloatingNav } from "./FloatingNav";
 import { MobileNav } from "./MobileNav";
 import { SiGithub, SiInstagram, SiLinkedin, SiYoutube } from "react-icons/si";
-import { FaTwitter } from "react-icons/fa";
+import { FaXTwitter } from "react-icons/fa6";
 import { MobileNavProvider } from "./MobileNavContext";
 import { FiHome, FiAward, FiUser } from "react-icons/fi";
 import { IconType } from "react-icons";
@@ -35,7 +35,7 @@ export const navItems: NavItem[] = [
 
 export const SOCIAL_CTAS = [
     {
-        Component: FaTwitter,
+        Component: FaXTwitter,
         href: "https://twitter.com/NuwaDev",
     },
     {
