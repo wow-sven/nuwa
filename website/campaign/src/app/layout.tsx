@@ -11,8 +11,15 @@ import { GridCardsProvider } from "@/app/context/GridCardsContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Nuwa Campaign",
+  title: {
+    default: "Nuwa Campaign",
+    template: "%s | Nuwa Campaign"
+  },
   description: "A campaign platform for Nuwa",
+  keywords: ["Nuwa", "Campaign", "Platform", "Web3"],
+  authors: [{ name: "Nuwa Team" }],
+  creator: "Nuwa Team",
+  publisher: "Nuwa",
   manifest: "/manifest.json",
   themeColor: "#000000",
   viewport: "width=device-width, initial-scale=1, maximum-scale=1",
@@ -24,6 +31,40 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://campaign.nuwa.com",
+    title: "Nuwa Campaign",
+    description: "A campaign platform for Nuwa",
+    siteName: "Nuwa Campaign",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Nuwa Campaign",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Nuwa Campaign",
+    description: "A campaign platform for Nuwa",
+    images: ["/og-image.jpg"],
+    creator: "@nuwa",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({
@@ -34,7 +75,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" />
+        <link rel="icon" type="image/svg+xml" href="/nuwa.svg" />
         <meta name="application-name" content="Nuwa Campaign" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
