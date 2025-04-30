@@ -5,11 +5,16 @@ import {
     checkUserRewardHistory,
     deductUserPoints,
     getUserPointsByHandle,
-    addTweetScore,
-    checkTweetExists
+    getTweetScore,
+    saveTweetScoreRecord,
+    checkRecentTwitterProfileScore,
+    addTwitterProfileScore,
 } from '@/app/services/supabaseService';
-import { getTweetScore } from './scoring-agent';
+import { assessTweetScore, calculateEngagementScore } from './scoring-agent';
+// Import the profile scoring function
+import { getProfileScore } from './profile-scoring-agent';
 import * as twitterAdapter from '@/app/services/twitterAdapter';
+
 
 export const tools = {
 
@@ -287,44 +292,108 @@ export const tools = {
 
     // 18. Score a tweet using the scoring agent and save to database
     scoreTweet: tool({
-        description: 'Fetches tweet data using the tweet ID, analyzes it based on predefined criteria, assigns a score (0-100), and saves the result. Checks if the tweet has already been scored.',
+        description: 'Analyzes a tweet based on content quality and engagement metrics, assigns a score (0-100), and tracks score changes over time. Automatically rescores tweets after sufficient time has passed to analyze engagement growth.',
         parameters: z.object({
-            tweetId: z.string().describe('The unique identifier of the tweet to be scored.'),
+            tweetId: z.string().describe('The unique identifier of the tweet to be scored.')
         }),
         execute: async function ({ tweetId }) {
             try {
-                // 1. Check if the tweet has already been scored (from supabaseService)
-                const exists = await checkTweetExists(tweetId);
-                if (exists) {
-                    return {
-                        success: false,
-                        message: `Tweet ${tweetId} has already been scored. No action taken.`,
-                        score: null,
-                        reasoning: null
-                    };
+                // Check if tweet has been scored before
+                let existingScore = null;
+                const MIN_RESCORE_INTERVAL_HOURS = 1; // Minimum hours between scoring attempts
+                
+                try {
+                    existingScore = await getTweetScore(tweetId);
+                    
+                    // If already scored recently, return existing score
+                    if (existingScore) {
+                        const lastScoredAt = new Date(existingScore.updated_at || existingScore.created_at);
+                        const hoursSinceLastScore = (Date.now() - lastScoredAt.getTime()) / (1000 * 60 * 60);
+                        
+                        if (hoursSinceLastScore < MIN_RESCORE_INTERVAL_HOURS) {
+                            return {
+                                success: true,
+                                message: `Tweet ${tweetId} was scored ${hoursSinceLastScore.toFixed(1)} hours ago with a score of ${existingScore.score}/100. Rescoring is available after ${MIN_RESCORE_INTERVAL_HOURS} hours.`,
+                                score: existingScore.score,
+                                content_score: existingScore.content_score,
+                                engagement_score: existingScore.engagement_score,
+                                reasoning: existingScore.reasoning,
+                                last_scored_at: lastScoredAt.toISOString(),
+                                hours_until_rescore: (MIN_RESCORE_INTERVAL_HOURS - hoursSinceLastScore).toFixed(1),
+                                is_rescored: false
+                            };
+                        }
+                        
+                        // If more than MIN_RESCORE_INTERVAL_HOURS have passed, we'll rescore engagement only
+                        console.log(`Tweet ${tweetId} was last scored ${hoursSinceLastScore.toFixed(1)} hours ago. Updating engagement score only.`);
+                    }
+                } catch (error) {
+                    console.warn(`Could not check existing score for tweet ${tweetId}: ${error}`);
+                    // Continue with scoring even if check fails
                 }
 
-                // 2. Fetch tweet data using twitterAdapter
-                console.log(`Fetching standardized tweet data for ${tweetId}...`);
-                // const tweetDataToUse = await twitterService.getTweetsByIds(tweetId); // Old call
-                const standardTweet = await twitterAdapter.getStandardTweetById(tweetId); // Use adapter
-
+                // Fetch tweet data
+                console.log(`Fetching tweet data for ${tweetId}...`);
+                const standardTweet = await twitterAdapter.getStandardTweetById(tweetId);
+                
                 if (!standardTweet) {
-                    throw new Error(`Standard tweet data not found for ID ${tweetId} via twitterAdapter.`);
+                    throw new Error(`Tweet data not found for ID ${tweetId}`);
                 }
-                // 3. Get the score from the scoring agent 
-                // Pass StandardTweet to scoring agent
-                const { score, reasoning } = await getTweetScore(standardTweet);
 
-                // 4. Save the score to the database (TODO: Verify addTweetScore accepts StandardTweet)
-                await addTweetScore(tweetId, standardTweet, score);
+                let score, reasoning, engagement_score, content_score;
 
-                // 5. Return the result
+                // If we have an existing score, only update the engagement part
+                if (existingScore) {
+                    // Extract current engagement metrics
+                    const currentMetrics = {
+                        likes: standardTweet.public_metrics?.like_count || 0,
+                        retweets: standardTweet.public_metrics?.retweet_count || 0,
+                        replies: standardTweet.public_metrics?.reply_count || 0,
+                        quotes: standardTweet.public_metrics?.quote_count || 0,
+                        impressions: standardTweet.public_metrics?.impression_count,
+                        followers: standardTweet.author?.public_metrics?.followers_count
+                    };
+                    
+                    // Calculate new engagement score but keep existing content score
+                    engagement_score = calculateEngagementScore(currentMetrics, standardTweet.created_at);
+                    content_score = existingScore.content_score;
+                    score = Math.min(content_score + engagement_score, 100);
+                    reasoning = existingScore.reasoning; // Keep existing reasoning for content
+                    
+                    console.log(`Updated engagement score for tweet ${tweetId}. New engagement score: ${engagement_score.toFixed(2)}`);
+                } else {
+                    // For first-time scoring, do a full assessment
+                    console.log(`Scoring tweet ${tweetId} for the first time...`);
+                    const scoreResult = await assessTweetScore(standardTweet);
+                    score = scoreResult.score;
+                    reasoning = scoreResult.reasoning;
+                    engagement_score = scoreResult.engagement_score;
+                    content_score = scoreResult.content_score;
+                }
+
+                // Save the score to database
+                console.log(`Saving score for tweet ${tweetId}...`);
+                const { isUpdate, scoreChange } = await saveTweetScoreRecord(
+                    tweetId,
+                    standardTweet,
+                    score,
+                    content_score,
+                    engagement_score,
+                    reasoning
+                );
+
+                // Return result
                 return {
                     success: true,
-                    message: `Tweet ${tweetId} successfully scored and saved. Score: ${score}/100.`,
+                    message: isUpdate
+                        ? `Tweet ${tweetId} has been rescored. New score: ${score}/100 (${scoreChange && scoreChange > 0 ? '+' : ''}${scoreChange} change).`
+                        : `Tweet ${tweetId} has been scored for the first time. Score: ${score}/100.`,
                     score: score,
-                    reasoning: reasoning
+                    content_score: content_score,
+                    engagement_score: engagement_score,
+                    reasoning: reasoning,
+                    score_change: scoreChange,
+                    is_rescored: isUpdate
                 };
 
             } catch (error) {
@@ -332,7 +401,7 @@ export const tools = {
                 const errorMessage = error instanceof Error ? error.message : String(error);
                 return {
                     success: false,
-                    message: `Failed to score or save tweet ${tweetId}: ${errorMessage}`,
+                    message: `Failed to score tweet ${tweetId}: ${errorMessage}`,
                     score: null,
                     reasoning: null,
                     error: errorMessage
@@ -340,4 +409,90 @@ export const tools = {
             }
         },
     }),
+
+     // 19. Score a user profile using the profile scoring agent and save to database
+     scoreUserProfile: tool({
+        description: 'Fetches Twitter user profile data using the username, analyzes it based on predefined criteria, assigns a score (0-100), and saves the result.',
+        parameters: z.object({
+            userName: z.string().describe('The Twitter username (handle) of the profile to be scored.'),
+        }),
+        execute: async function ({ userName }) {
+            try {
+                // Check if the profile has been scored recently
+                try {
+                    const recentScore = await checkRecentTwitterProfileScore(userName);
+                    if (recentScore) {
+                        return {
+                            success: true,
+                            message: `Profile ${userName} was scored recently. Score: ${recentScore.score}/100.`,
+                            score: recentScore.score,
+                            reasoning: recentScore.reasoning
+                        };
+                    }
+                } catch (error) {
+                    console.warn(`Could not check for recent profile score: ${error}`);
+                    // Continue with scoring even if check fails
+                }
+
+                // 1. Fetch user profile data using twitterAdapter
+                console.log(`Fetching standardized user profile data for ${userName}...`);
+                const userProfile = await twitterAdapter.getStandardUserByUsername(userName);
+                if (!userProfile) {
+                    throw new Error(`Standard user data not found for username ${userName} via twitterAdapter.`);
+                }
+
+                // 2. Fetch a limited number of recent tweets
+                console.log(`Fetching recent tweets for ${userName}...`);
+                let recentTweets: twitterAdapter.StandardTweet[] = [];
+                try {
+                    const tweetResult = await twitterAdapter.getStandardUserLastTweets(userName);
+                    recentTweets = tweetResult.tweets;
+                } catch (tweetError) {
+                    console.warn(`Could not fetch recent tweets for ${userName}:`, tweetError);
+                    // Continue without tweets if fetching fails
+                }
+
+                // 3. Create streamlined profile data for scoring
+                const profileDataForScoring = {
+                    ...userProfile,
+                    // Only include recent tweets if available
+                    recent_tweets: recentTweets.length > 0 ? recentTweets : undefined
+                };
+
+                // 4. Get the score from the profile scoring agent
+                console.log(`Scoring profile for ${userName}...`);
+                const { score, reasoning } = await getProfileScore(profileDataForScoring);
+
+                
+                // 5. Save the score to the database
+                try {
+                    await addTwitterProfileScore(userName, score, reasoning);
+                    console.log(`Profile score for ${userName} saved to database.`);
+                } catch (dbError) {
+                    console.error(`Failed to save profile score to database: ${dbError}`);
+                    // Continue with the response even if saving fails
+                }
+
+                // 7. Return the result
+                return {
+                    success: true,
+                    message: `Profile ${userName} successfully scored. Score: ${score}/100.`,
+                    score: score,
+                    reasoning: reasoning
+                };
+
+            } catch (error) {
+                console.error(`Error in scoreUserProfile tool for username ${userName}:`, error);
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                return {
+                    success: false,
+                    message: `Failed to score profile ${userName}: ${errorMessage}`,
+                    score: null,
+                    reasoning: null,
+                    error: errorMessage
+                };
+            }
+        },
+    }),
+
 }; 
