@@ -5,10 +5,10 @@ import { OPTIONS } from "../usecases/options";
 import { FiArrowUpRight } from "react-icons/fi";
 
 const HERO_TEXTS = {
-  huntBadge: "Join the Early Access!",
+  huntBadge: "Join Nuwa Campaign!",
   heading: "Secured Intelligence for",
   subheading: "Launch secured, ownable, composable AI agents for your Web3 app — with Agent-as-a-Service (AaaS), reimagined. ",
-  campaignButton: "Join Nuwa Campaign"
+  button: "Join Waitlist"
 };
 
 const ONE_SECOND = 1000;
@@ -86,8 +86,9 @@ export const Copy = () => {
   return (
     <>
       <div className="mb-1.5 rounded-full bg-zinc-600">
-        <button
-          onClick={scrollToCTA}
+        <a
+          href="https://campaign.nuwa.dev/"
+          target="_blank"
           className="flex origin-top-left items-center rounded-full border border-zinc-900 bg-white p-0.5 text-sm transition-transform hover:-rotate-2"
         >
           <span className="rounded-full bg-[#FF6154] px-2 py-0.5 font-medium text-white">
@@ -97,7 +98,7 @@ export const Copy = () => {
             {HERO_TEXTS.huntBadge}
           </span>
           <FiArrowUpRight className="mr-2 inline-block" />
-        </button>
+        </a>
       </div>
       <h1 className="max-w-4xl text-center text-4xl font-black leading-[1.15] md:text-7xl md:leading-[1.15] mb-8">
         Secured Intelligence for
@@ -107,10 +108,10 @@ export const Copy = () => {
         {HERO_TEXTS.subheading}
       </p>
       <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-        <Button onClick={() => window.open('https://campaign.nuwa.dev/', '_blank')}>
-          <span className="font-bold">{HERO_TEXTS.campaignButton}</span>
+        <Button onClick={scrollToCTA}>
+          <span className="font-bold">{HERO_TEXTS.button}</span>
         </Button>
-      </div>
+      </div >
     </>
   );
 };
