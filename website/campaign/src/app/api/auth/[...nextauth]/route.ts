@@ -1,4 +1,8 @@
-import handler from "@/auth";
+// https://next-auth.js.org/configuration/nextjs#app-directory
 
-export const GET = handler.GET;
-export const POST = handler.POST;
+import NextAuth from "next-auth"
+import { authOptions } from "@/auth"
+
+const handler = NextAuth(authOptions)
+
+export { handler as GET, handler as POST }
