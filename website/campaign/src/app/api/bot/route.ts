@@ -206,8 +206,14 @@ bot.on(filters.message('text'), async (ctx) => {
             systemPrompt = await getDefaultSystemPrompt(userInfo);
         }
 
+        await ctx.reply(`Well noted, just a moment...`);
+
+
         // 使用工具函数生成并发送AI响应
         await generateAndSendAIResponse(ctx, history, systemPrompt);
+
+        await ctx.reply(`You can use /end_mission command to end this mission when you're done.`);
+
     } catch (error) {
         console.error('Error processing message:', error);
         await ctx.reply('Sorry, an error occurred while processing the message. Please try again later.');
