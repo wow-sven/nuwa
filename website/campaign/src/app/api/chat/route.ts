@@ -1,21 +1,40 @@
 import { type CoreMessage } from 'ai';
 import { NextResponse } from 'next/server';
 import { classifyMessage, generateAIResponseStream } from '../agent';
+import { getServerSession } from 'next-auth';
+
+declare module "next-auth" {
+    interface Session {
+        user?: {
+            name: string;
+            twitterHandle: string;
+            image?: string | null;
+        }
+    }
+}
+interface UserInfo {
+    name: string;
+    twitterHandle: string;
+}
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
 // Add a new interface for message classification
 export async function GET(req: Request) {
+    const session = await getServerSession();
+    
+    if (!session || !session.user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     // Get message content from request URL
     const url = new URL(req.url);
     const message = url.searchParams.get('message');
-    const userName = url.searchParams.get('userName') || 'visitor';
-    const twitterHandle = url.searchParams.get('twitterHandle') || 'visitor';
-
-    const userInfo = {
-        name: userName,
-        twitterHandle: twitterHandle
+    
+    const userInfo: UserInfo = {
+        name: session.user.name,
+        twitterHandle: session.user.twitterHandle
     };
 
     if (!message) {
@@ -33,20 +52,23 @@ export async function GET(req: Request) {
     });
 }
 
-// Define a type for userInfo if possible, otherwise use Record<string, unknown>
-interface UserInfo {
-    name: string;
-    twitterHandle: string;
-    // Add other potential fields
-}
-
 export async function POST(req: Request) {
+    const session = await getServerSession();
+    
+    if (!session || !session.user) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
     // Explicitly type the destructured request body
-    const { messages, userInfo, classifiedMissionId }: {
+    const { messages, classifiedMissionId }: {
         messages: CoreMessage[];
-        userInfo: UserInfo; // Use the defined interface
         classifiedMissionId: string | null;
     } = await req.json();
+
+    const userInfo: UserInfo = {
+        name: session.user.name,
+        twitterHandle: session.user.twitterHandle
+    };
 
     if (!process.env.OPENAI_API_KEY) {
         throw new Error('OPENAI_API_KEY is not set');
