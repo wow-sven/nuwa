@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { AuthOptions, Session, User, Profile, Account } from "next-auth";
+import NextAuth, { AuthOptions, Session, User, Profile, Account } from "next-auth";
 import TwitterProvider from "next-auth/providers/twitter";
 import { JWT } from "next-auth/jwt";
 import { createServiceClient } from "@/app/services/supabase";
@@ -204,9 +204,19 @@ export const authOptions: AuthOptions = {
         },
     },
     debug: process.env.NODE_ENV === 'development',
-}; 
+};
 
 // 导出用于获取会话的函数
 export function auth() {
   return getServerSession(authOptions);
 }
+
+// 这个默认导出用于在API路由中使用
+// 它会自动处理所有NextAuth的API路由，包括:
+// - /api/auth/signin
+// - /api/auth/callback
+// - /api/auth/signout
+// - /api/auth/session
+// - /api/auth/csrf
+// - /api/auth/providers
+export default NextAuth(authOptions);
