@@ -410,8 +410,8 @@ export const tools = {
         },
     }),
 
-     // 19. Score a user profile using the profile scoring agent and save to database
-     scoreUserProfile: tool({
+     // 19. Score a user twitter profile using the profile scoring agent and save to database
+     scoreTwitterProfile: tool({
         description: 'Fetches Twitter user profile data using the username, analyzes it based on predefined criteria, assigns a score (0-100), and saves the result.',
         parameters: z.object({
             userName: z.string().describe('The Twitter username (handle) of the profile to be scored.'),
