@@ -204,18 +204,20 @@ export const tools = {
         },
     }),
 
-    // 14. 生成随机数 (No change)
+    // 14. 生成随机数（支持批量生成）
     generateRandomNumber: tool({
-        description: 'Generate a random integer between 0 and 100',
-        parameters: z.object({}),
-        execute: async () => {
+        description: 'Generate one or more random integers between 0 and 100. Specify count to generate multiple numbers.',
+        parameters: z.object({
+            count: z.number().int().min(1).max(100).optional().default(1).describe('How many random numbers to generate (default 1, max 100)')
+        }),
+        execute: async ({ count = 1 }) => {
             try {
-                // 生成0到100之间的随机整数
-                const randomNumber = Math.floor(Math.random() * 101);
-                return randomNumber;
+                // 生成 count 个 0 到 100 之间的随机整数
+                const randomNumbers = Array.from({ length: count }, () => Math.floor(Math.random() * 101));
+                return randomNumbers;
             } catch (error) {
                 return {
-                    error: `Error generating random number: ${error instanceof Error ? error.message : String(error)}`
+                    error: `Error generating random numbers: ${error instanceof Error ? error.message : String(error)}`
                 };
             }
         },
@@ -301,15 +303,15 @@ export const tools = {
                 // Check if tweet has been scored before
                 let existingScore = null;
                 const MIN_RESCORE_INTERVAL_HOURS = 1; // Minimum hours between scoring attempts
-                
+
                 try {
                     existingScore = await getTweetScore(tweetId);
-                    
+
                     // If already scored recently, return existing score
                     if (existingScore) {
                         const lastScoredAt = new Date(existingScore.updated_at || existingScore.created_at);
                         const hoursSinceLastScore = (Date.now() - lastScoredAt.getTime()) / (1000 * 60 * 60);
-                        
+
                         if (hoursSinceLastScore < MIN_RESCORE_INTERVAL_HOURS) {
                             return {
                                 success: true,
@@ -323,7 +325,7 @@ export const tools = {
                                 is_rescored: false
                             };
                         }
-                        
+
                         // If more than MIN_RESCORE_INTERVAL_HOURS have passed, we'll rescore engagement only
                         console.log(`Tweet ${tweetId} was last scored ${hoursSinceLastScore.toFixed(1)} hours ago. Updating engagement score only.`);
                     }
@@ -335,7 +337,7 @@ export const tools = {
                 // Fetch tweet data
                 console.log(`Fetching tweet data for ${tweetId}...`);
                 const standardTweet = await twitterAdapter.getStandardTweetById(tweetId);
-                
+
                 if (!standardTweet) {
                     throw new Error(`Tweet data not found for ID ${tweetId}`);
                 }
@@ -353,13 +355,13 @@ export const tools = {
                         impressions: standardTweet.public_metrics?.impression_count,
                         followers: standardTweet.author?.public_metrics?.followers_count
                     };
-                    
+
                     // Calculate new engagement score but keep existing content score
                     engagement_score = calculateEngagementScore(currentMetrics, standardTweet.created_at);
                     content_score = existingScore.content_score;
                     score = Math.min(content_score + engagement_score, 100);
                     reasoning = existingScore.reasoning; // Keep existing reasoning for content
-                    
+
                     console.log(`Updated engagement score for tweet ${tweetId}. New engagement score: ${engagement_score.toFixed(2)}`);
                 } else {
                     // For first-time scoring, do a full assessment
@@ -410,8 +412,8 @@ export const tools = {
         },
     }),
 
-     // 19. Score a user twitter profile using the profile scoring agent and save to database
-     scoreTwitterProfile: tool({
+    // 19. Score a user twitter profile using the profile scoring agent and save to database
+    scoreTwitterProfile: tool({
         description: 'Fetches Twitter user profile data using the username, analyzes it based on predefined criteria, assigns a score (0-100), and saves the result.',
         parameters: z.object({
             userName: z.string().describe('The Twitter username (handle) of the profile to be scored.'),
@@ -463,7 +465,7 @@ export const tools = {
                 console.log(`Scoring profile for ${userName}...`);
                 const { score, reasoning } = await getProfileScore(profileDataForScoring);
 
-                
+
                 // 5. Save the score to the database
                 try {
                     await addTwitterProfileScore(userName, score, reasoning);
