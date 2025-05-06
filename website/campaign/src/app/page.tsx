@@ -7,6 +7,7 @@ import { GridHoverHero } from "@/app/components/hero/GridHoverHero";
 import { Chat } from "@/app/components/chat/Chat";
 import { motion } from "framer-motion";
 import { BarLoader } from "@/app/components/shared/BarLoader";
+import { track } from "@vercel/analytics";
 
 // 定义淡入动画变体
 const fadeInUp = {
@@ -25,12 +26,32 @@ export default function Home() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
+  // 上报用户登录事件
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      // 只在本 session 上报一次
+      const reported = sessionStorage.getItem("user_login_reported");
+      if (!reported) {
+        const partner = localStorage.getItem("partner");
+        track("user_login", {
+          name: session.user.name ?? "",
+          email: session.user.email ?? "",
+          twitterHandle: session.user.twitterHandle ?? "",
+          partner: partner ?? "",
+        });
+        sessionStorage.setItem("user_login_reported", "1");
+      }
+    }
+  }, [status, session]);
+
+  // 如果用户未登录，则重定向到登录页面
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/");
     }
   }, [status, router]);
 
+  // 如果正在加载，则显示加载动画
   if (status === "loading") {
     return (
       <div className="flex flex-col justify-center items-center h-screen">
@@ -40,6 +61,7 @@ export default function Home() {
     );
   }
 
+  // 如果用户未登录，则显示登录页面
   if (!session) {
     return <GridHoverHero />;
   }

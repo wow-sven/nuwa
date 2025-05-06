@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Providers } from "./components/providers/Providers";
 import { NavigationWrapper } from "./components/navigation/NavigationWrapper";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { MobileNavProvider } from "@/app/components/navigation/MobileNavContext";
@@ -9,11 +8,13 @@ import { MessagesProvider } from "@/app/context/MessagesContext";
 import { GridCardsProvider } from "@/app/context/GridCardsContext";
 import { Analytics } from "@vercel/analytics/react"
 import PartnerTracker from "@/app/components/shared/PartnerTracker"
-import { useUserLoginAnalytics } from "./hooks/useUserLoginAnalytics"
+import { Suspense } from "react";
+import { Providers } from "./components/providers/Providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://campaign.nuwa.com"),
   title: {
     default: "Nuwa Campaign",
     template: "%s | Nuwa Campaign"
@@ -24,8 +25,6 @@ export const metadata: Metadata = {
   creator: "Nuwa Team",
   publisher: "Nuwa",
   manifest: "/manifest.json",
-  themeColor: "#000000",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -70,12 +69,20 @@ export const metadata: Metadata = {
   },
 };
 
+export const themeColor = "#000000";
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  useUserLoginAnalytics();
+
   return (
     <html lang="en">
       <head>
@@ -94,13 +101,15 @@ export default function RootLayout({
                 <NavigationWrapper>
                   {children}
                   <Analytics />
+                  <Suspense fallback={null}>
+                    <PartnerTracker />
+                  </Suspense>
                 </NavigationWrapper>
                 <PWAInstallPrompt />
               </GridCardsProvider>
             </MessagesProvider>
           </MobileNavProvider>
         </Providers>
-        <PartnerTracker />
       </body>
     </html>
   );

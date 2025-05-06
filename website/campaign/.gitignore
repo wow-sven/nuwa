@@ -60,3 +60,7 @@ logs
 .temp/
 
 certificates
+
+# Ignore service worker and workbox files
+public/sw.js
+public/workbox-*.js
