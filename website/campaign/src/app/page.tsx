@@ -33,13 +33,14 @@ export default function Home() {
       const reported = sessionStorage.getItem("user_login_reported");
       if (!reported) {
         const partner = localStorage.getItem("partner");
-        track("user_login", {
-          name: session.user.name ?? "",
-          email: session.user.email ?? "",
-          twitterHandle: session.user.twitterHandle ?? "",
-          partner: partner ?? "",
-        });
-        sessionStorage.setItem("user_login_reported", "1");
+        if (partner) {
+          track("user_visit_from_partner", {
+            name: session.user.name ?? "",
+            twitterHandle: session.user.twitterHandle ?? "",
+            partner: partner ?? "",
+          });
+          sessionStorage.setItem("user_login_reported", "1");
+        }
       }
     }
   }, [status, session]);
