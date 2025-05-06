@@ -26,6 +26,9 @@ dependencies:
   '@types/uuid':
     specifier: ^10.0.0
     version: 10.0.0
+  '@vercel/analytics':
+    specifier: ^1.5.0
+    version: 1.5.0(next@15.3.1)(react@19.0.0)
   '@web3icons/react':
     specifier: 4.0.13
     version: 4.0.13(react@19.0.0)(typescript@5.8.3)
@@ -2742,6 +2745,36 @@ packages:
     requiresBuild: true
     dev: true
     optional: true
+
+  /@vercel/analytics@1.5.0(next@15.3.1)(react@19.0.0):
+    resolution: {integrity: sha512-MYsBzfPki4gthY5HnYN7jgInhAZ7Ac1cYDoRWFomwGHWEX7odTEzbtg9kf/QSo7XEsEAqlQugA6gJ2WS2DEa3g==}
+    peerDependencies:
+      '@remix-run/react': ^2
+      '@sveltejs/kit': ^1 || ^2
+      next: '>= 13'
+      react: ^18 || ^19 || ^19.0.0-rc
+      svelte: '>= 4'
+      vue: ^3
+      vue-router: ^4
+    peerDependenciesMeta:
+      '@remix-run/react':
+        optional: true
+      '@sveltejs/kit':
+        optional: true
+      next:
+        optional: true
+      react:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+      vue-router:
+        optional: true
+    dependencies:
+      next: 15.3.1(@babel/core@7.26.10)(react-dom@19.0.0)(react@19.0.0)
+      react: 19.0.0
+    dev: false
 
   /@web3icons/common@0.11.10(typescript@5.8.3):
     resolution: {integrity: sha512-j7aHyK4Bw8VX06KvEdIKqoM4AJUSjC6ReiZg+1OChfUce2AjHhE2It/LbaQQ2+Gxw9d6m0eyYkmcVvZMFRlUhQ==}

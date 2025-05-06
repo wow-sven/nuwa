@@ -7,6 +7,9 @@ import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { MobileNavProvider } from "@/app/components/navigation/MobileNavContext";
 import { MessagesProvider } from "@/app/context/MessagesContext";
 import { GridCardsProvider } from "@/app/context/GridCardsContext";
+import { Analytics } from "@vercel/analytics/react"
+import PartnerTracker from "@/app/components/shared/PartnerTracker"
+import { useUserLoginAnalytics } from "./hooks/useUserLoginAnalytics"
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -72,6 +75,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  useUserLoginAnalytics();
   return (
     <html lang="en">
       <head>
@@ -89,12 +93,14 @@ export default function RootLayout({
               <GridCardsProvider>
                 <NavigationWrapper>
                   {children}
+                  <Analytics />
                 </NavigationWrapper>
                 <PWAInstallPrompt />
               </GridCardsProvider>
             </MessagesProvider>
           </MobileNavProvider>
         </Providers>
+        <PartnerTracker />
       </body>
     </html>
   );
