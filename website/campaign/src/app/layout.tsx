@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     siteName: "Nuwa Campaign",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/og-image.png",
         width: 1200,
         height: 630,
         alt: "Nuwa Campaign",
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Nuwa Campaign",
     description: "A campaign platform for Nuwa",
-    images: ["/og-image.jpg"],
+    images: ["/og-image.png"],
     creator: "@nuwa",
   },
   robots: {

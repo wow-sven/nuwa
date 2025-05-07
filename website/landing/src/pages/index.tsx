@@ -63,6 +63,7 @@ export default function Home({ posts }: HomeProps) {
         title="Nuwa - Agent-as-a-Service (AaaS) for Web3"
         description="Transform your Web3 offering with AI agents that make complex features accessible to mainstream users while unlocking entirely new capabilities."
         keywords="AI, Web3, Agent-as-a-Service, AaaS, Web3 Agent, Web3 AI, Web3 Development, Web3 Automation"
+        ogImage="/og-image.png"
       />
       <main className={`${font.className} overflow-hidden`}>
         <ExpandableNavBar links={NAV_LINKS}>
