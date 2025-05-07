@@ -530,7 +530,7 @@ export async function getStandardUserLastOriginalTweets(
     cursor?: string, 
     minTweetsCount?: number
 ): Promise<{ tweets: StandardTweet[], next_cursor?: string, has_next_page?: boolean }> {
-    const MAX_PAGES_TO_FETCH_IF_COUNT_SPECIFIED = 10; // Max pages to fetch if minTweetsCount is given
+    const MAX_PAGES_TO_FETCH_IF_COUNT_SPECIFIED = 5; // Max pages to fetch if minTweetsCount is given
     let collectedOriginalTweets: StandardTweet[] = [];
     let currentRequestCursor: string | undefined = cursor;
     let lastResponseNextCursor: string | undefined = undefined;
@@ -583,7 +583,7 @@ export async function getStandardUserLastOriginalTweets(
             }
             
             if (pagesFetched < maxPagesToFetch && lastResponseHasNextPage) {
-                 await new Promise(resolve => setTimeout(resolve, 200)); // Small delay before next fetch
+                 await new Promise(resolve => setTimeout(resolve, 10)); // Small delay before next fetch
             }
         }
 
