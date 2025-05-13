@@ -16,7 +16,7 @@ import { getProfileScore } from './profile-scoring-agent';
 import * as twitterAdapter from '@/app/services/twitterAdapter';
 
 
-export const tools = {
+export const tools: Record<string, any> = {
 
     // --- Twitter Tools (now wrappers around twitterAdapter) ---
 
@@ -495,6 +495,136 @@ export const tools = {
                 };
             }
         },
+    }),
+
+    // 20. Lottery Game Tool
+    lotteryGame: tool({
+        description: 'Play a lottery game: bet points, guess big/small/equal, and win 2x or 100x your bet if lucky. Strictly checks user balance and processes each bet securely. Supports batch mode.',
+        parameters: z.object({
+            userName: z.string().describe('The username of the player'),
+            bet: z.number().int().min(1).describe('How many points to bet (minimum 1)'),
+            guess: z.enum(['big', 'small', 'equal']).describe('Your guess: big (>50), small (<50), or equal (=50)'),
+            confirm: z.boolean().describe('User must confirm to proceed'),
+            batch: z.number().int().min(1).max(100).optional().describe('Number of games to play in batch mode (default 1)'),
+        }),
+        execute: async ({ userName, bet, guess, confirm, batch = 1 }: {
+            userName: string;
+            bet: number;
+            guess: 'big' | 'small' | 'equal';
+            confirm: boolean;
+            batch?: number;
+        }): Promise<{
+            success: boolean;
+            message: string;
+            winCount?: number;
+            jackpotCount?: number;
+            reward?: number;
+            afterPoints?: number;
+            needConfirm?: boolean;
+            currentPoints?: number;
+            bet?: number;
+            guess?: string;
+            batch?: number;
+        }> => {
+            // 1. Check user points
+            const pointsResult = await tools.getUserCurrentPoints.execute({ userName });
+            if (!pointsResult || typeof pointsResult.points !== 'number') {
+                return { success: false, message: `无法获取用户 ${userName} 的积分，请稍后再试。` };
+            }
+            const currentPoints = pointsResult.points;
+            if (currentPoints < 1) {
+                return { success: false, message: `你的积分不足，无法参与游戏。` };
+            }
+            // 2. Check bet validity
+            const totalBet = bet * batch;
+            if (bet < 1) {
+                return { success: false, message: `每次下注至少 1 积分。` };
+            }
+            if (currentPoints < totalBet) {
+                return { success: false, message: `你的积分不足，当前积分为 ${currentPoints}，需要 ${totalBet} 积分才能进行${batch > 1 ? batch + '轮' : '本轮'}游戏。` };
+            }
+            // 3. Check confirmation
+            if (!confirm) {
+                return {
+                    success: false,
+                    message: `你将下注 ${bet} 积分，选择"${guess === 'big' ? '大于50' : guess === 'small' ? '小于50' : '等于50'}"，${batch > 1 ? `共${batch}轮，总计${totalBet}积分。` : ''}请确认是否继续？`,
+                    needConfirm: true,
+                    currentPoints,
+                    bet,
+                    guess,
+                    batch
+                };
+            }
+            // 4. Deduct points first
+            const deductResult = await tools.deductUserPoints.execute({ userName, points: totalBet, missionId: 'lottery_game', missionDetails: `Lottery game${batch > 1 ? ` batch x${batch}` : ''}` });
+            if (!deductResult || !deductResult.success) {
+                return { success: false, message: `扣除积分失败：${deductResult && deductResult.message ? deductResult.message : '未知错误'}` };
+            }
+            // 5. Rolling suspense message
+            // 6. Generate random number(s)
+            const randomResult = await tools.generateRandomNumber.execute({ count: batch });
+            let numbers = Array.isArray(randomResult) ? randomResult : (typeof randomResult === 'number' ? [randomResult] : []);
+            if (!numbers.length) {
+                return { success: false, message: '生成随机数失败，请重试。' };
+            }
+            // 7. Reveal and calculate results
+            let winCount = 0;
+            let jackpotCount = 0;
+            let resultLine = '';
+            let reward = 0;
+            for (let i = 0; i < numbers.length; i++) {
+                const n = numbers[i];
+                let win = false, jackpot = false, emoji = '❌';
+                if (guess === 'equal' && n === 50) {
+                    win = true; jackpot = true; emoji = '🎉';
+                    jackpotCount++;
+                } else if (guess === 'big' && n > 50) {
+                    win = true; emoji = '✅';
+                } else if (guess === 'small' && n < 50) {
+                    win = true; emoji = '✅';
+                } else if (guess === 'equal') {
+                    emoji = '😢';
+                }
+                if (win) winCount++;
+                resultLine += `${n}${emoji} `;
+            }
+            // 8. Reward calculation
+            if (winCount > 0) {
+                for (let i = 0; i < numbers.length; i++) {
+                    const n = numbers[i];
+                    if (guess === 'equal' && n === 50) {
+                        reward += bet * 100;
+                    } else if ((guess === 'big' && n > 50) || (guess === 'small' && n < 50)) {
+                        reward += bet * 2;
+                    }
+                }
+                // 9. Reward user
+                await tools.rewardUserPoints.execute({ userName, points: reward, missionId: 'lottery_game', missionDetails: `Lottery game reward${batch > 1 ? ` batch x${batch}` : ''}` });
+            }
+            // 10. Prepare message
+            let message = `🎲 结果：${resultLine.trim()}`;
+            if (winCount > 0) {
+                message += `\n恭喜你！你赢了 ${winCount} 次${jackpotCount > 0 ? `，其中 ${jackpotCount} 次为大奖（100倍）` : ''}，共获得 ${reward} 积分奖励。`;
+            } else {
+                message += '\n很遗憾，你没有中奖，积分已扣除。';
+            }
+            // 11. Check remaining points
+            const afterPointsResult = await tools.getUserCurrentPoints.execute({ userName });
+            const afterPoints = afterPointsResult && typeof afterPointsResult.points === 'number' ? afterPointsResult.points : 0;
+            if (afterPoints > 0) {
+                message += `\n你当前剩余积分：${afterPoints}。还要再玩一局吗？`;
+            } else {
+                message += '\n你的积分已用完，欢迎下次再来！';
+            }
+            return {
+                success: true,
+                message,
+                winCount,
+                jackpotCount,
+                reward,
+                afterPoints
+            };
+        }
     }),
 
 }; 
