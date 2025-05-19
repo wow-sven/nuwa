@@ -1,4 +1,5 @@
-(Banner image here)
+![github readme banner](https://github.com/user-attachments/assets/a9250cb2-51ef-41c2-974d-74ed830e24bf)
+
 
 
 ## 🧠 What is Nuwa?
