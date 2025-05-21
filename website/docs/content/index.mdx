@@ -3,32 +3,130 @@ title: Overview
 description: Nuwa Protocol overview
 ---
 
-Nuwa is an open protocol and developer ecosystem that enables everone's personal _Super Agents_ — AI-powered assistants that understand you, remember your preferences, and take action across digital services on your behalf.
+Nuwa is an open protocol for building **services that are accessible, payable, and executable by AI agents**.
 
-## The Problem: Fragmented UX in a Capable World
+Our mission is to enable personal Super Agents for everyone — AI-powered assistants that understand you, remember your preferences, and take action across digital services on your behalf.
 
-Today’s digital experience is app-fragmented and task-redundant. Digital services are designed to be served to humans, not AI agents. As a result, Users juggle dozens of interfaces to complete what should be single-agent workflows:
+## The Problem: Fragmented AI UX in the App-Centric World
 
-- Users still jump between apps, losing context
-- Services still exist in silos, inaccessible to agents
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: base
+---
+%%{init: {
+  "themeVariables": {
+    "fontFamily": "Patrick Hand, Comic Sans MS, cursive",
+    "primaryColor": "#f0f0f0",
+    "primaryTextColor": "#333333",
+    "lineColor": "#888888",
+    "fontSize": "16px",
+    "edgeLabelBackground": "#ffffff"
+  },
+  "flowchart": { "curve": "basis" }
+}}%%
+graph TD
+
+User1[User]
+User1 --> | Login & Subscribe | AppA[App A]
+User1 --> | Login & Subscribe | AppB[App B]
+User1 --> | Login & Subscribe | AppC[App C]
+
+AppA --> AgentA[Agent A]
+AgentA --> | MCP | Tool1[Tool 1]
+
+AppB --> AgentB[Agent B]
+AgentB --> | MCP | Tool2[Tool 2]
+AgentB --> | A2A | AgentD[Agent D]
+
+AppC --> AgentC[Agent C]
+AgentC --> | MCP | Tool3[Tool 3]
+
+
+
+classDef user fill:#ffe082,stroke:#ffb300,stroke-width:2px,font-weight:bold;
+classDef app fill:#b3e5fc,stroke:#0288d1,stroke-width:2px,font-weight:bold;
+classDef agent fill:#c8e6c9,stroke:#388e3c,stroke-width:2px,font-weight:bold;
+classDef tool fill:#f8bbd0,stroke:#c2185b,stroke-width:2px,font-weight:bold;
+
+class User1 user;
+class AppA,AppB,AppC app;
+class AgentA,AgentB,AgentC,AgentD agent;
+class Tool1,Tool2,Tool3,Tool4,Tool5 tool;
+
+```
+
+Today's digital experience is app-fragmented and task-redundant. Current digital services are designed to be served to humans, not AI agents. As a result, Users juggle dozens of interfaces to complete what should be single-agent workflows:
+
+- Users jump between apps, repeating login and paying for subscription
+- Context are lost when switching apps
 - Payments, identity, and permissions are fragmented and inconsistent
 
-There’s a gap between what agents _could_ do — and what they _can_ actually do in today’s app-centric world.
+With the capable AI today, agents can already understand our intentions and execute across tools and inter-agents via protocols like MCP and A2A. However there's still a gap between what agents _could_ do — and what they _can_ actually do in today's app-centric world.
 
-## Mission
+## Nuwa AI Solution
 
-Nuwa shifts the paradigm to agent-centric, by standardizing how services expose functionality to agents — not through Apps, but through **Caps**: structured, interoperable service endpoints callable by agents, defined by the Nuwa's Agent Capability Protocol (ACP).
+```mermaid
+---
+config:
+  look: handDrawn
+  theme: base
+---
+%%{init: {
+  "themeVariables": {
+    "fontFamily": "Patrick Hand, Comic Sans MS, cursive",
+    "primaryColor": "#f0f0f0",
+    "primaryTextColor": "#333333",
+    "lineColor": "#888888",
+    "fontSize": "16px",
+    "edgeLabelBackground": "#ffffff"
+  },
+  "flowchart": { "curve": "basis" }
+}}%%
+graph TD
+User --> | Authorization & Top-Up | NuwaAgent1[Personal Nuwa Agent]
 
-**For users**, Nuwa means:
+NuwaAgent1 --> | Payment & Identity | CapA[Cap A]
+NuwaAgent1 --> | Payment & Identity | CapB[Cap B]
+NuwaAgent1 --> | Payment & Identity | CapC[Cap C]
+
+CapA --> | MCP | Tool1[Tool 1]
+
+CapB --> NuwaAgent2[Nuwa Agent]
+NuwaAgent2 --> | A2A | AgentB[Agent B]
+NuwaAgent2 --> CapD[Cap D]
+NuwaAgent2 --> | MCP | Tool2[Tool 2]
+
+CapC --> AgentA[Agent A]
+AgentA --> | MCP | Tool3[Tool 3]
+
+classDef nuwa fill:#F3DCFB,stroke:#FF15FB,stroke-width:2px,font-weight:bold;
+classDef user fill:#ffe082,stroke:#ffb300,stroke-width:2px,font-weight:bold;
+classDef cap fill:#b3e5fc,stroke:#0288d1,stroke-width:2px,font-weight:bold;
+classDef agent fill:#c8e6c9,stroke:#388e3c,stroke-width:2px,font-weight:bold;
+classDef tool fill:#f8bbd0,stroke:#c2185b,stroke-width:2px,font-weight:bold;
+
+class NuwaAgent1,NuwaAgent2 nuwa
+class User user;
+class CapA,CapB,CapC,CapD cap;
+class AgentA,AgentB agent;
+class Tool1,Tool2,Tool3 tool;
+
+```
+
+Nuwa shifts the paradigm to agent-centric, by standardizing how services expose functionality to agents — not through Apps, but through **Caps (Capabilities)**: structured, interoperable service endpoints callable by agents, defined by the Agent Capability Protocol (ACP) introduced by Nuwa.
+
+**For users**, Nuwa AI product is based on the [Nuwa Agent Framework](/nuwa-agent-framework) :
 
 - One interface to express any intent — no more switching apps
 - An agent that remembers your preferences and context across tasks
 - On-demand, pay-per-use access to powerful capabilities across the internet
 - A seamless experience where expression leads directly to results
 
-**For developers**, Nuwa offers a new medium to ship functionality:
+**For developers**, Nuwa offers a new medium to ship functionality in Caps with [Agent Capability Protocol](/agent-capability-protocol):
 
 - Build once as a Cap, and let any agent in the ecosystem call it
 - Define input/output, permissions, pricing — all via a standard protocol
-- Skip frontend and app distribution; earn value directly via usage
+- Zero platform fees. Your earn 100% value of your Cap.
 - Compose or reuse existing Caps to build advanced functions faster

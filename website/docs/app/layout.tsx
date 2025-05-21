@@ -6,12 +6,11 @@ import { Head } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
 import NavLogo from "@/components/nav-logo";
 import Footer from "@/components/footer";
-import PageIllustration from "@/components/page-illustration";
-import { Inter } from "next/font/google";
+import { Roboto } from "next/font/google";
 
-const inter = Inter({
+const roboto = Roboto({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-roboto",
   weight: ["400", "600", "800"],
 });
 
@@ -85,7 +84,7 @@ export default async function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="Nuwa AI" />
         <link rel="manifest" href="/site.webmanifest" />
       </Head>
-      <body className={inter.className}>
+      <body className={roboto.className}>
         <Layout
           navbar={navbar}
           footer={<Footer border={true} />}
@@ -96,7 +95,6 @@ export default async function RootLayout({ children }) {
         >
           {children}
         </Layout>
-        <PageIllustration />
       </body>
     </html>
   );

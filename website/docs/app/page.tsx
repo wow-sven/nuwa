@@ -1,6 +1,7 @@
 "use client";
 import Hero from "@/components/hero-home";
 import { motion } from "framer-motion";
+import PageIllustration from "@/components/page-illustration";
 
 export default function HomePage() {
   return (
@@ -12,6 +13,7 @@ export default function HomePage() {
       >
         <Hero />
       </motion.div>
+      <PageIllustration />
     </div>
   );
 }
