@@ -20,8 +20,8 @@ Nuwa flips the model: agent-first, protocol-powered, and user-aligned.
 
 
 ## 🔧 Core Components
-**🧠 PAR (Personal Agent Runtime)**
-Your local, intelligent runtime that represents you. PAR holds your memory, identity, and wallet. It parses your intent, orchestrates Cap execution, manages payments, and logs outcomes — across all services and contexts.
+**🧠 Nuwa Agent Framework**
+Your local, intelligent runtime that represents you. Nuwa agent holds your memory, identity, and wallet. It parses your intent, orchestrates Cap execution, manages payments, and logs outcomes — across all services and contexts.
 
 **🔌 Agent Capability Protocol (ACP)**
 A standard for defining Caps — agent-callable capabilities with structured inputs, outputs, permissions, and pricing. ACP makes services interoperable and composable, like building blocks for agents.
