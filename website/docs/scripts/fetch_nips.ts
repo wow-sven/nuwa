@@ -26,7 +26,9 @@ async function downloadFile(url, destPath) {
 async function main() {
   await fs.mkdir(TARGET_DIR, { recursive: true });
   const files = await fetchNipList();
-  const mdFiles = files.filter((f) => f.name.endsWith(".md"));
+  const mdFiles = (files as { name: string; download_url: string }[]).filter(
+    (f) => f.name.endsWith(".md")
+  );
   for (const file of mdFiles) {
     let destName = file.name;
     const destPath = path.join(TARGET_DIR, destName);
