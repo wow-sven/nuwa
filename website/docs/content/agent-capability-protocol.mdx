@@ -1,0 +1,70 @@
+---
+title: Agent Capability Protocol (ACP)
+description: Explain the Agent Capability Protocol (ACP).
+---
+
+Nuwa introduces a unified infrastructure for building towards everyone’s own Super Agents, composed of three core layers:
+
+![image.png](/docs/nuwa-solution.png)
+
+## 🧠 Nuwa Client
+
+Your personal gateway to the agentic digital world. An agent client that:
+
+- Stores your **personal memory** locally — context, history, preferences
+- Manages your **identity and wallet** — authorize and pay Caps on your behalf
+- Parses your intent and **orchestrates Cap execution** — choosing the right combination of services to fulfill your goal
+- Supports **multi-modal input and output** — voice, text, file, image, or even structured UI modules
+
+The Nuwa Client is cross-apps and cross-platform, designed to serve as your personal intelligent layer across all devices.
+
+## 🔌 Agent Capability Protocol (ACP)
+
+A unified standard that defines how services expose functionality to agents. Instead of building apps, developers create **Caps** — agent-callable units of functionality that define:
+
+- **Structured inputs and outputs**
+- **Required permissions and identity checks**
+- **Execution model** (sync, async, composed)
+- **Pricing** (fixed fee, per call, streaming)
+
+ACP turns functionality into composable, agent-accessible infrastructure — just like HTTP turned static pages into a browsable web.
+
+## 🌐 Cap Ecosystem
+
+An open, public, decentralized network of services built as Caps.
+
+Unlike big tech platforms — which lock users into closed APIs and gated app stores — Nuwa’s Cap Ecosystem is:
+
+- **Permissionless** — any developer can register a Cap
+- **Interoperable** — Caps can call other Caps, forming complex workflows
+- **Value-Aligned** — developers earn directly from Cap usage, with no middleman
+- **Transparent** — every interaction is traceable and verifiable on-chain
+
+It’s an ecosystem built around agent autonomy and developer freedom — not platform control.
+
+> **Nuwa Ecosystem vs Closed Platforms**
+>
+> |                          | **Nuwa Ecosystem**         | **Closed Platforms**         |
+> | ------------------------ | -------------------------- | ---------------------------- |
+> | **Ecosystem Model**      | Open registration for Caps | Developer gatekeeping        |
+> | **Identity Handling**    | Platform-owned             | User-owned and portable      |
+> | **Payment Model**        | Per-call payment           | Platform tax & subscriptions |
+> | **Developer Incentives** | Limited + platform-taxed   | Native, direct monetization  |
+> | **Cross-Agent Access**   | Interoperability           | Ecosystem lock-in            |
+
+## How It Works
+
+1. You express an intent:
+
+   _“Send this report to Sarah and book us a meeting next week”_
+
+2. Your **Nuwa Client**:
+   - Parses the intent using language models and your **memory**
+   - Selects appropriate **Caps (email, meeting, weather…)** from the open ecosystem to fulfill the tasks
+   - Validates **permissions** using your cryptographic **identity**
+   - Executes the Caps and handles any required **payments** via your wallet
+3. During execution:
+   - Each Cap is paid via **on-chain transaction** (pay-per-use or streaming)
+   - Execution is recorded in your **memory** to improve future personalization
+   - Your **identity** signs each interaction, providing trust and audibility
+4. You receive the outcome — fully executed, personalized, and seamless.
