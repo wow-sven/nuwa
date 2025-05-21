@@ -89,7 +89,7 @@ export default async function RootLayout({ children }) {
           navbar={navbar}
           footer={<Footer border={true} />}
           editLink="Edit this page on GitHub"
-          docsRepositoryBase="https://github.com/shuding/nextra/blob/main/examples/docs"
+          docsRepositoryBase="https://github.com/nuwa-protocol/nuwa/tree/main/website/docs"
           sidebar={{ defaultMenuCollapseLevel: 1 }}
           pageMap={pageMap}
         >
