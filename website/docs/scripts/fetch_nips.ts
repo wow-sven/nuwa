@@ -1,6 +1,12 @@
 import fetch from "node-fetch";
 import fs from "fs/promises";
 import path from "path";
+import dotenv from "dotenv";
+
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config({ path: ".env.local" });
+  dotenv.config({ path: ".env.development.local", override: true });
+}
 
 const GITHUB_API_URL =
   "https://api.github.com/repos/nuwa-protocol/NIPs/contents/nips";
@@ -8,7 +14,10 @@ const TARGET_DIR = path.resolve("content/nips");
 
 async function fetchNipList() {
   const res = await fetch(GITHUB_API_URL, {
-    headers: { "User-Agent": "nuwa-docs-fetch-script" },
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      "User-Agent": "nuwa-docs-fetch-script",
+    },
   });
   if (!res.ok) throw new Error(`Failed to fetch file list: ${res.status}`);
   return res.json();
@@ -16,7 +25,10 @@ async function fetchNipList() {
 
 async function downloadFile(url, destPath) {
   const res = await fetch(url, {
-    headers: { "User-Agent": "nuwa-docs-fetch-script" },
+    headers: {
+      Authorization: `token ${process.env.GITHUB_TOKEN}`,
+      "User-Agent": "nuwa-docs-fetch-script",
+    },
   });
   if (!res.ok) throw new Error(`Failed to download ${url}: ${res.status}`);
   const content = await res.text();
