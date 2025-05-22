@@ -7,6 +7,7 @@ import { getPageMap } from "nextra/page-map";
 import NavLogo from "@/components/nav-logo";
 import Footer from "@/components/footer";
 import { Roboto } from "next/font/google";
+import ChatModalButton from "@/components/chat-modal-button";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -72,10 +73,9 @@ export const metadata = {
 
 export default async function RootLayout({ children }) {
   const navbar = (
-    <Navbar
-      logo={<NavLogo />}
-      projectLink="https://github.com/nuwa-protocol/nuwa"
-    />
+    <Navbar logo={<NavLogo />} projectIcon={null} align="left">
+      <ChatModalButton />
+    </Navbar>
   );
   const pageMap = await getPageMap();
   return (
