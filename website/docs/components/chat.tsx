@@ -23,6 +23,8 @@ const UserMessage = ({ text }: { text: string }) => {
 };
 
 const AssistantMessage = ({ text }: { text: string }) => {
+  // 去除【4:0†source】或[4:0†source]等标记
+  const cleanedText = text.replace(/[【\[]\d+:\d+†source[】\]]/g, "");
   return (
     <div className="self-start max-w-[70%] bg-gradient-to-br from-[#f3f4f6] to-[#e5e7eb] dark:from-[#232526] dark:to-[#18181b] my-2 px-4 py-2 rounded-lg break-words shadow-md border border-[#e5e7eb] dark:border-[#27272a] animate-fadeInUp">
       <Markdown
@@ -36,7 +38,7 @@ const AssistantMessage = ({ text }: { text: string }) => {
           ),
         }}
       >
-        {text}
+        {cleanedText}
       </Markdown>
     </div>
   );
@@ -265,12 +267,26 @@ const Chat = ({
     });
   };
 
+  // Loader 组件
+  const Loader = () => (
+    <div className="flex items-center justify-center my-4">
+      <div className="w-6 h-6 border-4 border-gray-300 border-t-[#232526] dark:border-t-[#f1f5f9] rounded-full animate-spin"></div>
+      <span className="ml-2 text-gray-500 dark:text-gray-400 text-sm">
+        Assistant is typing...
+      </span>
+    </div>
+  );
+
   return (
     <div className="flex flex-col-reverse h-[700px] w-full">
       <div className="flex-1 flex overflow-y-auto p-4 flex-col order-2 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-[#cbd5e1] scrollbar-track-[#e5e7eb] dark:scrollbar-thumb-[#27272a] dark:scrollbar-track-[#232526]  ">
         {messages.map((msg, index) => (
           <Message key={index} role={msg.role} text={msg.text} />
         ))}
+        {/* Loader: assistant 回复期间且没有 assistant 消息时显示 */}
+        {inputDisabled &&
+          (messages.length === 0 ||
+            messages[messages.length - 1].role !== "assistant") && <Loader />}
         <div ref={messagesEndRef} />
       </div>
       <form
