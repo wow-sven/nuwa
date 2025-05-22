@@ -40,6 +40,13 @@ export async function generateMetadata({ params }) {
   };
 }
 
+export async function generateStaticParams() {
+  const posts = await getBlogPostsFromNotion(
+    process.env.NOTION_BLOG_DATABASE_ID!
+  );
+  return posts.map((post) => ({ slug: post.slug }));
+}
+
 export default async function BlogPost(props) {
   const { slug } = await props.params;
   // 获取所有文章，找到当前id对应的meta
