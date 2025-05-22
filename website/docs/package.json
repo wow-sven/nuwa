@@ -8,7 +8,7 @@
     "dev": "next --turbopack",
     "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
     "start": "next start",
-    "generate-embeddings": "tsx ./scripts/generate-embeddings.ts"
+    "generate-knowledgebase": "tsx ./scripts/generate_knowledgebase.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
