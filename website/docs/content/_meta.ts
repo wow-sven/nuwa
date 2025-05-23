@@ -12,6 +12,9 @@ export default {
   wallet: "Wallet",
   "agent-state": "Agent State",
   separator3: { type: "separator", title: "Reference" },
-  faq: "FAQ",
   nips: "NIPs",
+  faq: {
+    title: "FAQ",
+    display: "hidden",
+  },
 };
