@@ -1,6 +1,6 @@
 export default function PageIllustration() {
   return (
-    <div className="-z-10">
+    <div className="fixed inset-0 -z-10 pointer-events-none">
       {/* Circles */}
       <div
         className="pointer-events-none absolute -top-32 left-1/2 hidden sm:block sm:ml-[580px] sm:-translate-x-1/2"

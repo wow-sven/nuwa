@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { FiUpload, FiLock, FiDatabase, FiArrowRight } from "react-icons/fi";
-import VideoPlayer from "./video-player";
+import NuwaLogoThree from "./nuwa-logo-three";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 // Content constants
 const HERO_CONTENT = {
   title: (
@@ -46,15 +48,33 @@ const HERO_CONTENT = {
 };
 
 export default function HeroHome() {
+  const [showLogo, setShowLogo] = useState(false);
+
+  useEffect(() => {
+    // 动画时长 = delay(0.7s) + duration(0.7s)
+    const timer = setTimeout(() => setShowLogo(true), 900);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <section className="relative h-auto min-h-[calc(100vh-230px)] overflow-hidden mx-auto max-w-7xl px-2 sm:px-4 pb-8 pt-10 md:pt-20">
       {/* Title */}
-      <h1 className="mb-4 text-3xl sm:text-4xl md:text-6xl font-bold leading-snug sm:leading-tight text-slate-900 text-left w-full dark:text-white">
+      <motion.h1
+        className="mb-4 text-3xl sm:text-4xl md:text-6xl font-bold leading-snug sm:leading-tight text-slate-900 text-left w-full dark:text-white"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.7 }}
+      >
         {HERO_CONTENT.title}
-      </h1>
+      </motion.h1>
       <div className="flex flex-col md:flex-row items-center md:items-start gap-8 md:gap-20">
         {/* Left: Button and Content */}
-        <div className="w-full md:w-1/2 flex flex-col items-start">
+        <motion.div
+          className="w-full md:w-1/2 flex flex-col items-start"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.7 }}
+        >
           <p className="mb-6 text-base sm:text-lg text-gray-700 md:pr-8 text-left w-full dark:text-gray-300">
             {HERO_CONTENT.subtitle}
           </p>
@@ -89,15 +109,16 @@ export default function HeroHome() {
               </div>
             ))}
           </div>
-        </div>
-        {/* Right: Video */}
-        <div className="w-full md:w-1/2 flex justify-center items-center mt-4 md:mt-0 z-10">
-          <VideoPlayer
-            src="/videos/video.mp4"
-            poster="/images/hero-image-01.png"
-            className="w-full sm:max-w-2xl rounded-xl"
-          />
-        </div>
+        </motion.div>
+        {/* Right: Logo */}
+        <motion.div
+          className="hidden md:flex w-full md:w-1/2 -mt-40 -ml-10 justify-center items-center z-10"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5, duration: 0.7 }}
+        >
+          {showLogo && <NuwaLogoThree />}
+        </motion.div>
       </div>
     </section>
   );
