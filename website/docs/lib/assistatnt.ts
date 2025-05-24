@@ -9,14 +9,18 @@ export const createAssistantThread = async () => {
 
 export const sendMessagesToAssistantThread = async (
   threadId: string,
-  messages: { role: "user" | "assistant"; content: string }
+  messages:
+    | { role: "user" | "assistant"; content: string }
+    | Array<{ role: "user" | "assistant"; content: string }>
 ) => {
-  await openai.beta.threads.messages.create(threadId, {
-    role: messages.role,
-    content: messages.content,
-  });
-  const currentMessage = await openai.beta.threads.messages.list(threadId);
-  console.log(currentMessage.data[0].content);
+  // 支持单条和多条消息
+  const messageArray = Array.isArray(messages) ? messages : [messages];
+  for (const msg of messageArray) {
+    await openai.beta.threads.messages.create(threadId, {
+      role: msg.role,
+      content: msg.content,
+    });
+  }
 };
 
 export const runAssistantAndReadResult = async (

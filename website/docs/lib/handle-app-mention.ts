@@ -1,5 +1,5 @@
 import { AppMentionEvent } from "@slack/web-api";
-import { client } from "./slack-utils";
+import { client, getThread } from "./slack-utils";
 import {
   createAssistantThread,
   sendMessagesToAssistantThread,
@@ -54,10 +54,40 @@ export async function handleNewAppMention(
     slackToAssistantThreadMap.set(threadKey, assistantThreadId);
   }
 
-  await sendMessagesToAssistantThread(assistantThreadId, {
-    role: "user",
-    content: text,
-  });
+  // 获取 thread 的所有历史消息
+  let messages = await getThread(channel, threadKey, botUserId);
+  const assistantMessages = [];
+  for (const msg of messages) {
+    const userId = (msg as any).userId;
+    if (msg.role === "user" && typeof msg.content === "string" && userId) {
+      // 查用户名
+      let userName = userId;
+      try {
+        const userInfo = await client.users.info({ user: userId });
+        if (userInfo.user && userInfo.user.real_name) {
+          userName = userInfo.user.real_name;
+        } else if (userInfo.user && userInfo.user.name) {
+          userName = userInfo.user.name;
+        }
+      } catch (e) {
+        // ignore, fallback to userId
+      }
+      assistantMessages.push({
+        role: "user",
+        content: `This following message came from ${userName}:\n${msg.content}`,
+      });
+    } else if (
+      (msg.role === "user" || msg.role === "assistant") &&
+      typeof msg.content === "string"
+    ) {
+      assistantMessages.push({
+        role: msg.role as "user" | "assistant",
+        content: msg.content as string,
+      });
+    }
+  }
+
+  await sendMessagesToAssistantThread(assistantThreadId, assistantMessages);
   const result = await runAssistantAndReadResult(
     assistantThreadId,
     updateMessage
