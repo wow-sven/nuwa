@@ -17,6 +17,7 @@ export default function BlogPostClient({ post, recordMap }) {
             height={800}
             className="object-contain"
             priority
+            unoptimized
           />
         </div>
         <h1 className="mb-4 text-4xl font-bold md:text-5xl">{post.title}</h1>

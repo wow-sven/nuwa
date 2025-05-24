@@ -30,6 +30,7 @@ export const BlogPostCard = ({ post }: { post: NotionBlogPost }) => {
                 priority={true}
                 onLoadingComplete={() => setIsImageLoaded(true)}
                 style={{ display: isImageLoaded ? "block" : "none" }}
+                unoptimized
               />
             </>
           )}

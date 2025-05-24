@@ -4,6 +4,8 @@ import { NotionAPI } from "notion-client";
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const notionApi = new NotionAPI();
 
+const IMAGE_PROXY_SECRET = process.env.IMAGE_PROXY_SECRET;
+
 export type NotionBlogPost = {
   id: string;
   title: string;
@@ -20,7 +22,6 @@ export async function getBlogPostsFromNotion(
 ): Promise<NotionBlogPost[]> {
   const response = await notion.databases.query({
     database_id: databaseId,
-    // 可根据需要添加 filter/sort
     filter: {
       property: "Publish",
       select: {
@@ -39,12 +40,22 @@ export async function getBlogPostsFromNotion(
     const properties = page.properties;
     const id = page.id;
     const authorPerson = properties["Author"]?.people?.[0];
+    // extract raw image url
+    const rawCover = properties["Cover Image"]?.files?.[0];
+    // check if it is file or external link
+    let coverUrl: string | null = null;
+    if (rawCover?.file?.url) {
+      coverUrl = `/api/image-proxy?url=${encodeURIComponent(rawCover.file.url)}&token=${IMAGE_PROXY_SECRET}`;
+    } else if (rawCover?.external?.url) {
+      // for external link, no proxy
+      coverUrl = rawCover.external.url;
+    }
     return {
       id,
       title: properties["Title"]?.title?.[0]?.plain_text || "",
       excerpt: properties["Excerpt"]?.rich_text?.[0]?.plain_text || "",
       author: authorPerson?.name || "",
-      coverImage: properties["Cover Image"]?.files?.[0]?.file?.url || null,
+      coverImage: coverUrl,
       tag: properties["Tag"]?.select?.name || "",
       lastEditAt: page["last_edited_time"],
       slug: properties["Slug"]?.rich_text?.[0]?.plain_text || "",
