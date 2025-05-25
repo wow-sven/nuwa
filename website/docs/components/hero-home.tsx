@@ -3,6 +3,7 @@ import { FiUpload, FiLock, FiDatabase, FiArrowRight } from "react-icons/fi";
 import NuwaLogoThree from "./nuwa-logo-three";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import ErrorBoundary from "@/components/error-boundary";
 // Content constants
 const HERO_CONTENT = {
   title: (
@@ -117,7 +118,7 @@ export default function HeroHome() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.5, duration: 0.7 }}
         >
-          {showLogo && <NuwaLogoThree />}
+          <ErrorBoundary>{showLogo && <NuwaLogoThree />}</ErrorBoundary>
         </motion.div>
       </div>
     </section>
