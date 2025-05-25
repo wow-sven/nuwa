@@ -28,7 +28,7 @@ export const BlogPostCard = ({ post }: { post: NotionBlogPost }) => {
                 height={338}
                 className="rounded-2xl object-cover"
                 priority={true}
-                onLoadingComplete={() => setIsImageLoaded(true)}
+                onLoad={() => setIsImageLoaded(true)}
                 style={{ display: isImageLoaded ? "block" : "none" }}
                 unoptimized
               />

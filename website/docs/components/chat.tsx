@@ -24,7 +24,7 @@ const UserMessage = ({ text }: { text: string }) => {
 
 const AssistantMessage = ({ text }: { text: string }) => {
   // 去除【4:0†source】或[4:0†source]等标记
-  const cleanedText = text.replace(/[【\[]\d+:\d+†source[】\]]/g, "");
+  const cleanedText = text.replace(/[【\[]\d+:\d+†[^\]】]+[】\]]/g, "");
   return (
     <div className="self-start max-w-[70%] bg-gradient-to-br from-[#f3f4f6] to-[#e5e7eb] dark:from-[#232526] dark:to-[#18181b] my-2 px-4 py-2 rounded-lg break-words shadow-md border border-[#e5e7eb] dark:border-[#27272a] animate-fadeInUp">
       <Markdown
@@ -278,7 +278,7 @@ const Chat = ({
   );
 
   return (
-    <div className="flex flex-col-reverse h-[700px] w-full">
+    <div className="flex flex-col-reverse h-[calc(100vh-200px)] w-full">
       <div className="flex-1 flex overflow-y-auto p-4 flex-col order-2 whitespace-pre-wrap scrollbar-thin scrollbar-thumb-[#cbd5e1] scrollbar-track-[#e5e7eb] dark:scrollbar-thumb-[#27272a] dark:scrollbar-track-[#232526]  ">
         {messages.map((msg, index) => (
           <Message key={index} role={msg.role} text={msg.text} />
