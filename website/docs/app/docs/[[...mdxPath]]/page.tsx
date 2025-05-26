@@ -1,5 +1,6 @@
 import { generateStaticParamsFor, importPage } from "nextra/pages";
 import { useMDXComponents as getMDXComponents } from "@/mdx-components";
+import MermaidZoomEnhancerClient from "@/components/mermaid-zoom";
 
 export const generateStaticParams = generateStaticParamsFor("mdxPath");
 
@@ -89,6 +90,7 @@ export default async function Page(props) {
         )}
         <MDXContent {...props} params={params} />
       </Wrapper>
+      <MermaidZoomEnhancerClient />
     </div>
   );
 }
