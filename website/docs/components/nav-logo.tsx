@@ -7,13 +7,6 @@ export default function NavLogo() {
   if (isDark === null) return null;
   const logoPath = isDark ? "/nuwa-logo-white.svg" : "/nuwa-logo-black.svg";
   return (
-    <Image
-      src={logoPath}
-      alt="Nuwa Logo"
-      width={100}
-      height={100}
-      style={{ width: "100px", height: "100px" }}
-      priority
-    />
+    <Image src={logoPath} alt="Nuwa Logo" width={100} height={100} priority />
   );
 }

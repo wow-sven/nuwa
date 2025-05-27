@@ -87,7 +87,7 @@ export default async function RootLayout({ children }) {
       <body className={roboto.className}>
         <Layout
           navbar={navbar}
-          footer={<Footer border={true} />}
+          footer={<Footer />}
           editLink="Edit this page on GitHub"
           docsRepositoryBase="https://github.com/nuwa-protocol/nuwa/tree/main/website/docs"
           sidebar={{ defaultMenuCollapseLevel: 1 }}
