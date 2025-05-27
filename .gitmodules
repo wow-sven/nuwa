@@ -4,3 +4,6 @@
 [submodule "nips"]
 	path = nips
 	url = git@github.com:nuwa-protocol/NIPs.git
+[submodule "nuwa-agent"]
+	path = nuwa-agent
+	url = https://github.com/nuwa-protocol/nuwa-agent.git
