@@ -15,7 +15,7 @@ export const BlogPostCard = ({ post }: { post: NotionBlogPost }) => {
       aria-label={post.title}
     >
       <article className="relative isolate flex flex-col gap-8 lg:flex-row hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors rounded-2xl p-2">
-        <div className="relative aspect-video sm:aspect-2/1 lg:w-96 lg:shrink-0">
+        <div className="relative aspect-video sm:aspect-2/1 lg:w-96 lg:shrink-0 overflow-hidden rounded-2xl">
           {post.coverImage && (
             <>
               {!isImageLoaded && (

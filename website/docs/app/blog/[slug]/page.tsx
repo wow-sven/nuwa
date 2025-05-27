@@ -1,11 +1,14 @@
 import { getNotionPageBlocks, getBlogPostsFromNotion } from "@/lib/notion";
 import BlogPostClient from "./BlogPostClient";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }) {
+  const resolvedParams = await params;
   const posts = await getBlogPostsFromNotion(
     process.env.NOTION_BLOG_DATABASE_ID!
   );
-  const post = posts.find((p) => p.slug === params.slug);
+  const post = posts.find((p) => p.slug === resolvedParams.slug);
 
   if (!post) return {};
 
