@@ -3,7 +3,7 @@ title: Architecture
 description: Explain the Nuwa architrecture.
 ---
 
-Nuwa introduces a unified infrastructure for building both the client AI agent with **Nuwa Agent Framework**, and the Caps, based on **Agent Cappability Protocol**.
+Nuwa introduces a unified infrastructure for building both the client AI agent with **Nuwa Client**, and the Caps, based on **Agent Cappability Protocol**.
 
 
 ```mermaid
@@ -26,7 +26,7 @@ config:
 flowchart LR
     %% User and Nuwa Client
     U[User]
-    subgraph NuwaClient["Nuwa Agent Framework"]
+    subgraph NuwaClient["Nuwa Client"]
         direction LR
         M[Memory]
         I[Identity]
@@ -96,9 +96,9 @@ import { FaMoneyBillWave, FaRobot } from "react-icons/fa";
   />
 </Cards>
 
-## Nuwa Agent Framework
+## Nuwa Client
 
-Nuwa Agent Framework provides a reference implmentation on accessing caps. In addition it built-in memory management, cryptographic based identity management and wallet management.
+Nuwa Client provides a reference implmentation on accessing caps. In addition it has built-in memory management, cryptographic based identity management and wallet management.
 
 Learn more:
 
@@ -106,16 +106,16 @@ import { FaBrain, FaIdCard, FaWallet } from "react-icons/fa6";
 import { MdOutlineSdStorage } from "react-icons/md";
 
 <Cards num={2}>
-  <Cards.Card
-    icon={<FaBrain />}
-    title="Memory"
-    href="/docs/agent-state#memory"
-  />
   <Cards.Card icon={<FaIdCard />} title="Identity" href="/docs/identity" />
   <Cards.Card icon={<FaWallet />} title="Wallet" href="/docs/wallet" />
   <Cards.Card
     icon={<MdOutlineSdStorage />}
     title="Agent State"
     href="/docs/agent-state"
+  />
+    <Cards.Card
+    icon={<FaBrain />}
+    title="Memory"
+    href="/docs/agent-state#memory"
   />
 </Cards>
