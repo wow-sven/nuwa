@@ -1,406 +1,666 @@
 # Nuwa Identity Kit
 
-TypeScript SDK implementing NIP-1 Agent Single DID Multi-Key Model.
-
-## Overview
-
-This SDK implements the [NIP-1 Agent Single DID Multi-Key Model](https://github.com/rooch-network/nuwa/blob/main/nips/NIPs/nip-1.md), a decentralized identity model for Agents (representing users, services, or other autonomous entities) within the Nuwa ecosystem.
-
-The core concept is to enable a single master Decentralized Identifier (DID) to manage multiple operational keys (device-specific keys, application-specific keys, service instance keys, etc.). This allows an entity to maintain consistent identity while securely operating across multiple contexts.
-
-## Key Design Concepts
-
-### Verifiable Data Registry (VDR) Abstraction
-
-The SDK implements a Verifiable Data Registry (VDR) abstraction that handles the storage and retrieval of DID Documents across different DID methods (did:key, did:web, did:rooch, etc.). The VDR abstraction follows these key principles:
-
-1. **Clear Separation of Creation and Updates**: 
-   - The `store` method is ONLY for initial document creation
-   - All updates use specific fine-grained methods
-
-2. **Fine-grained Update Operations**:
-   - Each operation (add key, remove key, add service, etc.) has a dedicated method
-   - This allows for better error handling, permission checking, and optimization
-
-3. **NIP-1 Permission Model**:
-   - Key operations require `capabilityDelegation` permission
-   - Service operations require `capabilityInvocation` permission
-   - Controller changes require current controller permission
-
-### Usage Pattern
-
-```typescript
-// First check if the DID exists
-const exists = await identityKit.didExists(did);
-
-if (!exists) {
-  // Initial creation - only happens once
-  await identityKit.publishDIDDocument();
-} else {
-  // For all subsequent operations, use fine-grained methods:
-  await identityKit.addVerificationMethodAndPublish(methodInfo, relationships, signingKeyId);
-  await identityKit.removeVerificationMethodAndPublish(keyToRemoveId, signingKeyId);
-  await identityKit.addServiceAndPublish(serviceInfo, signingKeyId);
-  await identityKit.removeServiceAndPublish(serviceToRemoveId, signingKeyId);
-  await identityKit.updateRelationships(keyId, addRelationships, removeRelationships, signingKeyId);
-}
-```
-
-### Helper Methods
-
-The SDK provides helper methods to simplify common workflows:
-
-```typescript
-// Create and publish only if the document doesn't exist
-await identityKit.createAndPublishIfNotExists();
-
-// Check if a DID exists before performing operations
-const exists = await identityKit.didExists(did);
-```
+SDK for NIP-1 Agent Single DID Multi-Key Model and NIP-3 CADOP (Custodian-Assisted DID Onboarding Protocol)
 
 ## Features
 
-- Create and manage a master DID identity
-- Add and remove operational keys with specific verification relationships
-- Add and remove services to the DID document
-- Sign data using the NIP-1 signature structure
-- Verify NIP-1 signatures
-- Discover services by type
+- **NIP-1 Agent Single DID Multi-Key Model**: Support for managing multiple keys within a single DID
+- **NIP-3 CADOP**: Custodian-Assisted DID Onboarding Protocol for seamless user onboarding
+- **Multi-VDR Support**: Pluggable Verifiable Data Registry (VDR) implementations
+- **Rooch Integration**: Native support for Rooch blockchain DID operations
+- **Type Safety**: Full TypeScript support with comprehensive type definitions
 
 ## Installation
 
 ```bash
-# Using npm
-npm install nuwa-identity-kit
-
-# Using yarn
-yarn add nuwa-identity-kit
-
-# Using pnpm
-pnpm add nuwa-identity-kit
+npm install nuwa-identity-kit @roochnetwork/rooch-sdk
 ```
 
-## Usage
+## Core Concepts
 
-### Creating a Master DID
+Before diving into the examples, let's understand some core components:
+
+- **`NuwaIdentityKit`**: This is the primary SDK class you'll interact with. It provides a comprehensive suite of tools for managing DIDs, verification methods (keys), and services.
+- **`VDRInterface` (Verifiable Data Registry Interface)**: An interface that defines how `NuwaIdentityKit` communicates with a specific DID method's underlying ledger or network (e.g., `did:rooch` on the Rooch Network). The SDK allows you to use different VDR implementations. `RoochVDR` is one such implementation for the Rooch Network.
+- **`SignerInterface`**: An interface for cryptographic signing operations. This allows `NuwaIdentityKit` to authorize changes to a DID document. You can integrate various signing mechanisms, such as browser extensions, hardware wallets, or custom backend signers.
+- **DID Document**: A JSON-LD document that contains information about a DID, including its cryptographic keys, service endpoints, and control mechanisms.
+
+## Quick Start
+
+This section will guide you through the initial steps of using `NuwaIdentityKit`.
+
+### 1. Initializing `NuwaIdentityKit`
+
+There are several ways to get an instance of `NuwaIdentityKit`:
+
+**a) Creating a New DID**
+
+To create a brand new DID and its associated document, you'll use `NuwaIdentityKit.createNewDID()`. This requires a `DIDCreationRequest` object detailing the new DID's properties, a VDR instance (e.g., `RoochVDR` configured for your target network), and a signer instance compliant with the `SignerInterface`.
 
 ```typescript
-import { NuwaIdentityKit, CryptoUtils } from 'nuwa-identity-kit';
+import { NuwaIdentityKit, RoochVDR, DIDCreationRequest, SignerInterface } from 'nuwa-identity-kit';
+// import { Secp256k1Keypair } from '@roochnetwork/rooch-sdk'; // Example for a key management library
+// import { YourVDRImplementation } from './your-vdr';
+// import { YourSignerImplementation } from './your-signer'; // You'll need to provide a class that implements SignerInterface
 
-async function createAgentIdentity() {
-  // Create a new master identity using did:key method
-  const masterIdentity = await NuwaIdentityKit.createMasterIdentity({
-    method: 'key',
-    initialOperationalKey: {
-      type: 'Ed25519VerificationKey2020',
-      relationships: ['authentication', 'assertionMethod', 'capabilityInvocation']
+// 1. Obtain or configure your VDR instance (e.g., RoochVDR for did:rooch)
+// const vdr: RoochVDR = RoochVDR.createDefault('test'); 
+// /* Or, for example:
+// import { RoochClient } from '@roochnetwork/rooch-sdk';
+// const roochClient = new RoochClient({ url: 'https://test-seed.rooch.network/' });
+// const vdr = new RoochVDR({ client: roochClient });
+// */
+
+// 2. Obtain or configure your Signer instance
+// The signer must implement the SignerInterface from 'nuwa-identity-kit'.
+// It will be used to authorize the creation of the DID and subsequent operations.
+// For Rooch, this might involve a Keypair from '@roochnetwork/rooch-sdk' adapted to SignerInterface.
+// const keypair = Secp256k1Keypair.generate(); // Example key generation
+// const signer: SignerInterface = new YourSignerImplementation(keypair /*, ...other relevant args */);
+
+// 3. Define the DID Creation Request
+const didCreationRequest: DIDCreationRequest = {
+  method: 'rooch', // Or your target DID method
+  controllerKey: {
+    type: 'EcdsaSecp256k1VerificationKey2019', // Specify key type matching your signer
+    publicKeyMaterial: 'zPublicKeyMultibaseForController', // Provide the public key material for the controller
+    // idFragment: 'controller' // Optional custom key ID fragment
+  },
+  // Optionally, define initial verification methods, services, etc.
+  // verificationMethods: [ /* ... */ ],
+  // services: [ /* ... */ ],
+};
+
+async function setupNewDID(vdr: RoochVDR, signer: SignerInterface) { // Pass configured vdr and signer
+  // try {
+  //   const nuwaKit = await NuwaIdentityKit.createNewDID(
+  //     didCreationRequest,
+  //     vdr, 
+  //     signer
+  //   );
+  //   console.log('New DID Created:', nuwaKit.getDIDDocument().id);
+  // } catch (error) {
+  //   console.error('Error creating new DID:', error);
+  // }
+}
+
+// Example usage:
+// const vdrInstance = /* ... initialize your VDR ... */;
+// const signerInstance = /* ... initialize your Signer ... */;
+// setupNewDID(vdrInstance, signerInstance);
+```
+
+**b) Loading an Existing DID**
+
+To manage a DID that already exists, use `NuwaIdentityKit.fromExistingDID()`. You'll need the DID string and an array of VDR instances that can resolve and interact with that DID's method.
+
+```typescript
+import { NuwaIdentityKit, RoochVDR, SignerInterface } from 'nuwa-identity-kit';
+// import { YourSignerImplementation } from './your-signer'; 
+
+// 1. Obtain or configure VDR instance(s) for the DID method(s) you'll be working with.
+// const roochVDR: RoochVDR = RoochVDR.createDefault('test');
+// const anotherVDR = new AnotherVDRImplementation();
+
+// 2. (Optional) Set up an external signer if you intend to perform update operations.
+//    This signer should be capable of signing for the DID being loaded.
+// const externalSigner: SignerInterface = new YourSignerImplementation(/* ... */);
+
+const didString = "did:rooch:your-existing-did-here"; // Example DID
+
+async function manageExistingDID(vdrs: RoochVDR[], externalSigner?: SignerInterface) { // Pass VDRs and optional signer
+  // try {
+  //   const nuwaKit = await NuwaIdentityKit.fromExistingDID(
+  //     didString,
+  //     vdrs, // Provide VDRs capable of handling the DID method
+  //     {
+  //       externalSigner: externalSigner, // Optional: for signing subsequent operations
+  //     }
+  //   );
+  //   console.log('Loaded DID:', nuwaKit.getDIDDocument().id);
+  // } catch (error) {
+  //   console.error('Error loading existing DID:', error);
+  // }
+}
+
+// Example usage:
+// const vdrArray = [/* ... your VDR instances ... */];
+// const signerForExistingDID = /* ... optional signer for the DID ... */;
+// manageExistingDID(vdrArray, signerForExistingDID);
+```
+
+**c) Loading from a Known DID Document**
+
+If you have the complete DID Document object, you can initialize `NuwaIdentityKit` using `NuwaIdentityKit.fromDIDDocument()`. This is useful if the DID Document was obtained externally.
+
+```typescript
+import { NuwaIdentityKit, DIDDocument, RoochVDR, SignerInterface } from 'nuwa-identity-kit';
+// import { YourSignerImplementation } from './your-signer'; 
+
+// const knownDidDocument: DIDDocument = { /* ... your DID Document object ... */ };
+
+function initFromDocument(knownDidDocument: DIDDocument, vdrs?: RoochVDR[], externalSigner?: SignerInterface) {
+  // const nuwaKit = NuwaIdentityKit.fromDIDDocument(
+  //   knownDidDocument,
+  //   {
+  //     // Optional: Provide an externalSigner if you need to sign operations
+  //     externalSigner: externalSigner,
+  //     // Optional: Provide VDRs if you plan to interact with the network for this DID
+  //     vdrs: vdrs
+  //   }
+  // );
+  // console.log('Loaded DID from document:', nuwaKit.getDIDDocument().id);
+}
+
+// Example usage:
+// const doc = /* ... your DIDDocument ... */;
+// const vdrArrayForDoc = [/* ... optional VDRs ... */];
+// const signerForDoc = /* ... optional Signer ... */;
+// initFromDocument(doc, vdrArrayForDoc, signerForDoc);
+```
+
+### 2. Basic Operations with a `NuwaIdentityKit` Instance
+
+Once you have a `NuwaIdentityKit` instance (`nuwaKit`), you can perform various operations:
+
+**a) Get the DID Document**
+
+Retrieve the current, in-memory state of the DID Document.
+
+```typescript
+// Assuming `nuwaKit` is an initialized NuwaIdentityKit instance
+// const didDocument = nuwaKit.getDIDDocument();
+// console.log('DID Document:', didDocument);
+```
+
+**b) Resolve a DID (Fetch the latest from VDR)**
+
+To get the most up-to-date version of a DID Document from its registered VDR.
+
+```typescript
+// Assuming `nuwaKit` is an initialized NuwaIdentityKit instance (`nk`)
+// and the appropriate VDR is registered with it.
+// const didToResolve = "did:rooch:some-other-did-or-own-did-for-refresh";
+
+async function fetchLatestDID(nk: NuwaIdentityKit, didToResolve: string) {
+  // try {
+  //   const resolvedDoc = await nk.resolveDID(didToResolve);
+  //   if (resolvedDoc) {
+  //     console.log('Resolved DID Document:', resolvedDoc);
+  //   } else {
+  //     console.log('Could not resolve DID:', didToResolve);
+  //   }
+  // } catch (error) {
+  //   console.error('Error resolving DID:', error);
+  // }
+}
+
+// Example usage:
+// const myNuwaKit = /* ... your NuwaIdentityKit instance ... */;
+// const someDid = "did:rooch:xyz";
+// fetchLatestDID(myNuwaKit, someDid);
+```
+
+**c) Check if a DID Exists**
+
+Verify if a DID is registered on its respective VDR.
+
+```typescript
+// Assuming `nuwaKit` is an initialized NuwaIdentityKit instance (`nk`)
+// and the appropriate VDR is registered.
+// const didToCheck = "did:rooch:some-did-to-check";
+
+async function verifyDIDExistence(nk: NuwaIdentityKit, didToCheck: string) {
+  // try {
+  //   const exists = await nk.didExists(didToCheck);
+  //   console.log(`DID ${didToCheck} exists: ${exists}`);
+  // } catch (error) {
+  //   console.error('Error checking DID existence:', error);
+  // }
+}
+
+// Example usage:
+// const myNuwaKit = /* ... your NuwaIdentityKit instance ... */;
+// const someDidToVerify = "did:rooch:abc";
+// verifyDIDExistence(myNuwaKit, someDidToVerify);
+```
+
+### CADOP DID Creation (NIP-3)
+
+NIP-3 (Custodian-Assisted DID Onboarding Protocol) allows a custodian to create a DID on behalf of a user. The user typically initiates this process with a `did:key`.
+
+This operation is performed by a VDR (Verifiable Data Registry) that supports the target DID method and CADOP. The `NuwaIdentityKit` can be used to access and utilize such a VDR.
+
+The custodian (who is running the code below) will need a `SignerInterface` instance to authorize the DID creation on the VDR.
+
+```typescript
+import { NuwaIdentityKit, RoochVDR, CADOPCreationRequest, SignerInterface, DIDCreationResult } from 'nuwa-identity-kit';
+
+// Assume `custodianNuwaKit` is an initialized NuwaIdentityKit instance for the custodian.
+// It should have a VDR registered (e.g., RoochVDR) that supports CADOP for the desired DID method.
+// Assume `custodianSigner` is a SignerInterface instance authorized by the custodian 
+// to perform operations like creating DIDs for users.
+
+async function createDIDForUserViaCADOP(
+  custodianNuwaKit: NuwaIdentityKit, 
+  custodianSigner: SignerInterface
+) {
+  // const userGeneratedDidKey = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK'; // User's did:key
+  // const custodianServiceKeyMultibase = 'z6MkpzP1n65hZDrY62z48bB9jV2NFBfsn6A1t2hT5c6a4S4p'; // Custodian's public key for the service
+  // const custodianServiceKeyType = 'Ed25519VerificationKey2020'; // Type of the custodian's service key
+
+  // const cadopRequest: CADOPCreationRequest = {
+  //   userDidKey: userGeneratedDidKey,
+  //   custodianServicePublicKey: custodianServiceKeyMultibase, // Public key of the custodian service endpoint VM
+  //   custodianServiceVMType: custodianServiceKeyType,      // Type of the custodian service VM
+  //   // additionalClaims: { /* ... any other claims ... */ } // Optional
+  // };
+
+  // // 1. Get the appropriate VDR from NuwaIdentityKit
+  // // The target DID method for which the VDR should be retrieved.
+  // // This method string might be part of the custodian's configuration or derived.
+  // const targetDidMethod = 'rooch'; // Example: creating a did:rooch
+  // const vdr = custodianNuwaKit.getVDR(targetDidMethod);
+
+  // if (!vdr) {
+  //   console.error(`No VDR found for method: ${targetDidMethod}`);
+  //   return;
+  // }
+
+  // try {
+  //   // 2. Call createViaCADOP on the VDR instance
+  //   const result: DIDCreationResult = await vdr.createViaCADOP(
+  //     cadopRequest,
+  //     {
+  //       keyId: 'did:custodian:id#service-key-for-cadop', // Key ID of the custodian's key used for signing this operation
+  //       signer: custodianSigner // Custodian's signer instance
+  //     }
+  //   );
+
+  //   if (result.success && result.didDocument) {
+  //     console.log('Successfully created DID for user via CADOP:', result.didDocument.id);
+  //     console.log('Full DID Document:', result.didDocument);
+  //   } else {
+  //     console.error('CADOP DID creation failed:', result.error);
+  //   }
+  // } catch (error) {
+  //   console.error('Error during CADOP creation:', error);
+  // }
+}
+
+// To use this function:
+// const custodiansKit = /* ... custodian's NuwaIdentityKit instance with a VDR ... */;
+// const custodiansSigner = /* ... custodian's SignerInterface instance ... */;
+// createDIDForUserViaCADOP(custodiansKit, custodiansSigner);
+```
+
+### Key Management (NIP-1)
+
+`NuwaIdentityKit` provides methods to manage the verification methods (cryptographic keys) associated with a DID, in accordance with the NIP-1 Agent Single DID Multi-Key Model.
+
+All key management operations that modify the DID document require a signer capable of authorizing changes for the DID. This is typically provided via the `options` argument in each method, specifying the `keyId` to sign with and the `signer` instance.
+
+```typescript
+import { NuwaIdentityKit, OperationalKeyInfo, VerificationRelationship, SignerInterface } from 'nuwa-identity-kit';
+
+// Assume `nuwaKit` is an initialized NuwaIdentityKit instance for the DID being managed.
+// Assume `signerForDIDManagement` is a SignerInterface instance authorized 
+// to make changes to the nuwaKit's DID (e.g., using a controller key).
+
+// Example: Add a new verification method
+async function addNewKey(nuwaKit: NuwaIdentityKit, signer: SignerInterface) {
+  // const newKeyMaterial = /* Generate or retrieve new public key material (e.g., multibase string or JWK) */;
+  // const newKeyType = 'Ed25519VerificationKey2020'; // Or EcdsaSecp256k1VerificationKey2019, etc.
+  
+  // const keyInfo: OperationalKeyInfo = {
+  //   idFragment: 'key-new', // A unique fragment for the new key's ID within the DID document
+  //   type: newKeyType,
+  //   publicKeyMaterial: newKeyMaterial, // Uint8Array or JsonWebKey
+  //   controller: nuwaKit.getDIDDocument().id, // Typically the DID itself
+  // };
+
+  // const relationships: VerificationRelationship[] = ['authentication', 'assertionMethod'];
+  
+  // try {
+  //   const newVerificationMethodId = await nuwaKit.addVerificationMethod(
+  //     keyInfo,
+  //     relationships,
+  //     {
+  //       keyId: 'did:example:controller#key-1', // The ID of the key to be used for signing this operation
+  //       signer: signer // The signer instance
+  //     }
+  //   );
+  //   console.log('New verification method added:', newVerificationMethodId);
+  //   console.log('Updated DID Document:', nuwaKit.getDIDDocument());
+  // } catch (error) {
+  //   console.error('Error adding verification method:', error);
+  // }
+}
+
+// Example: Remove a verification method
+async function removeExistingKey(nuwaKit: NuwaIdentityKit, signer: SignerInterface) {
+  // const keyIdToRemove = `${nuwaKit.getDIDDocument().id}#key-new`; // ID of the key to remove
+
+  // try {
+  //   const success = await nuwaKit.removeVerificationMethod(
+  //     keyIdToRemove,
+  //     {
+  //       keyId: 'did:example:controller#key-1', // Signing key ID
+  //       signer: signer // Signer instance
+  //     }
+  //   );
+  //   if (success) {
+  //     console.log('Verification method removed:', keyIdToRemove);
+  //     console.log('Updated DID Document:', nuwaKit.getDIDDocument());
+  //   } else {
+  //     console.log('Failed to remove verification method.');
+  //   }
+  // } catch (error) {
+  //   console.error('Error removing verification method:', error);
+  // }
+}
+
+// Example: Update verification relationships for a key
+async function updateKeyRelationships(nuwaKit: NuwaIdentityKit, signer: SignerInterface) {
+  // const keyIdToUpdate = `${nuwaKit.getDIDDocument().id}#some-existing-key`;
+  // const addRelationships: VerificationRelationship[] = ['keyAgreement'];
+  // const removeRelationships: VerificationRelationship[] = ['assertionMethod'];
+
+  // try {
+  //   const success = await nuwaKit.updateVerificationMethodRelationships(
+  //     keyIdToUpdate,
+  //     addRelationships,
+  //     removeRelationships,
+  //     {
+  //       keyId: 'did:example:controller#key-1', // Signing key ID
+  //       signer: signer // Signer instance
+  //     }
+  //   );
+  //   if (success) {
+  //     console.log('Verification relationships updated for:', keyIdToUpdate);
+  //     console.log('Updated DID Document:', nuwaKit.getDIDDocument());
+  //   } else {
+  //     console.log('Failed to update verification relationships.');
+  //   }
+  // } catch (error) {
+  //   console.error('Error updating relationships:', error);
+  // }
+}
+
+// To use these functions:
+// const myNuwaKit = /* ... your NuwaIdentityKit instance ... */;
+// const didSigner = /* ... your SignerInterface instance for DID operations ... */;
+// addNewKey(myNuwaKit, didSigner);
+// removeExistingKey(myNuwaKit, didSigner);
+// updateKeyRelationships(myNuwaKit, didSigner);
+```
+
+### Service Management
+
+`NuwaIdentityKit` allows you to manage service endpoints in a DID document. Services can be used to advertise capabilities or provide information associated with the DID.
+
+Similar to key management, operations that modify service endpoints in the DID document require a signer.
+
+```typescript
+import { NuwaIdentityKit, ServiceInfo, SignerInterface } from 'nuwa-identity-kit';
+
+// Assume `nuwaKit` is an initialized NuwaIdentityKit instance for the DID being managed.
+// Assume `signerForDIDManagement` is a SignerInterface instance authorized 
+// to make changes to the nuwaKit's DID.
+
+// Example: Add a new service endpoint
+async function addNewService(nuwaKit: NuwaIdentityKit, signer: SignerInterface) {
+  // const serviceInfo: ServiceInfo = {
+  //   idFragment: 'my-service-1', // A unique fragment for the service ID within the DID document
+  //   type: 'LinkedDomains',       // Type of the service
+  //   serviceEndpoint: 'https://example.com/myservice',
+  //   // Optional: additional properties for the service
+  //   additionalProperties: {
+  //     description: 'My awesome service',
+  //     cost: 'free'
+  //   }
+  // };
+
+  // // Example for a service with more complex properties (e.g., NIP-9 LLMGateway)
+  // const llmServiceInfo: ServiceInfo = {
+  //   idFragment: 'llm-gateway',
+  //   type: 'LLMGatewayNIP9',
+  //   serviceEndpoint: 'https://api.example.com/llm',
+  //   additionalProperties: {
+  //     model: 'gpt-4',
+  //     version: '1.0',
+  //     apiKeyReference: 'did:example:mykeyprovider#key-1' // Example reference
+  //   }
+  // };
+
+  // try {
+  //   const newServiceId = await nuwaKit.addService(
+  //     serviceInfo, // or llmServiceInfo
+  //     {
+  //       keyId: 'did:example:controller#key-1', // The ID of the key to sign this operation
+  //       signer: signer // The signer instance
+  //     }
+  //   );
+  //   console.log('New service added:', newServiceId);
+  //   console.log('Updated DID Document:', nuwaKit.getDIDDocument());
+  // } catch (error) {
+  //   console.error('Error adding service:', error);
+  // }
+}
+
+// Example: Remove a service endpoint
+async function removeExistingService(nuwaKit: NuwaIdentityKit, signer: SignerInterface) {
+  // const serviceIdToRemove = `${nuwaKit.getDIDDocument().id}#my-service-1`; // Full ID of the service to remove
+
+  // try {
+  //   const success = await nuwaKit.removeService(
+  //     serviceIdToRemove,
+  //     {
+  //       keyId: 'did:example:controller#key-1', // Signing key ID
+  //       signer: signer // Signer instance
+  //     }
+  //   );
+  //   if (success) {
+  //     console.log('Service removed:', serviceIdToRemove);
+  //     console.log('Updated DID Document:', nuwaKit.getDIDDocument());
+  //   } else {
+  //     console.log('Failed to remove service.');
+  //   }
+  // } catch (error) {
+  //   console.error('Error removing service:', error);
+  // }
+}
+
+// To use these functions:
+// const myNuwaKit = /* ... your NuwaIdentityKit instance ... */;
+// const didSigner = /* ... your SignerInterface instance for DID operations ... */;
+// addNewService(myNuwaKit, didSigner);
+// removeExistingService(myNuwaKit, didSigner);
+```
+
+## Architecture
+
+The Nuwa Identity Kit is designed with a modular architecture centered around the `NuwaIdentityKit` class, which acts as the primary interface for developers. This core class orchestrates DID operations by interacting with Verifiable Data Registries (VDRs) and utilizing Signers for authorization.
+
+### 1. `NuwaIdentityKit` - The Core
+
+`NuwaIdentityKit` provides a unified API for managing DIDs, their associated verification methods (keys), and service endpoints. It handles the NIP-1 Agent Single DID Multi-Key Model and supports NIP-3 CADOP workflows by coordinating with appropriate VDRs and signers.
+
+### 2. VDR (Verifiable Data Registry) Pattern
+
+The SDK employs a pluggable VDR pattern. Each VDR is an implementation of the `VDRInterface` and is responsible for interacting with a specific DID method's underlying ledger or network (e.g., `did:key`, `did:rooch`). This design allows `NuwaIdentityKit` to be extended to support various DID methods.
+
+- **`VDRInterface`**: Defines the contract for all VDRs, including methods for creating, resolving, and updating DID documents (e.g., `create()`, `createViaCADOP()`, `resolve()`, `addVerificationMethod()`).
+- **Custom VDRs**: Developers can add support for new DID methods by creating a class that extends `AbstractVDR` (which implements `VDRInterface`) and implementing the required methods. `AbstractVDR` provides a base structure and some utility functions.
+
+  ```typescript
+  // Example of a custom VDR structure (conceptual)
+  import { AbstractVDR, DIDDocument, DIDCreationRequest, DIDCreationResult } from 'nuwa-identity-kit'; // Assuming these are correct paths
+
+  class CustomVDR extends AbstractVDR {
+    constructor(methodName: string /*, ...other options */) {
+      super(methodName); // e.g., 'custom'
+      // ... custom initialization ...
     }
-  });
-
-  console.log('Created DID:', masterIdentity.did);
-  console.log('DID Document:', JSON.stringify(masterIdentity.didDocument, null, 2));
   
-  // Create an SDK instance with the DID document and a simple signer for the master key
-  // In a real-world application, you would use a proper wallet integration
-  const sdk = NuwaIdentityKit.createFromMasterIdentity(masterIdentity);
-  
-  // The master private key is NOT stored in the SDK - it's only accessible through the signer
-  // This follows security best practices for private key management
-  
-  return sdk;
-}
-```
-
-### Adding an Operational Key
-
-```typescript
-async function addDeviceKey(sdk) {
-  // Generate a new key pair
-  const { publicKey, privateKey } = await CryptoUtils.generateKeyPair('Ed25519VerificationKey2020');
-  
-  // Add the key to the DID document with specific relationships
-  const keyId = await sdk.addOperationalKey(
-    {
-      idFragment: 'mobile-device-1',
-      type: 'Ed25519VerificationKey2020',
-      publicKeyMaterial: publicKey,
-      expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year expiry
-    },
-    ['authentication', 'capabilityInvocation']
-  );
-  
-  // Store the private key
-  sdk.storeOperationalPrivateKey(keyId, privateKey);
-  
-  return keyId;
-}
-```
-
-### Adding a Service
-
-```typescript
-function addService(sdk) {
-  const serviceId = sdk.addService({
-    idFragment: 'llm-gateway',
-    type: 'LLMGatewayNIP9',
-    serviceEndpoint: 'https://example.com/llm',
-    additionalProperties: {
-      supportedModels: ['model-x', 'model-y']
+    async create(request: DIDCreationRequest, options?: any): Promise<DIDCreationResult> {
+      // Implementation specific logic to create a DID on your custom registry
+      throw new Error('Method not implemented.');
     }
-  });
-  
-  return serviceId;
-}
-```
 
-### Creating and Verifying a Signature
-
-```typescript
-async function signAndVerify(sdk, keyId) {
-  // Data to sign
-  const payload = { 
-    operation: 'authenticate', 
-    params: { serviceId: 'example-service' }
-  };
-  
-  // Create a NIP-1 signature
-  const signedObject = await sdk.createNIP1Signature(payload, keyId);
-  
-  console.log('Signed Object:', JSON.stringify(signedObject, null, 2));
-  
-  // In a real application, the verifier would resolve the DID document
-  // For demo purposes, we'll use the same document
-  const isValid = await NuwaIdentityKit.verifyNIP1Signature(
-    signedObject, 
-    sdk.getDIDDocument()
-  );
-  
-  console.log('Signature Valid:', isValid);
-}
-```
-
-### Using a Custom External Signer (e.g., for Wallet Integration)
-
-```typescript
-import { SignerInterface } from 'nuwa-identity-kit';
-
-// Example of a custom signer that integrates with a wallet
-class WalletSigner implements SignerInterface {
-  private wallet: any; // Your wallet instance
-  private authorizedKeys: string[];
-  
-  constructor(wallet: any, authorizedKeys: string[]) {
-    this.wallet = wallet;
-    this.authorizedKeys = authorizedKeys;
-  }
-  
-  async sign(data: Uint8Array, keyId: string): Promise<string> {
-    if (!this.authorizedKeys.includes(keyId)) {
-      throw new Error(`Key ${keyId} is not authorized for this wallet`);
+    async resolve(did: string): Promise<DIDDocument | null> {
+      this.validateDIDMethod(did); // Helper from AbstractVDR
+      // Implementation specific logic to resolve a DID from your custom registry
+      throw new Error('Method not implemented.');
     }
     
-    // Request signature from wallet
-    // This could open a popup or redirect to a wallet app
-    const signature = await this.wallet.requestSignature({
-      didKeyId: keyId,
-      data: Array.from(data) // Convert to format the wallet expects
-    });
-    
-    return signature;
+    // ... implement other VDRInterface methods as needed ...
+    // (exists, addVerificationMethod, removeVerificationMethod, addService, createViaCADOP, etc.)
   }
-  
-  async canSign(keyId: string): Promise<boolean> {
-    return this.authorizedKeys.includes(keyId);
-  }
-}
+  ```
 
-async function createSDKWithWalletSigner(didDocument) {
-  // Create wallet signer with the master key
-  const masterKeyId = didDocument.verificationMethod[0].id;
-  const walletSigner = new WalletSigner(
-    yourWalletInstance, 
-    [masterKeyId]
-  );
-  
-  // Create SDK with the wallet signer
-  const sdk = new NuwaIdentityKit(didDocument, {
-    externalSigner: walletSigner
-  });
-  
-  return sdk;
-}
-```
+### 3. `SignerInterface` - Decoupled Authorization
 
-### Publishing the Initial DID Document
+All operations that modify a DID document or require on-chain/ledger interaction must be authorized. `NuwaIdentityKit` and VDRs utilize a `SignerInterface`. This interface decouples the core SDK logic from specific signing mechanisms (e.g., browser wallets, hardware signers, backend key management systems). Implementations of `SignerInterface` are responsible for performing cryptographic signing operations.
 
-```typescript
-async function publishInitialDID(sdk) {
-  // This should ONLY be used for the initial creation of the DID document
-  // For updates, use the specific methods like addVerificationMethodAndPublish, etc.
-  await sdk.publishDIDDocument();
-}
-```
+### 4. Rooch Integration (Example VDR Implementation)
 
-### Updating the DID Document
+`NuwaIdentityKit` integrates with the Rooch Network through `RoochVDR`, an implementation of `VDRInterface`.
 
-For updates, always use the specific granular methods rather than updating the whole document:
+- **Target Contract**: `RoochVDR` interacts with Rooch's standard DID contract (e.g., `0x3::did` or as configured).
+- **On-Chain DID Management**: It handles the creation and management of `did:rooch` DIDs directly on the Rooch blockchain.
+- **Session Key Support**: `RoochVDR` can leverage Rooch's session key mechanism. For instance, when adding verification methods with an `authentication` relationship, these can be registered as Rooch session keys to authorize subsequent DID operations seamlessly.
+- **Permission Model**: Operations on `did:rooch` DIDs are authorized by the DID's associated smart contract account, typically signing with an `authentication` key. The VDR also checks for appropriate NIP-1 verification relationships (like `capabilityDelegation` for key management) as part of its internal logic.
+- **Gas Management**: Gas limits for Rooch transactions can be configured when performing operations via `RoochVDR`.
 
-```typescript
-// Add a new verification method (key)
-const keyId = await sdk.addOperationalKeyAndPublish(
-  keyInfo,
-  ['authentication', 'capabilityInvocation'],
-  masterKeyId
-);
+### NIP-1 and NIP-3 Support
 
-// Add a new service endpoint
-const serviceId = await sdk.addServiceAndPublish(
-  serviceInfo,
-  masterKeyId
-);
+The overall architecture enables `NuwaIdentityKit` to:
+- Manage multiple keys and verification relationships for a single DID as per **NIP-1**.
+- Facilitate custodian-assisted DID onboarding workflows as per **NIP-3**, where VDRs (like `RoochVDR`) handle the `createViaCADOP` process.
 
-// Remove a verification method (key)
-await sdk.removeVerificationMethodAndPublish(keyId, masterKeyId);
+## API Reference
 
-// Remove a service
-await sdk.removeServiceAndPublish(serviceId, masterKeyId);
+This section provides a high-level overview of the core APIs provided by `NuwaIdentityKit`. For detailed type definitions and method signatures, please refer to the source code or generated TypeDoc documentation.
 
-// Update key relationships
-await sdk.updateRelationships(
-  keyId,
-  ['authentication'], // relationships to add
-  ['capabilityDelegation'], // relationships to remove
-  masterKeyId
-);
-```
+### `NuwaIdentityKit` Class
 
-### Creating a Delegated Instance (NIP-3)
+This is the main class for interacting with DIDs.
 
-```typescript
-async function createDelegatedInstance() {
-  // In delegated mode, we have a DID document controlled by another entity
-  // but we may have some operational keys for specific operations
-  
-  // Get the DID document from somewhere (e.g., DID resolver, local storage, etc.)
-  const didDocument = await getDIDDocumentFromResolver('did:example:123456');
-  
-  // Create a map for any operational keys we have access to
-  const operationalKeys = new Map();
-  
-  // We might have some operational keys granted to us by the controller
-  const { publicKey, privateKey } = await CryptoUtils.generateKeyPair('Ed25519VerificationKey2020');
-  const keyId = 'did:example:123456#delegate-key-1';
-  operationalKeys.set(keyId, privateKey);
-  
-  // Create the delegated instance without an external signer for the master key
-  const delegatedSdk = new NuwaIdentityKit(didDocument, { operationalPrivateKeys: operationalKeys });
-  
-  // Check if we're in delegated mode (no external signer for master key operations)
-  console.log('Is delegated mode?', delegatedSdk.isDelegatedMode()); // true
-  
-  // We can check which keys we can sign with
-  const canSignWithMaster = await delegatedSdk.canSignWithKey(didDocument.verificationMethod[0].id); // false
-  const canSignWithDelegate = await delegatedSdk.canSignWithKey(keyId); // true
-  
-  return delegatedSdk;
-}
-```
+**Factory Methods (Static Methods for Initialization):**
 
-## DID Methods Support
+- `static async createNewDID(creationRequest: DIDCreationRequest, vdr: VDRInterface, signer: SignerInterface): Promise<NuwaIdentityKit>`
+  - Creates a new DID and its document, then initializes an `NuwaIdentityKit` instance.
+  - Requires details about the DID to be created (`creationRequest`), a VDR for the target DID method, and a signer for authorization.
 
-This SDK is designed to be DID method agnostic and can work with various methods through its VDR (Verifiable Data Registry) abstraction:
+- `static async fromExistingDID(did: string, vdrs: VDRInterface[], options?: { operationalPrivateKeys?: Map<string, CryptoKey | Uint8Array>, externalSigner?: SignerInterface }): Promise<NuwaIdentityKit>`
+  - Resolves an existing DID using one of the provided VDRs and initializes an `NuwaIdentityKit` instance.
+  - `options.externalSigner` can be provided to authorize subsequent operations.
 
-- `did:key`: Simple method where the DID is derived directly from a public key
-- `did:web`: DIDs hosted on web servers
-- Custom methods: Can be extended to support methods like `did:rooch` or others
+- `static fromDIDDocument(didDocument: DIDDocument, options?: { operationalPrivateKeys?: Map<string, CryptoKey | Uint8Array>, externalSigner?: SignerInterface, vdrs?: VDRInterface[] }): NuwaIdentityKit`
+  - Initializes an `NuwaIdentityKit` instance from an already known DID Document object.
 
-### Using VDRs (Verifiable Data Registries)
+**Instance Methods:**
 
-The SDK uses VDRs (Verifiable Data Registries) to interact with different DID methods:
+- `getDIDDocument(): DIDDocument`
+  - Returns the current (in-memory) DID Document associated with this kit instance.
 
-```typescript
-import { NuwaIdentityKit, createDefaultVDRs, WebVDR } from 'nuwa-identity-kit';
+- `async resolveDID(did: string): Promise<DIDDocument | null>`
+  - Resolves the given DID using a registered VDR capable of handling its method.
 
-// Create default VDRs for common DID methods (key, web)
-const vdrs = createDefaultVDRs();
+- `async didExists(did: string): Promise<boolean>`
+  - Checks if the given DID exists on its VDR.
 
-// Or create specific VDRs with custom configuration
-const webVDR = new WebVDR({
-  uploadHandler: async (domain, path, document) => {
-    // Custom implementation to upload the document
-    const response = await fetch(`https://${domain}/${path}/did.json`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(document)
-    });
-    return response.ok;
-  }
-});
+- `async addVerificationMethod(keyInfo: OperationalKeyInfo, relationships: VerificationRelationship[], options: { keyId: string; signer?: SignerInterface }): Promise<string>`
+  - Adds a new verification method (key) to the DID document and publishes the change via its VDR.
+  - `options` must specify the `keyId` and `signer` to authorize the operation.
 
-// Create SDK with VDRs
-const sdk = new NuwaIdentityKit(didDocument, {
-  vdrs: [webVDR, ...otherVdrs]
-});
+- `async removeVerificationMethod(keyIdToRemove: string, options: { keyId: string; signer?: SignerInterface }): Promise<boolean>`
+  - Removes a verification method from the DID document.
 
-// Publish DID document using the appropriate VDR
-await sdk.publishDIDDocument();
+- `async updateVerificationMethodRelationships(keyIdToUpdate: string, addRelationships: VerificationRelationship[], removeRelationships: VerificationRelationship[], options: { keyId: string; signer?: SignerInterface }): Promise<boolean>`
+  - Updates the verification relationships for an existing key.
 
-// Resolve another DID using registered VDRs
-const resolvedDoc = await sdk.resolveDID('did:web:example.com');
+- `async addService(serviceInfo: ServiceInfo, options: { keyId: string; signer?: SignerInterface }): Promise<string>`
+  - Adds a service endpoint to the DID document.
 
-// Verify a signature with automatic DID resolution
-const signedObject = { /* NIP1SignedObject */ };
-const isValid = await NuwaIdentityKit.verifyNIP1Signature(signedObject, vdrs);
-```
+- `async removeService(serviceIdToRemove: string, options: { keyId: string; signer?: SignerInterface }): Promise<boolean>`
+  - Removes a service endpoint from the DID document.
 
-### Creating Custom VDR Implementations
+- `async createNIP1Signature(payload: Omit<SignedData, 'nonce' | 'timestamp'>, keyId: string): Promise<NIP1SignedObject>`
+  - Creates a NIP-1 compliant signature for the given payload using the specified `keyId`.
 
-To support a custom DID method:
+- `registerVDR(vdr: VDRInterface): NuwaIdentityKit`
+  - Registers a VDR instance with the kit, making it available for resolving DIDs of its supported method.
 
-```typescript
-import { AbstractVDR, DIDDocument } from 'nuwa-identity-kit';
+- `getVDR(method: string): VDRInterface | undefined`
+  - Retrieves a previously registered VDR instance by its DID method name.
 
-class CustomVDR extends AbstractVDR {
-  constructor() {
-    super('custom'); // The DID method name
-  }
-  
-  async store(didDocument: DIDDocument): Promise<boolean> {
-    // Implementation for storing a DID document
-    return true;
-  }
-  
-  async resolve(did: string): Promise<DIDDocument | null> {
-    // Implementation for resolving a DID document
-    return document;
-  }
-}
+**Static Methods (Utility):**
 
-// Register the custom VDR with the SDK
-const customVDR = new CustomVDR();
-sdk.registerVDR(customVDR);
-```
+- `static async verifyNIP1Signature(signedObject: NIP1SignedObject, resolvedDidDocumentOrVDRs: DIDDocument | VDRInterface[]): Promise<boolean>`
+  - Verifies a NIP-1 signature against a resolved DID document or by resolving the signer's DID using provided VDRs.
 
-## Development
+### Core Interfaces & Types
 
-### Prerequisites
+Several important interfaces and type definitions are used throughout the SDK:
 
-- Node.js 18+
-- pnpm
+- `DIDDocument`: Represents a W3C DID Document.
+- `SignerInterface`: Interface for cryptographic signing operations.
+- `VDRInterface`: Interface for Verifiable Data Registry implementations (see also `AbstractVDR`).
+- `DIDCreationRequest`: Parameters for creating a new DID via `NuwaIdentityKit.createNewDID()` or `VDRInterface.create()`.
+- `CADOPCreationRequest`: Parameters for creating a DID via CADOP using `VDRInterface.createViaCADOP()`.
+- `OperationalKeyInfo`: Parameters for defining a new verification method (key).
+- `ServiceInfo`: Parameters for defining a new service endpoint.
+- `VerificationRelationship`: Type for DID verification relationships (e.g., 'authentication').
+- `NIP1SignedObject`, `SignedData`, `NIP1Signature`: Types related to NIP-1 signatures.
 
-### Building
+(For full details, please consult the type definition files in the `src/` directory.)
+
+### VDR Implementations (Example: `RoochVDR`)
+
+`NuwaIdentityKit` uses VDRs that implement `VDRInterface` to interact with specific DID methods.
+
+- **`RoochVDR`**: An implementation for `did:rooch` DIDs, interacting with the Rooch Network.
+  - Constructor: `new RoochVDR(options: RoochVDROptions)` where `RoochVDROptions` can specify `rpcUrl`, `client`, etc.
+  - Static factory: `RoochVDR.createDefault(network?: 'dev' | 'test' | 'main')` for quick setup.
+  - Implements all `VDRInterface` methods like `create`, `resolve`, `createViaCADOP`, etc., for the Rooch blockchain.
+
+(Other VDRs, like `KeyVDR` for `did:key`, are also available or can be custom-built by extending `AbstractVDR`.)
+
+### Operation Options
+
+Many methods in `NuwaIdentityKit` and `VDRInterface` that modify DID state (e.g., `addVerificationMethod`, `addService`) accept an `options` object. This object typically includes:
+
+- `signer: SignerInterface`: An instance of a signer to authorize the operation.
+- `keyId: string`: The ID of the key (within the DID document or an external controller) that the `signer` will use to sign the operation.
+- VDR-specific options (e.g., `maxGas` for `RoochVDR`).
+
+Refer to the specific method documentation or type definitions for details on required options.
+
+## Testing
 
 ```bash
-pnpm install
-pnpm build
+pnpm test                    # Run tests
+pnpm run test:coverage      # Run with coverage
+pnpm run test:watch         # Watch mode
 ```
 
-### Testing
+## Contributing
 
-```bash
-pnpm test
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-ISC
+ISC License
+
+## Related Specifications
+
+- [NIP-1: Agent Single DID Multi-Key Model](https://github.com/nuwa-protocol/nips/blob/main/nip-1.md)
+- [NIP-3: CADOP - Custodian-Assisted DID Onboarding Protocol](https://github.com/nuwa-protocol/nips/blob/main/nip-3.md)
+- [W3C DID Core Specification](https://www.w3.org/TR/did-core/)
+- [Rooch Network Documentation](https://rooch.network/docs)

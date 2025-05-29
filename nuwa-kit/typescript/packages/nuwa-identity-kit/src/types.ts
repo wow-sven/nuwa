@@ -8,8 +8,6 @@ export interface VerificationMethod {
   controller: string; // DID of the controller
   publicKeyMultibase?: string; // Base64 URL encoded public key
   publicKeyJwk?: JsonWebKey; // JWK format public key
-  blockchainAccountId?: string; // For on-chain keys, e.g., an account ID or address
-  expires?: string; // ISO 8601 datetime string, e.g., 2025-12-31T23:59:59Z
 }
 
 export interface ServiceEndpoint {
@@ -60,7 +58,6 @@ export interface OperationalKeyInfo {
   type: string; // Cryptographic suite of the key, e.g., Ed25519VerificationKey2020
   publicKeyMaterial: Uint8Array | JsonWebKey; // The public key material
   controller?: string; // Defaults to the master DID if not provided
-  expires?: string; // Optional expiration timestamp
 }
 
 /**
@@ -100,9 +97,62 @@ export type VerificationRelationship =
  */
 export interface MasterIdentity {
   did: string;
-  didDocument: DIDDocument;
   masterKeyId: string; // ID of the primary master key in verificationMethod
+  masterPublicKeyMultibase: string; // Multibase encoded public key
   masterPrivateKey: CryptoKey | Uint8Array; // The private key material for the master key
+}
+
+/**
+ * DID creation request information
+ */
+export interface DIDCreationRequest {
+  // Basic information
+  publicKeyMultibase: string;
+  keyType?: string; // Default inferred, e.g., 'EcdsaSecp256k1VerificationKey2019'
+  
+  // Optional preferred DID (some VDRs may support this)
+  preferredDID?: string;
+  
+  // Controller information
+  controller?: string | string[];
+  
+  // Initial verification relationships
+  initialRelationships?: VerificationRelationship[];
+  
+  // Initial service endpoints
+  initialServices?: ServiceEndpoint[];
+  
+  // Additional verification methods
+  additionalVerificationMethods?: VerificationMethod[];
+}
+
+/**
+ * DID creation result
+ */
+export interface DIDCreationResult {
+  success: boolean;
+  didDocument?: DIDDocument; // The created DID Document
+  transactionHash?: string;
+  blockHeight?: number;
+  error?: string;
+  
+  // Additional information for debugging
+  debug?: {
+    requestedDID?: string;
+    actualDID?: string;
+    events?: any[];
+    transactionResult?: any; // Transaction execution result for debugging
+  };
+}
+
+/**
+ * CADOP creation request
+ */
+export interface CADOPCreationRequest {
+  userDidKey: string;
+  custodianServicePublicKey: string;
+  custodianServiceVMType: string;
+  additionalClaims?: Record<string, any>;
 }
 
 /**
@@ -110,17 +160,6 @@ export interface MasterIdentity {
  * A VDR is responsible for storing and retrieving DID Documents
  */
 export interface VDRInterface {
-  /**
-   * Store a new DID Document in the registry
-   * This should be used ONLY for the initial creation of a DID document
-   * For updates, use the specific methods like addVerificationMethod, removeVerificationMethod, etc.
-   * 
-   * @param didDocument The DID Document to store
-   * @param options Optional storing options (e.g., signer, gas limit)
-   * @returns Promise resolving to true if successful
-   */
-  store(didDocument: DIDDocument, options?: any): Promise<boolean>;
-  
   /**
    * Resolve a DID to its DID Document
    * @param did The DID to resolve
@@ -140,6 +179,24 @@ export interface VDRInterface {
    * @returns The DID method (e.g., 'key', 'web', 'rooch')
    */
   getMethod(): string;
+  
+  /**
+   * Create a new DID
+   * 
+   * @param request DID creation request
+   * @param options Creation options
+   * @returns DID creation result, containing the actual created DID
+   */
+  create(request: DIDCreationRequest, options?: any): Promise<DIDCreationResult>;
+  
+  /**
+   * Create a DID via CADOP
+   * 
+   * @param request CADOP creation request
+   * @param options Creation options
+   * @returns DID creation result
+   */
+  createViaCADOP(request: CADOPCreationRequest, options?: any): Promise<DIDCreationResult>;
   
   /**
    * Add a new verification method to a DID document
@@ -253,3 +310,140 @@ export interface SignerInterface {
    */
   canSign(keyId: string): Promise<boolean>;
 }
+
+/**
+ * CADOP (NIP-3) related types for Custodian-Assisted DID Onboarding Protocol
+ */
+
+/**
+ * Authentication methods enumeration for CADOP services
+ */
+export enum AuthMethod {
+  GoogleOAuth = 1,
+  TwitterOAuth = 2,
+  AppleSignIn = 3,
+  GitHubOAuth = 4,
+  EmailOTP = 5,
+  SMSOTP = 6,
+  WeChatQR = 7,
+  DiscordOAuth = 8,
+  // 10+ reserved for future versions
+}
+
+/**
+ * Sybil resistance levels for CADOP
+ */
+export enum SybilLevel {
+  None = 0,           // No specific verification
+  EmailBasic = 1,     // Email or basic Web2 OAuth
+  PhoneNumber = 2,    // Phone number verification
+  GovernmentID = 3    // Government ID or strong biometric
+}
+
+/**
+ * Metadata for CadopCustodianService
+ */
+export interface CadopCustodianServiceMetadata {
+  name?: string;
+  auth_methods?: AuthMethod[];
+  sybilLevel?: SybilLevel;
+  maxDailyMints?: number;
+}
+
+/**
+ * Metadata for CadopIdPService (Identity Provider)
+ */
+export interface CadopIdPServiceMetadata {
+  name?: string;
+  jwks_uri: string;  // REQUIRED
+  issuer_did?: string;
+  authorization_endpoint?: string;
+  token_endpoint?: string;
+}
+
+/**
+ * Metadata for Web2ProofServiceCADOP
+ */
+export interface Web2ProofServiceMetadata {
+  name?: string;
+  accepts?: string[];  // Types of Web2 proofs accepted
+  supportedClaims?: string[];  // Types of claims/VCs this service can issue
+}
+
+/**
+ * CADOP service types
+ */
+export const CADOP_SERVICE_TYPES = {
+  CUSTODIAN: 'CadopCustodianService',
+  IDENTITY_PROVIDER: 'CadopIdPService', 
+  WEB2_PROOF: 'Web2ProofServiceCADOP'
+} as const;
+
+/**
+ * OIDC ID Token claims required for CADOP
+ */
+export interface CadopIdTokenClaims {
+  iss: string;        // Issuer identifier
+  sub: string;        // Subject (user's DID, typically did:key)
+  aud: string;        // Audience (custodian DID)
+  exp: number;        // Expiration time
+  iat: number;        // Issued at time
+  jti: string;        // JWT ID (unique identifier)
+  nonce: string;      // Nonce from state parameter
+  pub_jwk: JsonWebKey; // Public key in JWK format
+  sybil_level: SybilLevel; // Sybil resistance level
+}
+
+/**
+ * CADOP onboarding request payload
+ */
+export interface CadopOnboardingRequest {
+  userDID: string;           // User's client-generated DID (e.g., did:key)
+  initialAgentKey_pub: JsonWebKey | Uint8Array; // Public key material
+  idToken: string;           // ID Token from CadopIdPService
+  web2ProofAttestations?: string[]; // Optional additional VCs from Web2ProofService
+}
+
+/**
+ * CADOP onboarding response
+ */
+export interface CadopOnboardingResponse {
+  success: boolean;
+  agentDID?: string;         // Final Agent DID (if newly created)
+  transactionHash?: string;  // On-chain transaction hash (if applicable)
+  error?: string;
+}
+
+/**
+ * Key type constants for cryptographic operations
+ */
+export const KEY_TYPE = {
+  ED25519: 'Ed25519VerificationKey2020',
+  SECP256K1: 'EcdsaSecp256k1VerificationKey2019'
+} as const;
+
+export type KeyType = typeof KEY_TYPE[keyof typeof KEY_TYPE];
+
+/**
+ * Type guard to check if a string is a valid KeyType
+ */
+export function isKeyType(value: string): value is KeyType {
+  return Object.values(KEY_TYPE).includes(value as KeyType);
+}
+
+/**
+ * Convert a string to KeyType, with runtime validation
+ * @throws Error if the string is not a valid KeyType
+ */
+export function toKeyType(value: string): KeyType {
+  if (isKeyType(value)) {
+    return value;
+  }
+  throw new Error(`Invalid key type: ${value}`);
+}
+
+/**
+ * Type that represents either a KeyType or a string
+ * Useful for functions that need to accept both strict KeyType and general string values
+ */
+export type KeyTypeInput = KeyType | string;
