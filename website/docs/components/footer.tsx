@@ -2,6 +2,7 @@ import Link from "next/link";
 import Logo from "@/components/nav-logo";
 import {
   FaDiscord,
+  FaGithub,
   FaInstagram,
   FaLinkedin,
   FaMedium,
@@ -13,6 +14,11 @@ import {
 // Define a constant array for social links
 const SOCIAL_LINKS = [
   {
+    label: "Github",
+    href: "https://github.com/nuwa-protocol/",
+    icon: <FaGithub className="h-6 w-6" />,
+  },
+  {
     label: "Twitter",
     href: "https://x.com/NuwaDev",
     icon: <FaXTwitter className="h-6 w-6" />,
@@ -21,11 +27,6 @@ const SOCIAL_LINKS = [
     label: "Medium",
     href: "https://medium.com/@NuwaDev",
     icon: <FaMedium className="h-6 w-6" />,
-  },
-  {
-    label: "Github",
-    href: "https://github.com/nuwa-protocol/",
-    icon: <FaYoutube className="h-6 w-6" />,
   },
   {
     label: "Instagram",
