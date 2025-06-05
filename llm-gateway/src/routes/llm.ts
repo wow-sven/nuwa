@@ -11,10 +11,10 @@ const supabaseService = new SupabaseService();
 const openRouterService = new OpenRouterService();
 const router = Router();
 
-// 定义支持的 HTTP 方法
+// Define supported HTTP methods
 const SUPPORTED_METHODS = ["get", "post", "put", "delete", "patch"] as const;
 
-// 通用 OpenRouter 代理路由 - 支持所有路径和方法
+// Generic OpenRouter proxy route - supports all paths and methods
 for (const method of SUPPORTED_METHODS) {
   router[method](
     "/*",
@@ -28,7 +28,7 @@ for (const method of SUPPORTED_METHODS) {
 
 export const llmRoutes = router;
 
-// 通用的 OpenRouter 代理处理函数
+// Generic OpenRouter proxy handler function
 async function handleOpenRouterProxy(
   req: Request,
   res: Response
@@ -37,16 +37,16 @@ async function handleOpenRouterProxy(
   const didInfo = req.didInfo as DIDInfo;
   const method = req.method;
 
-  // 只取 pathname 部分
+  // Only take pathname part
   const { pathname } = parse(req.url);
 
-  // 只传递路径部分，不拼接 baseURL
+  // Only pass path part, not concatenate baseURL
   const apiPath = pathname || "";
 
-  // 获取请求数据并启用 usage tracking
+  // Get request data and enable usage tracking
   let requestData = ["GET", "DELETE"].includes(method) ? undefined : req.body;
 
-  // 为支持的端点启用 usage tracking
+  // Enable usage tracking for supported endpoints
   if (
     requestData &&
     (apiPath.includes("/chat/completions") || apiPath.includes("/completions"))
@@ -60,24 +60,24 @@ async function handleOpenRouterProxy(
     console.log("✅ Usage tracking enabled for request");
   }
 
-  // 检查是否为流式请求
+  // Check if it's a stream request
   const isStream = (requestData as any)?.stream || false;
 
-  // 确定模型名称（用于日志记录）
+  // Determine model name (for logging)
   const model = (requestData as any)?.model || "unknown";
 
   console.log(
     `📨 Received ${method} request to ${req.url}, forwarding to OpenRouter: ${apiPath}`
   );
 
-  // Usage tracking 数据
+  // Usage tracking data
   let usageData: {
     input_tokens?: number;
     output_tokens?: number;
     total_cost?: number;
   } = {};
 
-  // 异步日志更新函数，不阻塞主流程
+  // Asynchronous log update function, not blocking main process
   const asyncUpdateLog = (logData: any) => {
     setImmediate(async () => {
       try {
@@ -92,14 +92,14 @@ async function handleOpenRouterProxy(
     });
   };
 
-  // 从响应中提取 usage 信息
+  // Extract usage info from response
   const extractUsageInfo = (responseData: any) => {
     if (responseData && responseData.usage) {
       const usage = responseData.usage;
       usageData = {
         input_tokens: usage.prompt_tokens || 0,
         output_tokens: usage.completion_tokens || 0,
-        total_cost: usage.cost ?? undefined, // 直接存储 usage.cost，单位为美元
+        total_cost: usage.cost ?? undefined, // Directly store usage.cost, in dollars
       };
       console.log("📊 Extracted usage info:", usageData);
       return usageData;
@@ -107,18 +107,18 @@ async function handleOpenRouterProxy(
     return null;
   };
 
-  // 处理流式响应中的 usage 信息
+  // Process usage info in stream response
   let streamUsageBuffer = "";
   const extractStreamUsage = (chunk: string) => {
-    // 在流式响应中，usage 信息通常在最后的 chunk 中
+    // In stream response, usage info is usually in the last chunk
     streamUsageBuffer += chunk;
 
-    // 查找包含 usage 信息的行
+    // Find lines containing usage info
     const lines = streamUsageBuffer.split("\n");
     for (const line of lines) {
       if (line.startsWith("data: ") && line.includes('"usage"')) {
         try {
-          const data = JSON.parse(line.slice(6)); // 移除 'data: ' 前缀
+          const data = JSON.parse(line.slice(6)); // Remove 'data: ' prefix
           if (data.usage) {
             const extracted = extractUsageInfo(data);
             if (extracted) {
@@ -127,7 +127,7 @@ async function handleOpenRouterProxy(
             }
           }
         } catch (error) {
-          // 忽略解析错误，继续处理
+          // Ignore parsing errors, continue processing
         }
       }
     }
@@ -135,7 +135,7 @@ async function handleOpenRouterProxy(
   };
 
   try {
-    // 1. 获取用户的实际 API Key（从加密存储中获取）
+    // 1. Get user's actual API Key (from encrypted storage)
     const apiKey = await supabaseService.getUserActualApiKey(didInfo.did);
     if (!apiKey) {
       const response: ApiResponse = {
@@ -146,7 +146,7 @@ async function handleOpenRouterProxy(
       return;
     }
 
-    // 2. 记录请求开始（仅对 POST 等可能产生费用的请求记录）
+    // 2. Record request start (only for POST, PUT, PATCH requests that may incur costs)
     if (["POST", "PUT", "PATCH"].includes(method)) {
       const requestLog: Omit<RequestLog, "id"> = {
         did: didInfo.did,
@@ -154,7 +154,7 @@ async function handleOpenRouterProxy(
         request_time: requestTime,
         status: "pending",
       };
-      // 异步记录，不等待完成
+      // Asynchronous logging, not waiting for completion
       setImmediate(async () => {
         try {
           await supabaseService.logRequest(requestLog);
@@ -164,7 +164,7 @@ async function handleOpenRouterProxy(
       });
     }
 
-    // 3. 转发请求到 OpenRouter
+    // 3. Forward request to OpenRouter
     const response = await openRouterService.forwardRequest(
       apiKey,
       apiPath,
@@ -174,7 +174,7 @@ async function handleOpenRouterProxy(
     );
 
     if (!response) {
-      // 异步更新请求日志为失败状态
+      // Asynchronous update request log to failed status
       if (["POST", "PUT", "PATCH"].includes(method)) {
         asyncUpdateLog({
           status: "failed",
@@ -191,31 +191,50 @@ async function handleOpenRouterProxy(
       return;
     }
 
-    // 4. 处理响应
+    // Check if response contains error information
+    if ("error" in response) {
+      // Asynchronous update request log to failed status
+      if (["POST", "PUT", "PATCH"].includes(method)) {
+        asyncUpdateLog({
+          status: "failed",
+          error_message: response.error,
+          response_time: new Date().toISOString(),
+        });
+      }
+
+      const errorResponse: ApiResponse = {
+        success: false,
+        error: response.error,
+      };
+      res.status(response.status || 500).json(errorResponse);
+      return;
+    }
+
+    // 4. Process response
     if (isStream) {
-      // 流式响应处理 - Express 对流的支持更好
+      // Stream response processing - Express has better support for streams
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
       res.setHeader("Transfer-Encoding", "chunked");
 
-      // 添加响应状态跟踪
+      // Add response status tracking
       let requestLogUpdated = false;
 
-      // 安全的日志更新函数（异步，不阻塞流）
+      // Safe log update function (asynchronous, not blocking stream)
       const safeUpdateLog = (logData: any) => {
         if (!requestLogUpdated && ["POST", "PUT", "PATCH"].includes(method)) {
           requestLogUpdated = true;
           asyncUpdateLog({
             ...logData,
-            ...usageData, // 包含 usage 信息
+            ...usageData, // Include usage info
           });
         }
       };
 
-      // Express 中的流处理更加直观和稳定
+      // Stream processing in Express is more intuitive and stable
       try {
-        // 设置错误处理
+        // Set error handling
         response.data.on("error", (error: Error) => {
           console.error("OpenRouter stream error:", error);
           safeUpdateLog({
@@ -234,28 +253,28 @@ async function handleOpenRouterProxy(
 
         res.on("close", () => {
           console.log("Client disconnected");
-          response.data.destroy(); // 清理上游流
+          response.data.destroy(); // Clean up upstream stream
         });
 
-        // 处理流数据并提取 usage 信息
+        // Process stream data and extract usage info
         let streamBuffer = "";
         response.data.on("data", (chunk: Buffer) => {
           const chunkStr = chunk.toString();
           streamBuffer += chunkStr;
 
-          // 尝试提取 usage 信息
+          // Try to extract usage info
           const extracted = extractStreamUsage(chunkStr);
           if (extracted) {
             Object.assign(usageData, extracted);
           }
 
-          // 转发数据到客户端
+          // Forward data to client
           if (!res.destroyed) {
             res.write(chunk);
           }
         });
 
-        // 监听流结束
+        // Listen to stream end
         response.data.on("end", () => {
           console.log("Stream completed successfully");
           if (!res.destroyed) {
@@ -281,16 +300,16 @@ async function handleOpenRouterProxy(
         }
       }
     } else {
-      // 非流式响应处理
+      // Non-stream response processing
       const responseData = openRouterService.parseResponse(response);
 
-      // 提取 usage 信息
+      // Extract usage info
       extractUsageInfo(responseData);
 
-      // 设置响应状态码
+      // Set response status code
       res.status(response.status);
 
-      // 复制重要的响应头
+      // Copy important response headers
       const headersToForward = [
         "content-type",
         "cache-control",
@@ -304,22 +323,22 @@ async function handleOpenRouterProxy(
         }
       });
 
-      // 发送响应
+      // Send response
       res.json(responseData);
 
-      // 异步更新请求日志为完成状态，包含 usage 信息
+      // Asynchronous update request log to completed status, including usage info
       if (["POST", "PUT", "PATCH"].includes(method)) {
         asyncUpdateLog({
           status: "completed",
           response_time: new Date().toISOString(),
-          ...usageData, // 包含提取的 usage 信息
+          ...usageData, // Include extracted usage info
         });
       }
     }
   } catch (error) {
     console.error("OpenRouter proxy error:", error);
 
-    // 异步更新请求日志为失败状态
+    // Asynchronous update request log to failed status
     if (["POST", "PUT", "PATCH"].includes(method)) {
       asyncUpdateLog({
         status: "failed",

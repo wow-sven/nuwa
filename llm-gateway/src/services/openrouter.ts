@@ -1,10 +1,21 @@
 import axios, { AxiosResponse } from "axios";
 import {
-  LLMRequest,
   CreateApiKeyRequest,
   CreateApiKeyResponse,
   GetApiKeyResponse,
 } from "../types";
+
+// Native streamToString tool function, placed outside the class
+function streamToString(stream: NodeJS.ReadableStream): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    stream.on("data", (chunk) =>
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+    );
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf-8")));
+    stream.on("error", reject);
+  });
+}
 
 interface CurrentApiKeyResponse {
   data: {
@@ -32,27 +43,69 @@ class OpenRouterService {
     this.provisioningApiKey = process.env.OPENROUTER_PROVISIONING_KEY || null;
   }
 
-  // 统一处理 axios 错误日志
-  private logAxiosError(context: string, error: any): void {
+  // Extract error information from axios error
+  private async extractErrorInfo(error: any): Promise<{
+    message: string;
+    statusCode: number;
+  }> {
+    let errorMessage = "Unknown error occurred";
+    let statusCode = 500;
+
     if (error.response) {
-      // 请求已发出，服务器返回了状态码
-      console.error(
-        `[${context}] HTTP ${error.response.status}: ${error.response.statusText}`
-      );
+      statusCode = error.response.status;
+
       if (error.response.data) {
-        console.error(`[${context}] Response data:`, error.response.data);
+        let data = error.response.data;
+
+        // Handle Buffer
+        if (Buffer.isBuffer(data)) {
+          try {
+            data = data.toString("utf-8");
+            data = JSON.parse(data);
+          } catch (e) {
+            errorMessage = data.toString();
+            return { message: errorMessage, statusCode };
+          }
+        }
+
+        // Handle Stream
+        if (
+          data &&
+          typeof data === "object" &&
+          typeof data.pipe === "function"
+        ) {
+          try {
+            const str = await streamToString(data);
+            try {
+              const json = JSON.parse(str);
+              errorMessage = json?.error?.message || str;
+            } catch {
+              errorMessage = str;
+            }
+          } catch (e) {
+            errorMessage = "Failed to read error stream";
+          }
+          return { message: errorMessage, statusCode };
+        }
+
+        // Handle normal object
+        if (typeof data === "object" && data !== null) {
+          errorMessage =
+            data.error?.message || data.message || JSON.stringify(data);
+        } else if (typeof data === "string") {
+          errorMessage = data;
+        }
+      } else {
+        errorMessage = `HTTP ${error.response.status}: ${error.response.statusText}`;
       }
     } else if (error.request) {
-      // 请求已发出但没有收到响应
-      console.error(`[${context}] No response received.`);
+      errorMessage = "No response received from OpenRouter";
+      statusCode = 503; // Service Unavailable
     } else {
-      // 其他错误
-      console.error(`[${context}] Error:`, error.message);
+      errorMessage = error.message;
     }
-    // 可选：开发环境下输出详细堆栈
-    if (process.env.NODE_ENV === "development" && error.stack) {
-      console.error(`[${context}] Stack:`, error.stack);
-    }
+
+    return { message: errorMessage, statusCode };
   }
 
   // Create a new OpenRouter API Key
@@ -79,7 +132,8 @@ class OpenRouterService {
       console.log(`✅ Created OpenRouter API key: ${request.name}`);
       return response.data;
     } catch (error: any) {
-      this.logAxiosError("Error creating OpenRouter API key", error);
+      const errorInfo = await this.extractErrorInfo(error);
+      console.error(`Error creating OpenRouter API key: ${errorInfo.message}`);
       return null;
     }
   }
@@ -102,7 +156,10 @@ class OpenRouterService {
       );
       return response.data;
     } catch (error: any) {
-      this.logAxiosError("Error getting OpenRouter API key info", error);
+      const errorInfo = await this.extractErrorInfo(error);
+      console.error(
+        `Error getting OpenRouter API key info: ${errorInfo.message}`
+      );
       return null;
     }
   }
@@ -125,9 +182,9 @@ class OpenRouterService {
       );
       return response.data;
     } catch (error: any) {
-      this.logAxiosError(
-        "Error getting current OpenRouter API key info",
-        error
+      const errorInfo = await this.extractErrorInfo(error);
+      console.error(
+        `Error getting current OpenRouter API key info: ${errorInfo.message}`
       );
       return null;
     }
@@ -155,7 +212,8 @@ class OpenRouterService {
       );
       return response.data;
     } catch (error: any) {
-      this.logAxiosError("Error updating OpenRouter API key", error);
+      const errorInfo = await this.extractErrorInfo(error);
+      console.error(`Error updating OpenRouter API key: ${errorInfo.message}`);
       return null;
     }
   }
@@ -187,7 +245,8 @@ class OpenRouterService {
       );
       return response.data.data;
     } catch (error: any) {
-      this.logAxiosError("Error listing OpenRouter API keys", error);
+      const errorInfo = await this.extractErrorInfo(error);
+      console.error(`Error listing OpenRouter API keys: ${errorInfo.message}`);
       return null;
     }
   }
@@ -213,19 +272,20 @@ class OpenRouterService {
       console.log(`✅ Deleted OpenRouter API key: ${keyHash}`);
       return response.data.data.success;
     } catch (error: any) {
-      this.logAxiosError("Error deleting OpenRouter API key", error);
+      const errorInfo = await this.extractErrorInfo(error);
+      console.error(`Error deleting OpenRouter API key: ${errorInfo.message}`);
       return false;
     }
   }
 
-  // 通用转发请求到 OpenRouter - 支持任意路径
+  // Generic forwarding request to OpenRouter - supports any path
   async forwardRequest(
     apiKey: string,
     apiPath: string,
     method: string = "POST",
     requestData?: any,
     isStream: boolean = false
-  ): Promise<AxiosResponse | null> {
+  ): Promise<AxiosResponse | { error: string; status?: number } | null> {
     try {
       const headers = {
         Authorization: `Bearer ${apiKey}`,
@@ -234,7 +294,7 @@ class OpenRouterService {
         "X-Title": process.env.X_TITLE || "LLM Gateway",
       };
 
-      // 始终拼接 baseURL 和 apiPath
+      // Always concatenate baseURL and apiPath
       const fullUrl = `${this.baseURL}/api/v1${apiPath}`;
 
       console.log(`🔄 Forwarding ${method} request to: ${fullUrl}`);
@@ -249,96 +309,27 @@ class OpenRouterService {
 
       return response;
     } catch (error: any) {
-      this.logAxiosError("Error forwarding request to OpenRouter", error);
-      return null;
+      const errorInfo = await this.extractErrorInfo(error);
+      console.error(
+        `Error forwarding request to OpenRouter: ${errorInfo.message}`
+      );
+
+      // Extract error information to return to client
+      return { error: errorInfo.message, status: errorInfo.statusCode };
     }
   }
 
-  // 兼容旧版本的方法，内部调用新的通用方法
-  async forwardChatRequest(
-    apiKey: string,
-    request: LLMRequest,
-    isStream: boolean = false
-  ): Promise<AxiosResponse | null> {
-    return this.forwardRequest(
-      apiKey,
-      "/chat/completions",
-      "POST",
-      request,
-      isStream
-    );
-  }
-
-  // 处理流式响应
-  async handleStreamResponse(
-    response: AxiosResponse,
-    onData: (chunk: string) => void,
-    onEnd: () => void,
-    onError: (error: Error) => void
-  ): Promise<void> {
-    try {
-      let streamEnded = false;
-      let errorHandled = false;
-
-      // 安全的错误处理函数
-      const safeOnError = (error: Error) => {
-        if (!errorHandled) {
-          errorHandled = true;
-          streamEnded = true;
-          onError(error);
-        }
-      };
-
-      // 安全的结束处理函数
-      const safeOnEnd = () => {
-        if (!streamEnded && !errorHandled) {
-          streamEnded = true;
-          onEnd();
-        }
-      };
-
-      response.data.on("data", (chunk: Buffer) => {
-        if (!streamEnded && !errorHandled) {
-          try {
-            const chunkStr = chunk.toString();
-            onData(chunkStr);
-          } catch (error) {
-            safeOnError(error as Error);
-          }
-        }
-      });
-
-      response.data.on("end", () => {
-        safeOnEnd();
-      });
-
-      response.data.on("error", (error: Error) => {
-        safeOnError(error);
-      });
-
-      // 添加超时处理（可选）
-      response.data.on("close", () => {
-        if (!streamEnded && !errorHandled) {
-          console.log("Stream closed unexpectedly");
-          safeOnEnd();
-        }
-      });
-    } catch (error) {
-      onError(error as Error);
-    }
-  }
-
-  // 更简单的管道式流处理（推荐用于简单透传）
+  // Pipe stream response to target stream
   pipeStreamResponse(
     response: AxiosResponse,
     targetStream: NodeJS.WritableStream,
     onEnd?: () => void,
     onError?: (error: Error) => void
   ): void {
-    // 使用默认管道设置，让 Node.js 自动管理流的结束
+    // Use default pipe settings, let Node.js automatically manage stream end
     const sourceStream = response.data;
 
-    // 设置错误处理
+    // Set error handling
     sourceStream.on("error", (error: Error) => {
       console.error("Source stream error:", error);
       onError?.(error);
@@ -349,22 +340,22 @@ class OpenRouterService {
       onError?.(error);
     });
 
-    // 使用管道并在完成时调用回调
+    // Use pipe and call callback on completion
     sourceStream.pipe(targetStream);
 
-    // 监听源流结束事件
+    // Listen to source stream end event
     sourceStream.on("end", () => {
       console.log("Source stream ended");
       onEnd?.();
     });
 
-    // 监听管道结束事件
+    // Listen to pipe end event
     sourceStream.on("close", () => {
       console.log("Source stream closed");
     });
   }
 
-  // 解析非流式响应
+  // Parse non-stream response
   parseResponse(response: AxiosResponse): any {
     try {
       return response.data;
