@@ -1,83 +1,84 @@
 # LLM Gateway
 
-LLM Gateway 是一个基于 Fastify + Supabase 的后端 API 项目，作为 OpenRouter 的通用代理网关，提供 DID 认证和智能请求转发服务。
+LLM Gateway is a backend API service built with **Express + Supabase** that serves as a universal proxy gateway for OpenRouter, providing DID authentication and intelligent request forwarding services.
 
-## 核心特性
+## Core Features
 
-- 通用 OpenRouter API 代理与路径转发
-- DID 去中心化身份认证
-- **自动用户初始化**：新用户首次访问时自动创建记录和 API Key
-- API Key 安全加密管理
-- **智能 Usage Tracking**：自动记录请求的 tokens 消耗和费用
-- 请求日志与使用统计
-- 流式/非流式响应支持
+- Universal OpenRouter API proxy and path forwarding
+- DID decentralized identity authentication
+- **Automatic User Initialization**: New users are automatically created with records and API keys on first access
+- Secure API key encryption management
+- **Intelligent Usage Tracking**: Automatically records token consumption and costs for requests
+- Request logging and usage statistics
+- Support for both streaming and non-streaming responses
 
-## 🆕 Usage Tracking 功能
+## 🆕 Usage Tracking Feature
 
-LLM Gateway 集成了 OpenRouter 的 Usage Accounting 功能，可以自动跟踪和记录：
+LLM Gateway integrates OpenRouter's Usage Accounting functionality to automatically track and record:
 
-### 自动数据收集
+### Automatic Data Collection
 
-- **Token 计数**：自动记录 prompt tokens 和 completion tokens
-- **费用统计**：精确记录每次请求的成本（以 USD 计算）
-- **模型信息**：记录使用的具体模型名称
-- **请求状态**：跟踪请求成功/失败状态
+- **Token Counting**: Automatically records prompt tokens and completion tokens
+- **Cost Statistics**: Precisely records the cost of each request (in USD)
+- **Model Information**: Records the specific model names used
+- **Request Status**: Tracks request success/failure status
 
-### 支持的端点
+### Supported Endpoints
 
-- `/chat/completions` - Chat 对话接口
-- `/completions` - 文本补全接口
+- `/chat/completions` - Chat conversation interface
+- `/completions` - Text completion interface
 
-### 流式和非流式支持
+### Streaming and Non-Streaming Support
 
-- **非流式请求**：从响应体中直接提取 usage 信息
-- **流式请求**：智能解析 SSE 流中的 usage 数据（通常在最后一个 chunk 中）
+- **Non-streaming requests**: Directly extracts usage information from response body
+- **Streaming requests**: Intelligently parses usage data from SSE streams (typically in the last chunk)
 
-### 数据持久化
+### Data Persistence
 
-所有 usage 数据自动保存到 `request_logs` 表中：
+All usage data is automatically saved to the `request_logs` table:
 
 ```sql
--- Usage tracking 相关字段
-input_tokens INTEGER,        -- prompt tokens 数量
-output_tokens INTEGER,       -- completion tokens 数量
-total_cost DECIMAL(10,6),    -- 总费用（USD）
+-- Usage tracking related fields
+input_tokens INTEGER,        -- Number of prompt tokens
+output_tokens INTEGER,       -- Number of completion tokens
+total_cost DECIMAL(10,6),    -- Total cost (USD)
 ```
 
-### 透明化操作
+### Transparent Operation
 
-- 用户无需任何额外配置，系统自动启用 usage tracking
-- 对现有 API 调用完全透明，不影响原有功能
-- 自动处理 OpenRouter 的 credits 到 USD 的转换（1 credit = $0.000001）
+- Users require no additional configuration; the system automatically enables usage tracking
+- Completely transparent to existing API calls, does not affect original functionality
+- Automatically handles OpenRouter's credits to USD conversion (1 credit = $0.000001)
 
-## 目录结构
+## Project Structure
 
 ```
 llm-gateway/
 ├── src/
-│   ├── types/           # 类型定义
-│   ├── database/        # Supabase 数据库操作
-│   ├── services/        # 业务逻辑服务
-│   ├── middleware/      # 认证中间件
-│   ├── routes/          # API 路由
-│   └── index.ts         # 应用入口
+│   ├── types/           # Type definitions
+│   ├── database/        # Supabase database operations
+│   ├── services/        # Business logic services
+│   ├── middleware/      # Authentication middleware
+│   ├── routes/          # API routes
+│   ├── utils/           # Utility functions
+│   └── index.ts         # Application entry point
 ├── package.json
 ├── tsconfig.json
 └── README.md
 ```
 
-## 快速开始
+## Quick Start
 
-1. 安装依赖：`npm install`
-2. 配置 `.env` 环境变量（见下方示例）
-3. 运行开发环境：`npm run dev`
+1. Install dependencies: `npm install`
+2. Configure `.env` environment variables (see example below)
+3. Run development environment: `npm run dev`
 
-## 数据库初始化
+## Database Initialization
 
-在 Supabase 创建以下两张表：
+Create the following two tables in Supabase:
 
 ```sql
--- 用户 API Key 表
+-- User API Keys table
 CREATE TABLE user_api_keys (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   did TEXT NOT NULL UNIQUE,
@@ -91,14 +92,14 @@ CREATE TABLE user_api_keys (
 CREATE INDEX idx_user_api_keys_did ON user_api_keys(did);
 CREATE INDEX idx_user_api_keys_hash ON user_api_keys(openrouter_key_hash);
 
--- 请求日志表（已包含 Usage Tracking 字段）
+-- Request logs table (includes Usage Tracking fields)
 CREATE TABLE request_logs (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   did TEXT NOT NULL,
   model TEXT NOT NULL,
-  input_tokens INTEGER,                    -- 输入 tokens 数量
-  output_tokens INTEGER,                   -- 输出 tokens 数量
-  total_cost DECIMAL(10,6),               -- 总费用（USD）
+  input_tokens INTEGER,                    -- Number of input tokens
+  output_tokens INTEGER,                   -- Number of output tokens
+  total_cost DECIMAL(10,6),               -- Total cost (USD)
   request_time TIMESTAMP WITH TIME ZONE NOT NULL,
   response_time TIMESTAMP WITH TIME ZONE,
   status TEXT NOT NULL CHECK (status IN ('pending', 'completed', 'failed')),
@@ -112,30 +113,30 @@ CREATE INDEX idx_request_logs_model ON request_logs(model);
 CREATE INDEX idx_request_logs_cost ON request_logs(total_cost);
 ```
 
-## 主要 API 端点
+## Main API Endpoints
 
-- `GET /` 或 `/api/v1/health`：健康检查
-- `<METHOD> /api/v1/openrouter/*`：通用 OpenRouter 代理（需 DID 认证）
-- `GET /api/v1/usage`：获取用户使用统计（需 DID 认证）
+- `GET /` or `/api/v1/health`: Health check
+- `<METHOD> /api/v1/openrouter/*`: Universal OpenRouter proxy (requires DID authentication)
+- `GET /api/v1/usage`: Get user usage statistics (requires DID authentication)
 
-### OpenRouter 代理逻辑简介
+### OpenRouter Proxy Logic Overview
 
-- 所有 `/api/v1/openrouter/*` 路径的请求均由 `handleOpenRouterProxy` 统一处理：
-  - 校验 DID 身份与签名
-  - 根据 DID 在数据库中查找并解密用户 API Key
-  - **自动启用 Usage Tracking**：为支持的端点添加 `usage: { include: true }` 参数
-  - 转发请求到 OpenRouter 对应 API 路径
-  - 支持流式和非流式响应，自动转发响应头和状态码
-  - **智能提取 Usage 信息**：从响应中解析 tokens 和费用数据
-  - **自动记录日志**：将 usage 信息保存到数据库
-  - 失败时自动回滚日志并返回错误信息
+- All requests to `/api/v1/openrouter/*` paths are handled uniformly by `handleOpenRouterProxy`:
+  - Validates DID identity and signature
+  - Looks up and decrypts user API key from database based on DID
+  - **Automatically enables Usage Tracking**: Adds `usage: { include: true }` parameter for supported endpoints
+  - Forwards requests to corresponding OpenRouter API paths
+  - Supports both streaming and non-streaming responses, automatically forwards response headers and status codes
+  - **Intelligently extracts Usage information**: Parses tokens and cost data from responses
+  - **Automatically logs**: Saves usage information to database
+  - Automatically rolls back logs and returns error information on failure
 
-## 示例
+## Examples
 
-### 基础 Chat Completion 请求（自动启用 Usage Tracking）
+### Basic Chat Completion Request (Usage Tracking automatically enabled)
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/openrouter/chat/completions \
+curl -X POST http://localhost:8080/api/v1/openrouter/chat/completions \
   -H "x-did: did:example:123" \
   -H "x-did-signature: ..." \
   -H "x-did-timestamp: ..." \
@@ -148,10 +149,10 @@ curl -X POST http://localhost:3000/api/v1/openrouter/chat/completions \
   }'
 ```
 
-### 流式请求（同样支持 Usage Tracking）
+### Streaming Request (also supports Usage Tracking)
 
 ```bash
-curl -X POST http://localhost:3000/api/v1/openrouter/chat/completions \
+curl -X POST http://localhost:8080/api/v1/openrouter/chat/completions \
   -H "x-did: did:example:123" \
   -H "x-did-signature: ..." \
   -H "x-did-timestamp: ..." \
@@ -165,18 +166,18 @@ curl -X POST http://localhost:3000/api/v1/openrouter/chat/completions \
   }'
 ```
 
-### 查看使用统计
+### View Usage Statistics
 
 ```bash
-curl -X GET http://localhost:3000/api/v1/usage \
+curl -X GET http://localhost:8080/api/v1/usage \
   -H "x-did: did:example:123" \
   -H "x-did-signature: ..." \
   -H "x-did-timestamp: ..."
 ```
 
-## 🔍 Usage Tracking 日志示例
+## 🔍 Usage Tracking Log Example
 
-系统会在控制台输出详细的 usage tracking 信息：
+The system outputs detailed usage tracking information to the console:
 
 ```
 ✅ Usage tracking enabled for request
@@ -187,7 +188,7 @@ curl -X GET http://localhost:3000/api/v1/usage \
 }
 ```
 
-在数据库中的记录示例：
+Example database record:
 
 ```json
 {
@@ -205,58 +206,87 @@ curl -X GET http://localhost:3000/api/v1/usage \
 
 ## TODO
 
-- DID 签名验证
-- Usage 报告和分析功能
-- 费用预警和限制机制
+- DID signature verification
+- Usage reporting and analytics features
+- Cost alerts and limitation mechanisms
 
-## 环境变量配置
+## Environment Variables
 
-创建 `.env` 文件并配置以下环境变量：
+Create a `.env` file and configure the following environment variables:
 
 ```env
-# 服务配置
-PORT=3000
+# Service Configuration
+PORT=8080
 NODE_ENV=development
+HOST=0.0.0.0
 
-# Supabase 配置
+# Supabase Configuration
 SUPABASE_URL=your_supabase_url
 SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# OpenRouter 配置
+# OpenRouter Configuration
 OPENROUTER_API_URL=https://openrouter.ai/api/v1
 OPENROUTER_PROVISIONING_KEY=your_openrouter_provisioning_key
 
-# API Key 加密
+# API Key Encryption
 API_KEY_ENCRYPTION_KEY=your_encryption_key_change_in_production
 
-# 可选配置
+# Optional Configuration
 HTTP_REFERER=https://llm-gateway.local
 X_TITLE=LLM Gateway
 ```
 
-### 关键配置说明
+### Key Configuration Explanations
 
-- `OPENROUTER_PROVISIONING_KEY`：用于在 OpenRouter 自动创建用户 API Key 的管理密钥
-- `API_KEY_ENCRYPTION_KEY`：用于加密存储用户 API Key 的密钥，生产环境必须更改
+- `OPENROUTER_PROVISIONING_KEY`: Management key for automatically creating user API keys in OpenRouter
+- `API_KEY_ENCRYPTION_KEY`: Key for encrypting stored user API keys; must be changed in production
+- `HOST`: Server host address (defaults to 0.0.0.0 for all interfaces)
 
-## 用户自动初始化功能
+## Automatic User Initialization
 
-当新用户首次通过 DID 认证访问系统时，Gateway 会自动：
+When new users first access the system through DID authentication, the Gateway automatically:
 
-1. **检查用户是否存在**：查询数据库中是否有该用户的记录
-2. **创建 OpenRouter API Key**：如果用户不存在，自动在 OpenRouter 创建新的 API Key
-3. **保存用户记录**：将用户信息和加密后的 API Key 保存到数据库
-4. **错误处理**：如果创建过程中出现错误，会自动清理已创建的资源
+1. **Checks if user exists**: Queries the database for existing user records
+2. **Creates OpenRouter API Key**: If user doesn't exist, automatically creates a new API key in OpenRouter
+3. **Saves user record**: Saves user information and encrypted API key to database
+4. **Error handling**: Automatically cleans up created resources if errors occur during the process
 
-这个过程对用户完全透明，无需手动注册或配置。
+This process is completely transparent to users, requiring no manual registration or configuration.
 
-## 🎯 特性对比
+## 🎯 Feature Comparison
 
-| 特性           | 传统方式             | LLM Gateway         |
-| -------------- | -------------------- | ------------------- |
-| Usage Tracking | 需要手动配置和解析   | ✅ 自动启用和提取   |
-| 流式支持       | 复杂的流解析逻辑     | ✅ 智能流数据处理   |
-| 费用计算       | 需要手动转换 credits | ✅ 自动转换为 USD   |
-| 数据持久化     | 需要额外开发         | ✅ 自动保存到数据库 |
-| 错误处理       | 容易遗漏边界情况     | ✅ 完善的异常处理   |
+| Feature          | Traditional Approach      | LLM Gateway               |
+| ---------------- | ------------------------- | ------------------------- |
+| Usage Tracking   | Manual configuration      | ✅ Automatic enablement   |
+| Streaming        | Complex parsing logic     | ✅ Intelligent handling   |
+| Cost Calculation | Manual credits conversion | ✅ Auto USD conversion    |
+| Data Persistence | Additional development    | ✅ Auto database saving   |
+| Error Handling   | Easy to miss edge cases   | ✅ Comprehensive handling |
+
+## Development
+
+### Build and Run
+
+```bash
+# Development
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+### Technology Stack
+
+- **Framework**: Express.js
+- **Database**: Supabase (PostgreSQL)
+- **Authentication**: DID (Decentralized Identity)
+- **Language**: TypeScript
+- **HTTP Client**: Axios
+
+---
+
+Built with ❤️ using Express.js and Supabase
