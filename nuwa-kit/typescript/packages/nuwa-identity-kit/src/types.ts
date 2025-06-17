@@ -42,7 +42,7 @@ export interface SignedData {
 export interface NIP1Signature {
   signer_did: string;
   key_id: string; // The id of the verificationMethod used for signing
-  value: string; // The signature value, typically hex or base64 encoded
+  value: Uint8Array; // The signature value
 }
 
 export interface NIP1SignedObject {
@@ -127,7 +127,7 @@ export interface DIDCreationRequest {
 }
 
 /**
- * DID creation result
+ * Result of DID creation operation
  */
 export interface DIDCreationResult {
   success: boolean;
@@ -152,7 +152,6 @@ export interface CADOPCreationRequest {
   userDidKey: string;
   custodianServicePublicKey: string;
   custodianServiceVMType: string;
-  additionalClaims?: Record<string, any>;
 }
 
 /**
@@ -296,19 +295,38 @@ export interface VDRInterface {
  */
 export interface SignerInterface {
   /**
+   * List all available key IDs that this signer can use
+   * @returns Promise resolving to an array of key IDs
+   */
+  listKeyIds(): Promise<string[]>;
+
+  /**
    * Signs data with a specified key
    * @param data The data to sign 
    * @param keyId The ID of the key to use for signing
    * @returns A promise that resolves to the signature
    */
-  sign(data: Uint8Array, keyId: string): Promise<string>;
+  signWithKeyId(data: Uint8Array, keyId: string): Promise<Uint8Array>;
   
   /**
    * Checks if the signer can sign with a specific key
    * @param keyId The ID of the key to check
    * @returns A promise that resolves to true if the signer can sign with the key
    */
-  canSign(keyId: string): Promise<boolean>;
+  canSignWithKeyId(keyId: string): Promise<boolean>;
+
+  /**
+   * Get the DID of the signer
+   * @returns The DID of the signer
+   */
+  getDid(): string;
+
+  /**
+   * Get information about a specific key
+   * @param keyId The ID of the key to get information about
+   * @returns Key information or undefined if not found
+   */
+  getKeyInfo(keyId: string): Promise<{ type: KeyType; publicKey: Uint8Array } | undefined>;
 }
 
 /**
@@ -419,7 +437,8 @@ export interface CadopOnboardingResponse {
  */
 export const KEY_TYPE = {
   ED25519: 'Ed25519VerificationKey2020',
-  SECP256K1: 'EcdsaSecp256k1VerificationKey2019'
+  SECP256K1: 'EcdsaSecp256k1VerificationKey2019',
+  ECDSAR1: 'EcdsaSecp256r1VerificationKey2019'
 } as const;
 
 export type KeyType = typeof KEY_TYPE[keyof typeof KEY_TYPE];
@@ -440,6 +459,38 @@ export function toKeyType(value: string): KeyType {
     return value;
   }
   throw new Error(`Invalid key type: ${value}`);
+}
+
+/**
+ * https://www.w3.org/TR/webauthn-2/#typedefdef-cosealgorithmidentifier
+ * Convert a WebAuthn public key algorithm to KeyType, with runtime validation
+ * @throws Error if the string is not a valid KeyType
+ */
+export function algorithmToKeyType(algorithm: number): KeyType|undefined {
+  switch (algorithm) {
+    case -8:
+      return KEY_TYPE.ED25519;
+    case -7:
+      return KEY_TYPE.ECDSAR1;
+    default:
+      return undefined;
+  }
+}
+
+export function keyTypeToAlgorithm(keyType: KeyType): number|undefined {
+  switch (keyType) {
+    case KEY_TYPE.ED25519:
+      return -8;
+    case KEY_TYPE.ECDSAR1:
+      return -7;
+    default:
+      return undefined;
+  }
+}
+
+
+export function getSupportedAlgorithms(): number[] {
+  return [-8, -7];
 }
 
 /**

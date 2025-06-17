@@ -57,7 +57,7 @@ export interface MoveService {
   };
   type: string;
   service_endpoint: string;
-  properties: Map<string, string>;
+  properties: SimpleMap<string, string>;
 }
 
 // Complete DID Document struct from Move
@@ -76,11 +76,10 @@ export interface MoveDIDDocument {
 
 // DID Created Event data
 export interface DIDCreatedEventData {
-  did: DIDStruct;
+  did: string;
   object_id: string;
-  controller: DIDStruct[];
+  controller: string[];
   creator_address: address;
-  creation_method: string;
 }
 
 /**
@@ -136,11 +135,10 @@ export const DIDDocumentSchema = bcs.struct('DIDDocument', {
 
 // DID Created Event schema
 export const DIDCreatedEventSchema = bcs.struct('DIDCreatedEvent', {
-  did: DIDSchema,
+  did: bcs.string(),
   object_id: bcs.ObjectId,
-  controller: bcs.vector(DIDSchema),
+  controller: bcs.vector(bcs.string()),
   creator_address: bcs.Address,
-  creation_method: bcs.string(),
 });
 
 /**
@@ -157,7 +155,9 @@ export interface SimpleMap<K, V> {
 
 // Convert SimpleMap to standard Map
 export function simpleMapToMap<K, V>(simpleMap: SimpleMap<K, V>): Map<K, V> {
-  return new Map(simpleMap.data.map(entry => [entry.key, entry.value]));
+  return new Map(
+    simpleMap.data.map(entry => [entry.key, entry.value])
+  );
 }
 
 // Convert standard Map to SimpleMap
@@ -231,14 +231,10 @@ export function convertMoveDIDDocumentToInterface(didDocObject: ObjectStateView)
       type: service.type,
       serviceEndpoint: service.service_endpoint,
     };
-    
+    let properties = simpleMapToMap(service.properties);
     // Add properties if they exist
-    if (service.properties.size > 0) {
-      const properties: { [key: string]: string } = {};
-      service.properties.forEach((value, key) => {
-        properties[key] = value;
-      });
-      Object.assign(serviceEndpoint, properties);
+    if (properties.size > 0) {
+      Object.assign(serviceEndpoint, Object.fromEntries(properties));
     }
     
     services.push(serviceEndpoint);
@@ -268,12 +264,6 @@ export function parseDIDCreatedEvent(eventData: string): DIDCreatedEventData {
   return DIDCreatedEventSchema.parse(bytes);
 }
 
-/**
- * Get DID address from DID Created Event data
- */
-export function getDIDAddressFromEvent(eventData: DIDCreatedEventData): string {
-  return formatDIDString(eventData.did);
-}
 
 // Define StructTag for DIDDocument
 export const DIDDocumentStructTag = {
