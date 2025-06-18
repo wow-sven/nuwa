@@ -8,11 +8,9 @@ import {
   VDRInterface,
   createVDR,
   LocalSigner,
-} from 'nuwa-identity-kit';
+} from '@nuwa-ai/identity-kit';
 import { logger } from '../utils/logger.js';
-import roochSdk from '@roochnetwork/rooch-sdk';
-import type { Secp256k1Keypair as Secp256k1KeypairType } from '@roochnetwork/rooch-sdk';
-const { Secp256k1Keypair } = roochSdk;
+import { Secp256k1Keypair } from '@roochnetwork/rooch-sdk';
 
 import jwt from 'jsonwebtoken';
 

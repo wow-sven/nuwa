@@ -1,12 +1,6 @@
 import { beforeAll, describe, expect, it, afterAll, beforeEach } from '@jest/globals';
 import { CustodianService } from '../CustodianService.js';
-import roochSdk from '@roochnetwork/rooch-sdk';
-import type {
-  RoochClient as RoochClientType,
-  Secp256k1Keypair as Secp256k1KeypairType,
-  Ed25519Keypair as Ed25519KeypairType,
-} from '@roochnetwork/rooch-sdk';
-const { RoochClient, Secp256k1Keypair, Ed25519Keypair } = roochSdk;
+import { RoochClient, Secp256k1Keypair, Ed25519Keypair } from '@roochnetwork/rooch-sdk';
 import {
   VDRRegistry,
   RoochVDR,
@@ -18,10 +12,11 @@ import {
   BaseMultibaseCodec,
   DidKeyCodec,
   LocalSigner,
-} from 'nuwa-identity-kit';
+} from '@nuwa-ai/identity-kit';
 import crypto from 'crypto';
 import { logger } from '../../utils/logger.js';
 import { IdpService } from '../IdpService.js';
+import { PublicKeyCredentialJSON } from '@simplewebauthn/types';
 
 // Test configuration
 const DEFAULT_NODE_URL = process.env.ROOCH_NODE_URL || 'http://localhost:6767';
@@ -39,9 +34,14 @@ const shouldRunIntegrationTests = () => {
   return true;
 };
 
+// Mock @simplewebauthn/server
+jest.mock('@simplewebauthn/server', () => ({
+  verifyAuthenticationResponse: jest.fn().mockResolvedValue({ verified: true }),
+}));
+
 describe('CustodianService Integration Tests', () => {
-  let roochClient: RoochClientType;
-  let cadopServiceKeypair: Secp256k1KeypairType;
+  let roochClient: RoochClient;
+  let cadopServiceKeypair: Secp256k1Keypair;
   let serviceSigner: SignerInterface;
   let cadopServiceDID: string;
   let userId: string;
@@ -129,7 +129,6 @@ describe('CustodianService Integration Tests', () => {
       idpService = new IdpService({
         cadopDid: cadopServiceDID,
         signingKey: 'test-signing-key',
-        rpId: 'test-rp-id',
       });
 
       console.log('Test setup complete:');
@@ -151,9 +150,27 @@ describe('CustodianService Integration Tests', () => {
         if (!shouldRunIntegrationTests()) return;
 
         // Get a valid token
-        //TODO get id token
-        const { nonce, rpId } = await idpService.generateChallenge();
-        const { idToken } = await idpService.verifyNonce(nonce, userDID);
+  
+        const { nonce } = await idpService.generateChallenge();
+        const mockAssertion: PublicKeyCredentialJSON = {
+          id: 'credential-id',
+          rawId: 'raw-id-base64',
+          type: 'public-key',
+          response: {
+            clientDataJSON: Buffer.from(
+              JSON.stringify({
+                type: 'webauthn.get',
+                challenge: 'invalid-challenge',
+                origin: origin,
+              })
+            ).toString('base64url'),
+            authenticatorData: 'auth-data-base64',
+            signature: 'signature-base64',
+            userHandle: undefined,
+          },
+          clientExtensionResults: {},
+        };
+        const { idToken } = await idpService.verifyAssertion(mockAssertion, userDID, nonce, 'localhost', 'http://localhost:3000');
 
         // Create agent DID
         const result = await custodianService.createAgentDIDViaCADOP({

@@ -3,13 +3,12 @@ import { bytesToHex, hexToBytes } from '@noble/curves/abstract/utils';
 import { CryptoProvider } from '../providers';
 import { KEY_TYPE, KeyType } from '../../types';
 
-// Get crypto object based on environment
-function getCrypto() {
-  if (typeof window !== 'undefined') {
-    return window.crypto;
+// Universal helper to obtain a Web Crypto implementation in both browser and Node.js environments.
+function getCrypto(): Crypto {
+  if (typeof globalThis !== 'undefined' && (globalThis as any).crypto) {
+    return (globalThis as any).crypto as Crypto;
   }
-  // In Node.js environment, we need to use dynamic import
-  return require('crypto').webcrypto;
+  throw new Error('Web Crypto API is not available in the current runtime');
 }
 
 export class EcdsaR1Provider implements CryptoProvider {
