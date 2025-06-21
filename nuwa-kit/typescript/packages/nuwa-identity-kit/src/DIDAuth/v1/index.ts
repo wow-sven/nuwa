@@ -33,15 +33,25 @@ interface VerifyHeaderOptions extends VerifyOptions {
 export async function createSignature(
   payload: Omit<SignedData, 'nonce' | 'timestamp'>,
   signer: SignerInterface,
-  didDocument: DIDDocument,
   keyId: string,
-  opts: { nonce?: string; timestamp?: number; domainSeparator?: string } = {}
+  opts: {
+    didDocument?: DIDDocument;
+    nonce?: string;
+    timestamp?: number;
+    domainSeparator?: string;
+  } = {}
 ): Promise<NIP1SignedObject> {
-  const verificationMethod = didDocument.verificationMethod?.find(vm => vm.id === keyId);
-  if (!verificationMethod) {
-    throw new Error(`Verification method for keyId ${keyId} not found in DID document.`);
+  const signerDid = await signer.getDid();
+  if (opts.didDocument) {
+    if (opts.didDocument.id !== signerDid) {
+      throw new Error(`DID document ID ${opts.didDocument.id} does not match signer DID ${signerDid}`);
+    }
+    const verificationMethod = opts.didDocument.verificationMethod?.find(vm => vm.id === keyId);
+    if (!verificationMethod) {
+      throw new Error(`Verification method for keyId ${keyId} not found in DID document.`);
+    }
   }
-  const keyType = verificationMethod.type;
+
   const signedData: SignedData = {
     ...payload,
     nonce: opts.nonce ?? crypto.randomUUID(),
@@ -57,7 +67,7 @@ export async function createSignature(
   return {
     signed_data: signedData,
     signature: {
-      signer_did: didDocument.id,
+      signer_did: signerDid,
       key_id: keyId,
       value: signatureValue,
     },
@@ -115,12 +125,6 @@ export async function verifySignature(
     const canonicalData = canonicalize(signed_data);
     const dataToVerify = Bytes.stringToBytes(DEFAULT_DOMAIN_SEPARATOR + canonicalData);
 
-    console.log('dataToVerify', Bytes.bytesToString(dataToVerify));
-    console.log('signature.value', Bytes.bytesToString(signature.value));
-    console.log('publicKeyMaterial', publicKeyMaterial);
-    console.log('verificationMethod.type', verificationMethod.type);
-    console.log('verificationMethod.id', verificationMethod.id);
-
     return CryptoUtils.verify(
       dataToVerify,
       signature.value,
@@ -148,7 +152,13 @@ export async function verifyAuthHeader(
   header: string,
   resolver: DIDResolver,
   opts: VerifyHeaderOptions = {}
-): Promise<{ ok: boolean; error?: string }> {
+): Promise<{
+  ok: true;
+  signedObject: NIP1SignedObject;
+} | {
+  ok: false;
+  error: string;
+}> {
   if (!header || !header.startsWith(HEADER_PREFIX)) {
     return { ok: false, error: 'Unsupported or missing Authorization header' };
   }
@@ -193,7 +203,10 @@ export async function verifyAuthHeader(
   }
 
   const ok = await verifySignature(signedObj, resolver, { maxClockSkew: maxSkew });
-  return ok ? { ok: true } : { ok: false, error: 'Signature verification failed' };
+  if (ok) {
+    return { ok: true, signedObject: signedObj };
+  }
+  return { ok: false, error: 'Signature verification failed' };
 }
 
 export default {

@@ -1,52 +1,27 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ConnectButton } from '../components/ConnectButton';
 import { SignButton } from '../components/SignButton';
 import { VerifyButton } from '../components/VerifyButton';
-import { KeyStore } from '../services/KeyStore';
-import { getCadopDomain, setCadopDomain, DEFAULT_CADOP_DOMAIN } from '../services/DeepLink';
+import { GatewayDebugPanel } from '../components/GatewayDebugPanel';
+import { useAuth } from '../App';
+
+export const DEFAULT_CADOP_DOMAIN = 'test-id.nuwa.dev';
+
+export function getCadopDomain(): string {
+  return localStorage.getItem('nuwa-login-demo:cadop-domain') || DEFAULT_CADOP_DOMAIN;
+}
+
+export function setCadopDomain(domain: string): void {
+  localStorage.setItem('nuwa-login-demo:cadop-domain', domain);
+}
 
 export function Home() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [keyInfo, setKeyInfo] = useState<{
-    keyId: string;
-    agentDid: string;
-  } | null>(null);
+  const { state, logout } = useAuth();
   const [signatureObj, setSignatureObj] = useState<any | null>(null);
   const [signatureStr, setSignatureStr] = useState<string | null>(null);
   const [verifyResult, setVerifyResult] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cadopDomain, setCadopDomainState] = useState(getCadopDomain());
-
-  // Check if we have a stored key on mount
-  useEffect(() => {
-    const storedKey = KeyStore.get();
-    if (storedKey) {
-      setIsConnected(true);
-      setKeyInfo({
-        keyId: storedKey.keyId,
-        agentDid: storedKey.agentDid,
-      });
-    }
-
-    // Listen for messages from the callback window
-    const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      
-      const data = event.data;
-      if (data?.type === 'nuwa-auth-success') {
-        setIsConnected(true);
-        setKeyInfo({
-          keyId: data.keyId,
-          agentDid: data.agentDid,
-        });
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, []);
 
   const handleConnecting = () => {
     setError(null);
@@ -59,15 +34,6 @@ export function Home() {
   const handleSignatureCreated = (sig: unknown) => {
     setSignatureObj(sig);
     setSignatureStr(formatSignature(sig));
-    setVerifyResult(null);
-  };
-
-  const handleDisconnect = () => {
-    KeyStore.clear();
-    setIsConnected(false);
-    setKeyInfo(null);
-    setSignatureObj(null);
-    setSignatureStr(null);
     setVerifyResult(null);
   };
 
@@ -95,6 +61,14 @@ export function Home() {
     }
     
     return String(value);
+  };
+
+  const handleDisconnect = () => {   
+    logout();
+  
+    setSignatureObj(null);
+    setSignatureStr(null);
+    setVerifyResult(null);
   };
 
   return (
@@ -136,14 +110,14 @@ export function Home() {
 
         <div className="connection-status">
           <h2>Connection Status</h2>
-          <div className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`}>
-            {isConnected ? 'Connected' : 'Not Connected'}
+          <div className={`status-indicator ${state.isConnected ? 'connected' : 'disconnected'}`}>
+            {state.isConnected ? 'Connected' : 'Not Connected'}
           </div>
 
-          {isConnected && keyInfo && (
+          {state.isConnected && state.agentDid && (
             <div className="key-info">
-              <p><strong>Agent DID:</strong> {keyInfo.agentDid}</p>
-              <p><strong>Key ID:</strong> {keyInfo.keyId}</p>
+              <p><strong>Agent DID:</strong> {state.agentDid}</p>
+              <p><strong>Key ID:</strong> {state.keyId}</p>
               <button onClick={handleDisconnect} className="disconnect-button">
                 Disconnect
               </button>
@@ -152,7 +126,7 @@ export function Home() {
         </div>
 
         <div className="action-container">
-          {!isConnected ? (
+          {!state.isConnected ? (
             <div className="connect-container">
               <h2>Step 1: Connect your Agent DID</h2>
               <p>
@@ -191,6 +165,11 @@ export function Home() {
               </p>
             )}
           </div>
+        )}
+
+        {/* Gateway Debug Panel */}
+        {state.isConnected && (
+          <GatewayDebugPanel />
         )}
       </main>
 
