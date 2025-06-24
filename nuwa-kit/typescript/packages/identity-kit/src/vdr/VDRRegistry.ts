@@ -1,17 +1,12 @@
-import {
-  DIDDocument,
-  VDRInterface,
-  DIDCreationRequest,
-  CADOPCreationRequest,
-  DIDCreationResult,
-  DIDResolver,
-  DIDDocumentCache,
-} from './types';
+import { DIDDocument, DIDResolver } from '../types';
+import { DIDDocumentCache } from '../cache';
+import { VDRInterface, DIDCreationRequest, DIDCreationResult, CADOPCreationRequest } from './types';
 
-import { InMemoryLRUDIDDocumentCache } from './InMemoryLRUDIDDocumentCache';
+import { InMemoryLRUDIDDocumentCache } from '../cache/InMemoryLRUDIDDocumentCache';
 
 /**
- * Global registry for VDR (Verifiable Data Registry) implementations
+ * Global registry for VDR (Verifiable Data Registry) implementations.
+ * This singleton manages all registered VDRs and maintains a DID Document cache.
  */
 export class VDRRegistry implements DIDResolver {
   private static instance: VDRRegistry;
@@ -31,10 +26,12 @@ export class VDRRegistry implements DIDResolver {
     return this.instance;
   }
 
+  /** Register a VDR implementation for its DID method (e.g., 'key', 'rooch'). */
   registerVDR(vdr: VDRInterface) {
     this.vdrs.set(vdr.getMethod(), vdr);
   }
 
+  /** Retrieve a previously registered VDR implementation by its method. */
   getVDR(method: string): VDRInterface | undefined {
     return this.vdrs.get(method);
   }
@@ -47,9 +44,7 @@ export class VDRRegistry implements DIDResolver {
     this.cache = cache;
   }
 
-  /**
-   * Returns the currently configured cache instance.
-   */
+  /** Returns the currently configured cache instance. */
   getCache(): DIDDocumentCache {
     return this.cache;
   }
@@ -60,6 +55,7 @@ export class VDRRegistry implements DIDResolver {
     if (!vdr) {
       throw new Error(`No VDR available for method: ${method}`);
     }
+
     // Attempt to serve from cache if allowed.
     if (!options?.forceRefresh) {
       const cached = this.cache.get(did);
@@ -112,6 +108,7 @@ export class VDRRegistry implements DIDResolver {
     if (!vdr) {
       throw new Error(`No VDR available for method: ${method}`);
     }
+
     // If we have a positive cache entry, short-circuit the call.
     if (this.cache.has(did)) {
       const doc = this.cache.get(did);

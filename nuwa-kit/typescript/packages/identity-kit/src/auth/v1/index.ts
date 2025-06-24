@@ -1,15 +1,10 @@
-import {
-  NIP1SignedObject,
-  SignedData,
-  DIDDocument,
-  SignerInterface,
-  DIDResolver,
-} from '../../types';
+import { DIDDocument, DIDResolver } from '../../types';
+import { SignerInterface } from '../../signers/types';
+import { NIP1SignedObject, SignedData } from '../types';
 import { canonicalize } from './utils';
-import { CryptoUtils } from '../../cryptoUtils';
+import { CryptoUtils } from '../../crypto';
 import { NonceStore, defaultNonceStore } from './nonceStore';
-import { BaseMultibaseCodec } from '../../multibase';
-import { Base64 } from '../../utils/base64';
+import { MultibaseCodec } from '../../multibase';
 import { Bytes } from '../../utils/bytes';
 
 // Authorization scheme identifier for HTTP headers
@@ -44,7 +39,9 @@ export async function createSignature(
   const signerDid = await signer.getDid();
   if (opts.didDocument) {
     if (opts.didDocument.id !== signerDid) {
-      throw new Error(`DID document ID ${opts.didDocument.id} does not match signer DID ${signerDid}`);
+      throw new Error(
+        `DID document ID ${opts.didDocument.id} does not match signer DID ${signerDid}`
+      );
     }
     const verificationMethod = opts.didDocument.verificationMethod?.find(vm => vm.id === keyId);
     if (!verificationMethod) {
@@ -80,11 +77,11 @@ export function toAuthorizationHeader(obj: NIP1SignedObject): string {
     signed_data: obj.signed_data,
     signature: {
       ...obj.signature,
-      value: Base64.encode(obj.signature.value),
+      value: MultibaseCodec.encodeBase64url(obj.signature.value),
     },
   };
   const json = JSON.stringify(cloned);
-  const b64url = Base64.encode(json);
+  const b64url = MultibaseCodec.encodeBase64url(json);
   return `${HEADER_PREFIX}${b64url}`;
 }
 
@@ -118,7 +115,7 @@ export async function verifySignature(
     if (verificationMethod.publicKeyJwk) {
       publicKeyMaterial = verificationMethod.publicKeyJwk;
     } else if (verificationMethod.publicKeyMultibase) {
-      publicKeyMaterial = BaseMultibaseCodec.decodeBase58btc(verificationMethod.publicKeyMultibase);
+      publicKeyMaterial = MultibaseCodec.decodeBase58btc(verificationMethod.publicKeyMultibase);
     }
     if (!publicKeyMaterial) return false;
 
@@ -152,20 +149,23 @@ export async function verifyAuthHeader(
   header: string,
   resolver: DIDResolver,
   opts: VerifyHeaderOptions = {}
-): Promise<{
-  ok: true;
-  signedObject: NIP1SignedObject;
-} | {
-  ok: false;
-  error: string;
-}> {
+): Promise<
+  | {
+      ok: true;
+      signedObject: NIP1SignedObject;
+    }
+  | {
+      ok: false;
+      error: string;
+    }
+> {
   if (!header || !header.startsWith(HEADER_PREFIX)) {
     return { ok: false, error: 'Unsupported or missing Authorization header' };
   }
   const b64url = header.substring(HEADER_PREFIX.length).trim();
   let payloadStr: string;
   try {
-    payloadStr = Bytes.bytesToString(Base64.decodeToBytes(b64url));
+    payloadStr = Bytes.bytesToString(MultibaseCodec.decodeBase64url(b64url));
   } catch (e) {
     return { ok: false, error: 'Invalid base64 credentials' };
   }
@@ -181,7 +181,7 @@ export async function verifyAuthHeader(
   if (!parsed?.signature?.value) {
     return { ok: false, error: 'Missing signature value' };
   }
-  parsed.signature.value = Base64.decodeToBytes(parsed.signature.value);
+  parsed.signature.value = MultibaseCodec.decodeBase64url(parsed.signature.value);
   const signedObj = parsed as NIP1SignedObject;
 
   // basic replay protection: nonce & timestamp

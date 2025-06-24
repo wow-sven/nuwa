@@ -1,24 +1,22 @@
 import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import {
-  NuwaIdentityKit,
+  IdentityKit,
   DIDDocument,
   DIDCreationRequest,
-  OperationalKeyInfo,
   ServiceInfo,
-  VerificationRelationship,
-  SignedData,
-  KEY_TYPE,
+  KeyType,
   VDRRegistry,
+  KeyMultibaseCodec,
 } from '../src';
-import { CryptoUtils } from '../src/cryptoUtils';
+import { CryptoUtils } from '../src/crypto';
 import { KeyVDR } from '../src/vdr/keyVDR';
-import { LocalSigner } from '../src/signers/LocalSigner';
+import { KeyManager } from '../src/keys/KeyManager';
 
-describe('NuwaIdentityKit', () => {
+describe('IdentityKit', () => {
   let keyVDR: KeyVDR;
   let testDID: string;
   let mockDIDDocument: DIDDocument;
-  let signer: LocalSigner;
+  let signer: KeyManager;
   let keyId: string;
 
   beforeEach(async () => {
@@ -28,19 +26,16 @@ describe('NuwaIdentityKit', () => {
     VDRRegistry.getInstance().registerVDR(keyVDR);
 
     // Generate a key pair for the DID
-    const keyPair = await CryptoUtils.generateKeyPair(KEY_TYPE.ED25519);
-    const publicKeyMultibase = await CryptoUtils.publicKeyToMultibase(
+    const keyPair = await CryptoUtils.generateKeyPair(KeyType.ED25519);
+    const publicKeyMultibase = await KeyMultibaseCodec.encodeWithType(
       keyPair.publicKey,
-      KEY_TYPE.ED25519
+      KeyType.ED25519
     );
     testDID = `did:key:${publicKeyMultibase}`;
 
-    // Create a signer with the correct DID
-    const { signer: newSigner } = await LocalSigner.createWithNewKey(testDID);
-    signer = newSigner;
-
-    // Import the DID's key pair to the signer
-    keyId = await signer.importKeyPair('account-key', keyPair, KEY_TYPE.ED25519);
+    // Create an empty KeyManager and import the DID's key pair
+    signer = KeyManager.createEmpty(testDID);
+    keyId = await signer.importKeyPair('account-key', keyPair, KeyType.ED25519);
 
     // Create DID Document
     mockDIDDocument = {
@@ -87,23 +82,20 @@ describe('NuwaIdentityKit', () => {
         controller: testDID,
       });
 
-      const kit = await NuwaIdentityKit.fromExistingDID(testDID, signer);
-      expect(kit).toBeInstanceOf(NuwaIdentityKit);
+      const kit = await IdentityKit.fromExistingDID(testDID, signer);
+      expect(kit).toBeInstanceOf(IdentityKit);
       expect(kit.getDIDDocument()).toEqual(mockDIDDocument);
     });
 
     it('should create instance from DID Document', () => {
-      const kit = NuwaIdentityKit.fromDIDDocument(mockDIDDocument, signer);
-      expect(kit).toBeInstanceOf(NuwaIdentityKit);
+      const kit = IdentityKit.fromDIDDocument(mockDIDDocument, signer);
+      expect(kit).toBeInstanceOf(IdentityKit);
       expect(kit.getDIDDocument()).toEqual(mockDIDDocument);
     });
 
     it('should create new DID', async () => {
-      const { publicKey } = await CryptoUtils.generateKeyPair(KEY_TYPE.ED25519);
-      const publicKeyMultibase = await CryptoUtils.publicKeyToMultibase(
-        publicKey,
-        KEY_TYPE.ED25519
-      );
+      const { publicKey } = await CryptoUtils.generateKeyPair(KeyType.ED25519);
+      const publicKeyMultibase = await KeyMultibaseCodec.encodeWithType(publicKey, KeyType.ED25519);
       const did = `did:key:${publicKeyMultibase}`;
 
       const creationRequest: DIDCreationRequest = {
@@ -113,17 +105,17 @@ describe('NuwaIdentityKit', () => {
         controller: did,
       };
 
-      const kit = await NuwaIdentityKit.createNewDID('key', creationRequest, signer);
-      expect(kit).toBeInstanceOf(NuwaIdentityKit);
+      const kit = await IdentityKit.createNewDID('key', creationRequest, signer);
+      expect(kit).toBeInstanceOf(IdentityKit);
       expect(kit.getDIDDocument().id).toMatch(/^did:key:/);
     });
   });
 
   describe('Service Management', () => {
-    let kit: NuwaIdentityKit;
+    let kit: IdentityKit;
 
     beforeEach(async () => {
-      kit = await NuwaIdentityKit.fromExistingDID(testDID, signer);
+      kit = await IdentityKit.fromExistingDID(testDID, signer);
     });
 
     it('should add and remove service', async () => {
@@ -160,7 +152,7 @@ describe('NuwaIdentityKit', () => {
   });
 
   describe('DID Resolution', () => {
-    let kit: NuwaIdentityKit;
+    let kit: IdentityKit;
 
     beforeEach(async () => {
       // Create DID first
@@ -171,7 +163,7 @@ describe('NuwaIdentityKit', () => {
         controller: testDID,
       });
 
-      kit = await NuwaIdentityKit.fromExistingDID(testDID, signer);
+      kit = await IdentityKit.fromExistingDID(testDID, signer);
     });
 
     it('should resolve DID', async () => {
@@ -200,10 +192,10 @@ describe('NuwaIdentityKit', () => {
   });
 
   describe('Key Management', () => {
-    let kit: NuwaIdentityKit;
+    let kit: IdentityKit;
 
     beforeEach(async () => {
-      kit = await NuwaIdentityKit.fromExistingDID(testDID, signer);
+      kit = await IdentityKit.fromExistingDID(testDID, signer);
 
       // Debug: Log available keys in signer
       const signerKeys = await signer.listKeyIds();
@@ -239,6 +231,37 @@ describe('NuwaIdentityKit', () => {
 
       const serviceId = await kit.addService(serviceInfo);
       expect(serviceId).toBe(`${testDID}#messaging`);
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // New tests – Bootstrap Environment API (v1 refactor)
+  // ---------------------------------------------------------------------------
+  describe('Environment Bootstrap', () => {
+    it('should bootstrap env and create/load DID', async () => {
+      // 1. Bootstrap env for did:key
+      const env = await IdentityKit.bootstrap({ method: 'key' });
+
+      // 2. Create a new DID via env.createDid()
+      const kp = await CryptoUtils.generateKeyPair(KeyType.ED25519);
+      const pubMb = await KeyMultibaseCodec.encodeWithType(kp.publicKey, KeyType.ED25519);
+      const did = `did:key:${pubMb}`;
+
+      const req: DIDCreationRequest = {
+        publicKeyMultibase: pubMb,
+        keyType: 'Ed25519VerificationKey2020',
+        preferredDID: did,
+        controller: did,
+        initialRelationships: ['authentication', 'capabilityDelegation'],
+      };
+
+      const kitFromCreate = await env.createDid('key', req);
+      expect(kitFromCreate.getDIDDocument().id).toBe(did);
+
+      // 3. Bootstrap a fresh env and load the DID
+      const env2 = await IdentityKit.bootstrap({ method: 'key' });
+      const kitFromLoad = await env2.loadDid(did, signer);
+      expect(kitFromLoad.getDIDDocument()).toEqual(kitFromCreate.getDIDDocument());
     });
   });
 });

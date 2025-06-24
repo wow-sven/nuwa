@@ -1,11 +1,12 @@
 import { describe, it, expect } from '@jest/globals';
 import { DIDAuth } from '../../src';
-import { DIDDocument, DIDResolver, KEY_TYPE } from '../../src/types';
-import { CryptoUtils } from '../../src/cryptoUtils';
-import { BaseMultibaseCodec } from '../../src/multibase';
-import { LocalSigner } from '../../src/signers/LocalSigner';
-import { VDRRegistry } from '../../src/VDRRegistry';
-import { InMemoryLRUDIDDocumentCache } from '../../src/InMemoryLRUDIDDocumentCache';
+import { DIDDocument, KEY_TYPE } from '../../src';
+import { CryptoUtils } from '../../src/crypto';
+import { MultibaseCodec } from '../../src/multibase';
+import { KeyManager } from '../../src/keys/KeyManager';
+import { VDRRegistry } from '../../src/vdr/VDRRegistry';
+import { InMemoryLRUDIDDocumentCache } from '../../src/cache/InMemoryLRUDIDDocumentCache';
+import { DIDResolver } from '../../src/types';
 
 // Simple resolver returning static DID Document
 class StaticResolver implements DIDResolver {
@@ -24,7 +25,7 @@ function buildDidDoc(pubKey: Uint8Array, did: string, keyId: string): DIDDocumen
         id: keyId,
         type: 'Ed25519VerificationKey2020',
         controller: did,
-        publicKeyMultibase: BaseMultibaseCodec.encodeBase58btc(pubKey),
+        publicKeyMultibase: MultibaseCodec.encodeBase58btc(pubKey),
       },
     ],
     authentication: [keyId],
@@ -39,7 +40,7 @@ describe('DIDAuth.v1 basic sign/verify', () => {
     const keyId = `${did}#key-1`;
     const didDoc = buildDidDoc(publicKey, did, keyId);
 
-    const { signer } = await LocalSigner.createWithKeyPair(
+    const { keyManager: signer } = await KeyManager.createWithKeyPair(
       did,
       { privateKey, publicKey },
       'key-1',
@@ -76,7 +77,7 @@ describe('DIDAuth.v1 basic sign/verify', () => {
     const didDocBad = buildDidDoc(badKeyPair.publicKey, did, keyId);
 
     // signer with good key
-    const { signer } = await LocalSigner.createWithKeyPair(
+    const { keyManager: signer } = await KeyManager.createWithKeyPair(
       did,
       { privateKey: goodKeyPair.privateKey, publicKey: goodKeyPair.publicKey },
       'key-1',
