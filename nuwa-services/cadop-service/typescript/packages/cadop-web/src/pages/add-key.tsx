@@ -1,13 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { 
+  Button, 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  Alert, 
+  AlertTitle, 
+  AlertDescription,
+  Spinner,
+  SpinnerContainer,
+  Tag 
+} from '@/components/ui';
 import { useAuth } from '../lib/auth/AuthContext';
-import { DIDService } from '../lib/did/DIDService';
-import { UserStore } from '../lib/storage';
-import { Spin, Alert, Typography, Descriptions, Tag, Space } from 'antd';
-import { ArrowLeftOutlined, KeyOutlined, SafetyOutlined, WarningOutlined } from '@ant-design/icons';
+import { useDIDService } from '@/hooks/useDIDService';
+import { ArrowLeft, Key, AlertTriangle, ShieldCheck, RotateCcw } from 'lucide-react';
 import {
   MultibaseCodec,
   AddKeyRequestPayloadV1,
@@ -17,34 +26,17 @@ import {
 import { AgentSelector } from '../components/AgentSelector';
 import { PasskeyService } from '../lib/passkey/PasskeyService';
 
-const { Title, Text, Paragraph } = Typography;
-
-// Payload interface definition
-// interface AddKeyPayload {
-//   version: number;
-//   agentDid?: string;
-//   verificationMethod: {
-//     type: string;
-//     publicKeyMultibase?: string;
-//     publicKeyJwk?: Record<string, any>;
-//     idFragment?: string;
-//   };
-//   verificationRelationships: VerificationRelationship[];
-//   redirectUri: string;
-//   state: string;
-// }
-
 export function AddKeyPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { userDid, isAuthenticated, signInWithDid } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [payload, setPayload] = useState<AddKeyRequestPayloadV1 | null>(null);
   const [selectedAgentDid, setSelectedAgentDid] = useState<string | null>(null);
-  const [didService, setDidService] = useState<DIDService | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
+  const [manualSelectMode, setManualSelectMode] = useState<boolean>(false);
 
   // Parse payload parameter
   useEffect(() => {
@@ -81,12 +73,8 @@ export function AddKeyPage() {
     }
   }, [searchParams]);
 
-  // Initialize DIDService when user is authenticated and agentDid is selected
-  useEffect(() => {
-    if (isAuthenticated && selectedAgentDid) {
-      initializeDIDService();
-    }
-  }, [isAuthenticated, selectedAgentDid]);
+  // Obtain didService via the shared hook once agent DID has been chosen
+  const { didService, error: didServiceError } = useDIDService(selectedAgentDid);
 
   // Authenticate user if not already authenticated
   useEffect(() => {
@@ -113,92 +101,61 @@ export function AddKeyPage() {
     authenticateUser();
   }, [payload, isAuthenticated, signInWithDid]);
 
-  const initializeDIDService = async () => {
-    if (!selectedAgentDid) return;
-
-    // Get credentialId from local UserStore (if exists)
-    const credentialIds = userDid ? UserStore.listCredentials(userDid) : [];
-    const credentialId = credentialIds.length > 0 ? credentialIds[0] : undefined;
-
-    setLoading(true);
-    try {
-      const service = await DIDService.initialize(selectedAgentDid, credentialId);
-      setDidService(service);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : t('common.error');
-      setError(`Failed to initialize DID service: ${message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAgentSelect = (did: string) => {
     setSelectedAgentDid(did);
+    setManualSelectMode(false);
+  };
+
+  const handleChangeAgent = () => {
+    setSelectedAgentDid(null);
+    setManualSelectMode(true);
   };
 
   const handleConfirm = async () => {
-    if (!payload || !didService || !selectedAgentDid) return;
+    if (!didService || !payload || !selectedAgentDid) return;
 
     setProcessing(true);
     setError(null);
 
     try {
-      // Prepare verificationMethod data
       const keyInfo: OperationalKeyInfo = {
         type: payload.verificationMethod.type,
         controller: selectedAgentDid,
         idFragment: payload.verificationMethod.idFragment || `key-${Date.now()}`,
-        publicKeyMaterial: new Uint8Array(), // Initialize with empty array, will be updated below
+        publicKeyMaterial: MultibaseCodec.decodeBase58btc(
+          payload.verificationMethod.publicKeyMultibase || ''
+        ),
       };
 
-      // Handle different public key formats
-      if (payload.verificationMethod.publicKeyMultibase) {
-        keyInfo.publicKeyMaterial = MultibaseCodec.decodeBase58btc(
-          payload.verificationMethod.publicKeyMultibase
-        );
-      } else {
-        throw new Error('No valid public key format provided');
-      }
-
-      // Add verification method
       const keyId = await didService.addVerificationMethod(
         keyInfo,
-        payload.verificationRelationships
+        payload.verificationRelationships as VerificationRelationship[]
       );
 
-      console.log('Added verification method:', keyId);
-
-      // Construct redirect URL
       const redirectUrl = new URL(payload.redirectUri);
       redirectUrl.searchParams.append('success', '1');
       redirectUrl.searchParams.append('key_id', keyId);
       redirectUrl.searchParams.append('agent', selectedAgentDid);
       redirectUrl.searchParams.append('state', payload.state);
 
-      // Handle special case: if same origin page, can use postMessage
-      if (payload.redirectUri.startsWith(window.location.origin)) {
-        if (window.opener) {
-          window.opener.postMessage(
-            {
-              success: 1,
-              key_id: keyId,
-              agent: selectedAgentDid,
-              state: payload.state,
-            },
-            new URL(payload.redirectUri).origin
-          );
-          window.close();
-          return;
-        }
+      if (payload.redirectUri.startsWith(window.location.origin) && window.opener) {
+        window.opener.postMessage(
+          {
+            success: 1,
+            key_id: keyId,
+            agent: selectedAgentDid,
+            state: payload.state,
+          },
+          new URL(payload.redirectUri).origin
+        );
+        window.close();
+      } else {
+        window.location.href = redirectUrl.toString();
       }
-
-      // Standard redirect
-      window.location.href = redirectUrl.toString();
     } catch (err) {
       const message = err instanceof Error ? err.message : t('common.error');
       setError(message);
 
-      // Need to redirect with error info on failure too
       try {
         const redirectUrl = new URL(payload.redirectUri);
         redirectUrl.searchParams.append('success', '0');
@@ -206,7 +163,6 @@ export function AddKeyPage() {
         redirectUrl.searchParams.append('state', payload.state);
         window.location.href = redirectUrl.toString();
       } catch (redirectErr) {
-        // If redirect fails, at least show error on page
         console.error('Failed to redirect with error:', redirectErr);
       }
     } finally {
@@ -231,7 +187,7 @@ export function AddKeyPage() {
     }
   };
 
-  // Check if high risk permissions are requested
+  // Check if high risk permissions are requested (from payload initial relationships)
   const hasHighRiskPermission = payload?.verificationRelationships.includes('capabilityDelegation');
 
   return (
@@ -239,34 +195,31 @@ export function AddKeyPage() {
       <div className="max-w-3xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Button variant="ghost" onClick={handleCancel} className="mb-4">
-            <ArrowLeftOutlined className="mr-2" />
+            <ArrowLeft className="mr-2 h-4 w-4" />
             {t('common.cancel')}
           </Button>
 
-          <Title level={2}>
-            <KeyOutlined className="mr-2" />
+          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+            <Key className="h-6 w-6" />
             {t('Add Authentication Key')}
-          </Title>
+          </h2>
         </div>
 
-        {error && (
-          <Alert
-            message={t('common.error')}
-            description={error}
-            type="error"
-            showIcon
-            className="mb-4"
-          />
+        {(error || didServiceError) && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>{t('common.error')}</AlertTitle>
+            <AlertDescription>{error || didServiceError}</AlertDescription>
+          </Alert>
         )}
 
         {payload && (
           <Card>
             <CardHeader>
-              <CardTitle>
+              <CardTitle className="flex items-center">
                 {t('Authorization Request')}
                 {hasHighRiskPermission && (
-                  <Tag color="error" className="ml-2">
-                    <WarningOutlined /> High Risk
+                  <Tag variant="danger" className="ml-2 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> High Risk
                   </Tag>
                 )}
               </CardTitle>
@@ -274,52 +227,62 @@ export function AddKeyPage() {
             <CardContent>
               {!isAuthenticated ? (
                 <div className="text-center py-8">
-                  <Spin size="large" />
-                  <Paragraph className="mt-4">{t('Waiting for authentication...')}</Paragraph>
+                  <SpinnerContainer loading={true} />
+                  <p className="mt-4">{t('Waiting for authentication...')}</p>
                 </div>
               ) : (
                 <>
-                  <Descriptions title="Key Details" bordered column={1}>
-                    <Descriptions.Item label="Key Type">
-                      {payload.verificationMethod.type}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Key ID">
-                      {payload.verificationMethod.idFragment || 'Auto-generated'}
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Permissions">
-                      <Space direction="vertical">
+                  <div className="border rounded-md p-4 mb-4">
+                    <h3 className="font-medium mb-2">Key Details</h3>
+                    <dl className="grid grid-cols-[1fr_2fr] gap-2">
+                      <dt className="text-sm font-medium text-gray-500">Key Type</dt>
+                      <dd>{payload.verificationMethod.type}</dd>
+                      
+                      <dt className="text-sm font-medium text-gray-500">Key ID</dt>
+                      <dd>{payload.verificationMethod.idFragment || 'Auto-generated'}</dd>
+                      
+                      <dt className="text-sm font-medium text-gray-500">Permissions</dt>
+                      <dd className="flex flex-wrap gap-1">
                         {payload.verificationRelationships.map(rel => (
-                          <Tag key={rel} color={rel === 'capabilityDelegation' ? 'error' : 'blue'}>
-                            {rel === 'capabilityDelegation' && <WarningOutlined />} {rel}
+                          <Tag 
+                            key={rel} 
+                            variant={rel === 'capabilityDelegation' ? 'danger' : 'default'}
+                            className="flex items-center gap-1"
+                          >
+                            {rel === 'capabilityDelegation' && <AlertTriangle className="h-3 w-3" />} {rel}
                           </Tag>
                         ))}
-                      </Space>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="Redirect URI">
-                      {payload.redirectUri}
-                    </Descriptions.Item>
-                  </Descriptions>
+                      </dd>
+                      
+                      <dt className="text-sm font-medium text-gray-500">Redirect URI</dt>
+                      <dd className="break-all">{payload.redirectUri}</dd>
+                    </dl>
+                  </div>
 
                   {hasHighRiskPermission && (
-                    <Alert
-                      message="High Risk Permission"
-                      description="This key is requesting capability delegation permission, which allows it to manage other keys and modify your DID document. Only grant this to highly trusted devices/environments."
-                      type="warning"
-                      showIcon
-                      className="my-4"
-                    />
+                    <Alert variant="destructive" className="my-4">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>High Risk Permission</AlertTitle>
+                      <AlertDescription>
+                        This key is requesting capability delegation permission, which allows it to manage other keys and modify your DID document. Only grant this to highly trusted devices/environments.
+                      </AlertDescription>
+                    </Alert>
                   )}
 
                   {!selectedAgentDid ? (
                     <div className="mt-6">
-                      <Title level={4}>Select Agent DID</Title>
-                      <AgentSelector onSelect={handleAgentSelect} />
+                      <h4 className="text-lg font-medium mb-2">Select Agent DID</h4>
+                      <AgentSelector onSelect={handleAgentSelect} autoSelectFirst={!manualSelectMode} />
                     </div>
                   ) : (
-                    <div className="mt-6">
-                      <Descriptions title="Selected Agent" bordered>
-                        <Descriptions.Item label="Agent DID">{selectedAgentDid}</Descriptions.Item>
-                      </Descriptions>
+                    <div className="mt-6 border rounded-md p-4">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        Selected Agent
+                        <button type="button" onClick={handleChangeAgent} className="text-sm text-primary-600 hover:underline inline-flex items-center gap-1">
+                          <RotateCcw className="h-3 w-3" /> Change
+                        </button>
+                      </h4>
+                      <div className="text-sm break-all">{selectedAgentDid}</div>
                     </div>
                   )}
 
@@ -328,15 +291,14 @@ export function AddKeyPage() {
                       {t('common.cancel')}
                     </Button>
                     <Button
-                      type="submit"
                       onClick={handleConfirm}
-                      disabled={!selectedAgentDid || loading || processing}
+                      disabled={!selectedAgentDid || processing}
                     >
                       {processing ? (
-                        <Spin size="small" />
+                        <SpinnerContainer loading={true} size="small" />
                       ) : (
                         <>
-                          <SafetyOutlined className="mr-2" />
+                          <ShieldCheck className="mr-2 h-4 w-4" />
                           {t('Authorize')}
                         </>
                       )}

@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Select, Spin } from 'antd';
+import { 
+  Select, 
+  SelectTrigger, 
+  SelectValue, 
+  SelectContent, 
+  SelectItem,
+  SpinnerContainer
+} from '@/components/ui';
 import { useAuth } from '../lib/auth/AuthContext';
 import { UserStore } from '../lib/storage';
 
-const { Option } = Select;
-
 interface AgentSelectorProps {
   onSelect: (did: string) => void;
+  /**
+   * Whether to automatically select the first agent in the list when the component mounts.
+   * Defaults to true. Pass false if you want the user to make an explicit choice each time.
+   */
+  autoSelectFirst?: boolean;
 }
 
-export function AgentSelector({ onSelect }: AgentSelectorProps) {
+export function AgentSelector({ onSelect, autoSelectFirst = true }: AgentSelectorProps) {
   const { userDid } = useAuth();
   const [loading, setLoading] = useState(false);
   const [agents, setAgents] = useState<string[]>([]);
@@ -30,10 +40,14 @@ export function AgentSelector({ onSelect }: AgentSelectorProps) {
       const agentDids = UserStore.listAgents(userDid);
       setAgents(agentDids || []);
 
-      // Auto-select the first agent to reduce one user action
       if (agentDids && agentDids.length > 0) {
-        setSelected(agentDids[0]);
-        onSelect(agentDids[0]);
+        if (autoSelectFirst) {
+          // Auto-select the first agent to reduce one user action
+          setSelected(agentDids[0]);
+          onSelect(agentDids[0]);
+        } else {
+          setSelected(undefined);
+        }
       } else {
         setSelected(undefined);
       }
@@ -50,18 +64,19 @@ export function AgentSelector({ onSelect }: AgentSelectorProps) {
   };
 
   return (
-    <Select
-      placeholder="Select an Agent DID"
-      loading={loading}
-      style={{ width: '100%' }}
-      value={selected}
-      onChange={handleChange}
-    >
-      {agents.map(agent => (
-        <Option key={agent} value={agent}>
-          {agent}
-        </Option>
-      ))}
-    </Select>
+    <SpinnerContainer loading={loading}>
+      <Select value={selected} onValueChange={handleChange}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select an Agent DID" />
+        </SelectTrigger>
+        <SelectContent>
+          {agents.map(agent => (
+            <SelectItem key={agent} value={agent}>
+              {agent}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </SpinnerContainer>
   );
 }

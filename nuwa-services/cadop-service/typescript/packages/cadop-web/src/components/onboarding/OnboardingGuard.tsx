@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Spin, message } from 'antd';
+import { Spinner, SpinnerContainer } from '@/components/ui';
 
 import { AuthStore, UserStore } from '@/lib/storage';
 import { PasskeyService } from '@/lib/passkey/PasskeyService';
@@ -43,7 +43,8 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
     }
     const firstAgent = agents[0];
     setAgentDid(firstAgent);
-    setStep('gas');
+    // Check existing gas balance before deciding the next step
+    checkGas(firstAgent);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -79,7 +80,10 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
   // Agent created callback
   const handleAgentCreated = (did: string) => {
     setAgentDid(did);
-    setStep('gas');
+    // Show loading spinner while checking gas for the new agent
+    setStep('checking');
+    // After creating a new agent, verify if gas needs to be claimed
+    checkGas(did);
   };
 
   const handleGasClaimed = () => {
@@ -104,7 +108,7 @@ export const OnboardingGuard: React.FC<OnboardingGuardProps> = ({ children }) =>
   if (step === 'checking' || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Spin size="large" />
+        <Spinner size="large" />
       </div>
     );
   }
