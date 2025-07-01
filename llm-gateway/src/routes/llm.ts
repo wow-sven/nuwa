@@ -4,34 +4,94 @@ import { ApiResponse, RequestLog, DIDInfo } from "../types/index.js";
 import OpenRouterService from "../services/openrouter.js";
 import { didAuthMiddleware } from "../middleware/didAuth.js";
 import { userInitMiddleware } from "../middleware/userInit.js";
+import { userInitLiteLLMMiddleware } from "../middleware/userInitLiteLLM.js";
 import { parse } from "url";
 import { setImmediate } from "timers";
+import LiteLLMService from "../services/litellm.js";
 
 const supabaseService = new SupabaseService();
-const openRouterService = new OpenRouterService();
+const litellmProvider = new LiteLLMService();
 const router = Router();
 
 // Define supported HTTP methods
 const SUPPORTED_METHODS = ["get", "post", "put", "delete", "patch"] as const;
 
-// Generic OpenRouter proxy route - supports all paths and methods
+// Environment variable: LLM_BACKEND=openrouter | litellm | both  (default both)
+const backendEnv = (process.env.LLM_BACKEND || "both").toLowerCase();
+const OPENROUTER_ENABLED = backendEnv === "openrouter" || backendEnv === "both";
+const LITELLM_ENABLED = backendEnv === "litellm" || backendEnv === "both";
+
+// Provider instances
+const openrouterProvider = new OpenRouterService();
+
+// -----------------------------------------------------------------------------
+// Header-based routing – unified path `/api/v1/*`
+// -----------------------------------------------------------------------------
+
+// Helper to run an Express middleware manually inside async handler
+const runMiddleware = (
+  req: Request,
+  res: Response,
+  fn: (req: Request, res: Response, next: (err?: any) => void) => void
+) =>
+  new Promise<void>((resolve, reject) => {
+    fn(req, res, (err?: any) => {
+      if (err) return reject(err);
+      resolve();
+    });
+  });
+
 for (const method of SUPPORTED_METHODS) {
   router[method](
-    "/*",
+    "/*", // match everything under /api/v1 from index.ts
     didAuthMiddleware,
-    userInitMiddleware,
     async (req: Request, res: Response) => {
-      return handleOpenRouterProxy(req, res);
+      // Determine provider from header or fallback env
+      const providerHeader = (req.headers["x-llm-provider"] as string | undefined)?.toLowerCase();
+      let backendEnvVar = (process.env.LLM_BACKEND || "openrouter").toLowerCase();
+      if (backendEnvVar === "both") backendEnvVar = "openrouter"; // default provider when both enabled
+      const providerName = providerHeader || backendEnvVar;
+
+      let provider: any = openrouterProvider;
+
+      try {
+        if (providerName === "litellm" && LITELLM_ENABLED) {
+          await runMiddleware(req, res, userInitLiteLLMMiddleware);
+          provider = litellmProvider;
+        } else if (OPENROUTER_ENABLED) {
+          await runMiddleware(req, res, userInitMiddleware);
+        } else {
+          return res.status(503).json({ success: false, error: "Requested provider not enabled" });
+        }
+      } catch (err) {
+        console.error("Middleware error:", err);
+        return res.status(500).json({ success: false, error: "Middleware failed" });
+      }
+
+      return handleLLMProxy(req, res, provider, providerName);
     }
   );
 }
 
 export const llmRoutes = router;
 
-// Generic OpenRouter proxy handler function
-async function handleOpenRouterProxy(
+// -----------------------------------------------------------------------------
+// General-purpose proxy handler supporting arbitrary LLM providers
+// -----------------------------------------------------------------------------
+async function handleLLMProxy(
   req: Request,
-  res: Response
+  res: Response,
+  provider: {
+    forwardRequest: (
+      apiKey: string,
+      apiPath: string,
+      method: string,
+      data?: any,
+      isStream?: boolean
+    ) => Promise<any>;
+    parseResponse: (response: any) => any;
+  },
+  providerName: string
 ): Promise<void> {
   const requestTime = new Date().toISOString();
   const didInfo = req.didInfo as DIDInfo;
@@ -41,13 +101,15 @@ async function handleOpenRouterProxy(
   const { pathname } = parse(req.url);
 
   // Only pass path part, not concatenate baseURL
-  const apiPath = pathname || "";
+  let apiPath = pathname || "";
 
   // Get request data and enable usage tracking
   let requestData = ["GET", "DELETE"].includes(method) ? undefined : req.body;
 
-  // Enable usage tracking for supported endpoints
+  // Enable usage tracking only when forwarding to OpenRouter
+  const isOpenRouterProvider = provider instanceof (OpenRouterService as any);
   if (
+    isOpenRouterProvider &&
     requestData &&
     (apiPath.includes("/chat/completions") || apiPath.includes("/completions"))
   ) {
@@ -57,7 +119,7 @@ async function handleOpenRouterProxy(
         include: true,
       },
     };
-    console.log("✅ Usage tracking enabled for request");
+    console.log("✅ Usage tracking enabled (OpenRouter)");
   }
 
   // Check if it's a stream request
@@ -67,7 +129,7 @@ async function handleOpenRouterProxy(
   const model = (requestData as any)?.model || "unknown";
 
   console.log(
-    `📨 Received ${method} request to ${req.url}, forwarding to OpenRouter: ${apiPath}`
+    `📨 Received ${method} request to ${req.url}, forwarding to ${providerName}: ${apiPath}`
   );
 
   // Usage tracking data
@@ -136,7 +198,7 @@ async function handleOpenRouterProxy(
 
   try {
     // 1. Get user's actual API Key (from encrypted storage)
-    const apiKey = await supabaseService.getUserActualApiKey(didInfo.did);
+    const apiKey = await supabaseService.getUserActualApiKey(didInfo.did, providerName);
     if (!apiKey) {
       const response: ApiResponse = {
         success: false,
@@ -165,7 +227,7 @@ async function handleOpenRouterProxy(
     }
 
     // 3. Forward request to OpenRouter
-    const response = await openRouterService.forwardRequest(
+    const response = await provider.forwardRequest(
       apiKey,
       apiPath,
       method,
@@ -301,7 +363,7 @@ async function handleOpenRouterProxy(
       }
     } else {
       // Non-stream response processing
-      const responseData = openRouterService.parseResponse(response);
+      const responseData = provider.parseResponse(response);
 
       // Extract usage info
       extractUsageInfo(responseData);
