@@ -1,7 +1,7 @@
 {
-  "name": "@nuwa-ai/identity-kit",
-  "version": "0.2.2",
-  "description": "SDK for NIP-1 Agent Single DID Multi-Key Model and NIP-3 CADOP (Custodian-Assisted DID Onboarding Protocol)",
+  "name": "@nuwa-ai/payment-kit",
+  "version": "0.1.0",
+  "description": "SDK for NIP-4 Unidirectional Payment Channels on Rooch and other ledgers",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -11,11 +11,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
-    },
-    "./testHelpers": {
-      "types": "./dist/testHelpers/index.d.ts",
-      "import": "./dist/testHelpers/index.js",
-      "require": "./dist/testHelpers/index.cjs"
     }
   },
   "scripts": {
@@ -24,38 +19,38 @@
     "test": "jest --config=jest.config.json",
     "test:coverage": "jest --config=jest.config.json --coverage",
     "test:watch": "jest --config=jest.config.json --watch",
+    "test:integration": "jest --config=jest.config.json --testPathPattern=integration",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"**/__tests__/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.ts\" \"**/__tests__/**/*.ts\"",
     "prepublishOnly": "pnpm run clean && pnpm run build"
   },
   "files": [
     "dist/**/*"
   ],
   "keywords": [
-    "did",
-    "identity",
-    "web3",
+    "payment-channel",
+    "nip-4",
+    "rooch",
+    "blockchain",
+    "micropayments",
+    "subrav",
     "nuwa",
-    "nip-1",
-    "nip-3",
-    "cadop",
-    "custodian",
-    "onboarding"
+    "did"
   ],
   "author": "Nuwa Community",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nuwa-protocol/nuwa.git",
-    "directory": "nuwa-kit/typescript/packages/identity-kit"
+    "directory": "nuwa-kit/typescript/packages/payment-kit"
   },
   "bugs": {
     "url": "https://github.com/nuwa-protocol/nuwa/issues"
   },
-  "homepage": "https://github.com/nuwa-protocol/nuwa/tree/main/nuwa-kit/typescript/packages/identity-kit#readme",
+  "homepage": "https://github.com/nuwa-protocol/nuwa/tree/main/nuwa-kit/typescript/packages/payment-kit#readme",
   "devDependencies": {
     "@jest/globals": "^29.7.0",
     "@types/jest": "^29.5.14",
@@ -73,15 +68,16 @@
     "typescript": "^5.3.2"
   },
   "dependencies": {
-    "@noble/curves": "^1.9.1",
-    "@noble/hashes": "^1.8.0",
+    "@nuwa-ai/identity-kit": "workspace:*",
     "@roochnetwork/rooch-sdk": "^0.3.6",
-    "multiformats": "^9.9.0"
+    "@types/js-yaml": "^4.0.9",
+    "@types/pg": "^8.15.4",
+    "js-yaml": "^4.1.0",
+    "pg": "^8.16.3"
   },
   "tsup": {
     "entry": [
-      "src/index.ts",
-      "src/testHelpers/index.ts"
+      "src/index.ts"
     ],
     "format": [
       "esm",
