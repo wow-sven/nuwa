@@ -38,7 +38,7 @@ let ipfsClient: any;
 // Initialize VDRRegistry (Identity Verification)
 // -----------------------------------------------------------------------------
 const registry = VDRRegistry.getInstance();
-initRoochVDR("test", undefined, registry);
+initRoochVDR("local", undefined, registry);
 
 // -----------------------------------------------------------------------------
 // Event Listener Initialization
@@ -156,12 +156,15 @@ ipfsService.addTool({
       }
 
       return {
-        success: true,
-        ipfsCid: ipfsCid.toString(),
-        fileName: fileName,
-        uploaderDid: uploaderDid,
-        timestamp: new Date().toISOString(),
-        ipfsGatewayUrl: `https://ipfs.io/ipfs/${ipfsCid.toString()}`
+        content: 
+          JSON.stringify({
+            success: true,
+            ipfsCid: ipfsCid.toString(),
+            fileName: fileName,
+            uploaderDid: uploaderDid,
+            timestamp: new Date().toISOString(),
+            ipfsGatewayUrl: `https://ipfs.io/ipfs/${ipfsCid.toString()}`
+          })
       };
     } catch (error) {
       console.error("File upload error:", error);
