@@ -3,6 +3,7 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { TestEnv, createSelfDid } from "@nuwa-ai/identity-kit";
 
 describe("CapKit", () => {
+
   it("should query cap by id", async () => {
     const env = await TestEnv.bootstrap({
       rpcUrl: process.env.ROOCH_NODE_URL || 'http://localhost:6767',
@@ -26,6 +27,8 @@ describe("CapKit", () => {
       options: {},
       signer,
     });
+
+    const resultAll = await capKit.queryCap(signer)
 
     const result = await capKit.queryCap(signer, {
       id: cid
