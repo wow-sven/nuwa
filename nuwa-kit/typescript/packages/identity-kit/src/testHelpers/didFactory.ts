@@ -58,7 +58,8 @@ export async function createSelfDid(
   const creationRequest: DIDCreationRequest = {
     publicKeyMultibase,
     keyType: keyType,
-    initialRelationships: ['authentication', 'assertionMethod', 'capabilityInvocation', 'capabilityDelegation']
+    initialRelationships: ['authentication', 'assertionMethod', 'capabilityInvocation', 'capabilityDelegation'],
+    customScopes: options.customScopes,
   };
 
   // Create DID on-chain using VDR
