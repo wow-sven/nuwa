@@ -78,9 +78,11 @@ export class CapKit {
     }
   }
 
-  async queryCap(signer: SignerInterface, option: {
+  async queryCap(signer: SignerInterface, option?: {
     id?: string;
     name?: string;
+    page?: number;
+    size?: number;
   }) {
     const keyId = (await signer.listKeyIds())[0];
 
@@ -113,13 +115,15 @@ export class CapKit {
       const queryCID = tools.queryCID;
 
       if (!queryCID) {
-        throw new Error("uploadFile tool not available on MCP server");
+        throw new Error("query tool not available on MCP server");
       }
 
       // Upload file to IPFS
       const result = await queryCID.execute({
-        id: option.id,
-        name: option.name,
+        id: option?.id,
+        name: option?.name,
+        page: option?.page,
+        pageSize: option?.size
       }, {
         toolCallId: "query-cap",
         messages: [],
@@ -132,7 +136,7 @@ export class CapKit {
       const uploadResult = JSON.parse((result.content as any)[0].text);
       
       if (!uploadResult.success || !uploadResult.ipfsCid) {
-        throw new Error(`Upload failed: ${uploadResult.error || 'Unknown error'}`);
+        throw new Error(`query failed: ${uploadResult.error || 'Unknown error'}`);
       }
 
       return uploadResult.ipfsCid;
@@ -184,7 +188,7 @@ export class CapKit {
         cid: option.id,
         dataFormat: option.format,
       }, {
-        toolCallId: "query-cap",
+        toolCallId: "download-cap",
         messages: [],
       });
 
