@@ -3,7 +3,7 @@ import { jest, describe, it, expect, beforeEach } from '@jest/globals';
 import { TestEnv, createSelfDid } from "@nuwa-ai/identity-kit";
 
 describe("CapKit", () => {
-  it("should register a cap", async () => {
+  it("download cap by id", async () => {
     const env = await TestEnv.bootstrap({
       rpcUrl: process.env.ROOCH_NODE_URL || 'http://localhost:6767',
       network: 'test',
@@ -20,12 +20,16 @@ describe("CapKit", () => {
       contractAddress: "0xeb1deb6f1190f86cd4e05a82cfa5775a8a5929da49fac3ab8f5bf23e9181e625",
     });
 
-    const result = await capKit.registerCap({
+    const cid = await capKit.registerCap({
       name: "test_cap",
       description: "test_cap",
       options: {},
       signer,
     });
+
+    const result = await capKit.downloadCap(signer, {
+      id: cid
+    })
 
     console.log(result)
   });

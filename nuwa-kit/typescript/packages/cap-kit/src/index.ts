@@ -1,5 +1,5 @@
 import { RoochClient, Transaction, Args } from "@roochnetwork/rooch-sdk";
-import { SignerInterface, DIDAuth, VDRRegistry, initRoochVDR, DidAccountSigner } from "@nuwa-ai/identity-kit";
+import { type SignerInterface, DIDAuth, DidAccountSigner } from "@nuwa-ai/identity-kit";
 import { experimental_createMCPClient as createMCPClient } from "ai";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
@@ -21,20 +21,187 @@ export class CapKit {
     this.mcpUrl = option.mcpUrl;
   }
 
-  async getCap(capId: string) {
-    const response = await fetch(`${this.mcpUrl}/cap/${capId}`);
-    return response.json();
+  async getCap(signer: SignerInterface) {
+    const keyId = (await signer.listKeyIds())[0];
+
+    // Create authorization header
+    const payload = {
+      operation: "mcp-json-rpc",
+      params: { body: {} },
+    } as const;
+
+    const signedObject = await DIDAuth.v1.createSignature(payload, signer, keyId);
+    const authHeader = DIDAuth.v1.toAuthorizationHeader(signedObject);
+
+    // Create MCP client
+    const transport = new StreamableHTTPClientTransport(
+      new URL(this.mcpUrl),
+      {
+        requestInit: {
+          headers: {
+            Authorization: authHeader,
+          },
+        }
+      } as any
+    );
+
+    const client = await createMCPClient({ transport });
+
+    try {
+      // Get tools from MCP server
+      const tools = await client.tools();
+      const uploadTool = tools.queryCID;
+
+      if (!uploadTool) {
+        throw new Error("uploadFile tool not available on MCP server");
+      }
+
+      // Upload file to IPFS
+      const result = await uploadTool.execute({}, {
+        toolCallId: "upload-cap",
+        messages: [],
+      });
+
+      if (result.isError) {
+        throw new Error((result.content as any) ?.[0]?.text || 'Unknown error');
+      }
+
+      const uploadResult = JSON.parse((result.content as any)[0].text);
+      
+      if (!uploadResult.success || !uploadResult.ipfsCid) {
+        throw new Error(`Upload failed: ${uploadResult.error || 'Unknown error'}`);
+      }
+
+      return uploadResult.ipfsCid;
+    } finally {
+      await client.close();
+    }
   }
 
-  async queryCap(option: {
+  async queryCap(signer: SignerInterface, option: {
     id?: string;
     name?: string;
   }) {
-    const response = await fetch(`${this.mcpUrl}/cap`, {
-      method: 'POST',
-      body: JSON.stringify(option),
-    });
-    return response.json();
+    const keyId = (await signer.listKeyIds())[0];
+
+    // Create authorization header
+    const payload = {
+      operation: "mcp-json-rpc",
+      params: { body: {} },
+    } as const;
+
+    const signedObject = await DIDAuth.v1.createSignature(payload, signer, keyId);
+    const authHeader = DIDAuth.v1.toAuthorizationHeader(signedObject);
+
+    // Create MCP client
+    const transport = new StreamableHTTPClientTransport(
+      new URL(this.mcpUrl),
+      {
+        requestInit: {
+          headers: {
+            Authorization: authHeader,
+          },
+        }
+      } as any
+    );
+
+    const client = await createMCPClient({ transport });
+
+    try {
+      // Get tools from MCP server
+      const tools = await client.tools();
+      const queryCID = tools.queryCID;
+
+      if (!queryCID) {
+        throw new Error("uploadFile tool not available on MCP server");
+      }
+
+      // Upload file to IPFS
+      const result = await queryCID.execute({
+        id: option.id,
+        name: option.name,
+      }, {
+        toolCallId: "query-cap",
+        messages: [],
+      });
+
+      if (result.isError) {
+        throw new Error((result.content as any) ?.[0]?.text || 'Unknown error');
+      }
+
+      const uploadResult = JSON.parse((result.content as any)[0].text);
+      
+      if (!uploadResult.success || !uploadResult.ipfsCid) {
+        throw new Error(`Upload failed: ${uploadResult.error || 'Unknown error'}`);
+      }
+
+      return uploadResult.ipfsCid;
+    } finally {
+      await client.close();
+    }
+  }
+
+  async downloadCap(signer: SignerInterface, option: {
+    id?: string;
+    format?: 'base64' | 'utf8';
+  }) {
+    const keyId = (await signer.listKeyIds())[0];
+
+    // Create authorization header
+    const payload = {
+      operation: "mcp-json-rpc",
+      params: { body: {} },
+    } as const;
+
+    const signedObject = await DIDAuth.v1.createSignature(payload, signer, keyId);
+    const authHeader = DIDAuth.v1.toAuthorizationHeader(signedObject);
+
+    // Create MCP client
+    const transport = new StreamableHTTPClientTransport(
+      new URL(this.mcpUrl),
+      {
+        requestInit: {
+          headers: {
+            Authorization: authHeader,
+          },
+        }
+      } as any
+    );
+
+    const client = await createMCPClient({ transport });
+
+    try {
+      // Get tools from MCP server
+      const tools = await client.tools();
+      const downloadFile = tools.downloadFile;
+
+      if (!downloadFile) {
+        throw new Error("downloadFile tool not available on MCP server");
+      }
+
+      // Upload file to IPFS
+      const result = await downloadFile.execute({
+        cid: option.id,
+        dataFormat: option.format,
+      }, {
+        toolCallId: "query-cap",
+        messages: [],
+      });
+
+      if (result.isError) {
+        throw new Error((result.content as any) ?.[0]?.text || 'Unknown error');
+      }
+
+      const downloadResult = JSON.parse((result.content as any)[0].text);
+
+      if (!downloadResult.success || !downloadResult.ipfsCid) {
+        throw new Error(`Upload failed: ${downloadResult.error || 'Unknown error'}`);
+      }
+
+      return downloadResult;
+    } finally {
+      await client.close();
+    }
   }
 
   async registerCap(option: {
@@ -56,7 +223,13 @@ export class CapKit {
     const cid = await this.uploadToIPFS(acpContent, option.signer);
     
     // 3. Call Move contract to register the capability
-    return await this.registerOnChain(option.name, cid, option.signer);
+    const result = await this.registerOnChain(option.name, cid, option.signer);
+
+    if (result.execution_info.status.type !== 'executed') {
+      throw new Error("unknown error");
+    }
+
+    return cid;
     
     // 4. fetch with the index service
     // const response = await fetch(`${this.mcpUrl}/cap`, {
@@ -124,7 +297,7 @@ export class CapKit {
       // Convert content to base64
       const fileData = Buffer.from(content, 'utf8').toString('base64');
       const fileName = `cap-${Date.now()}.acp.yaml`;
-
+      console.log(fileName)
       // Upload file to IPFS
       const result = await uploadTool.execute({ 
         fileName, 
@@ -134,8 +307,8 @@ export class CapKit {
         messages: [],
       });
 
-      if (!(result.content as any) ?.[0]?.text) {
-        throw new Error("Upload failed: no response content");
+      if (result.isError) {
+        throw new Error((result.content as any) ?.[0]?.text || 'Unknown error');
       }
 
       const uploadResult = JSON.parse((result.content as any)[0].text);
@@ -143,7 +316,7 @@ export class CapKit {
       if (!uploadResult.success || !uploadResult.ipfsCid) {
         throw new Error(`Upload failed: ${uploadResult.error || 'Unknown error'}`);
       }
-
+      console.log(uploadResult.ipfsCid)
       return uploadResult.ipfsCid;
     } finally {
       await client.close();

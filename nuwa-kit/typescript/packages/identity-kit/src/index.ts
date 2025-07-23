@@ -14,3 +14,4 @@ export * from './IdentityEnv';
 export * from './utils/bytes';
 export * from './utils/did';
 export * from './utils/sessionScopes';
+export * from './testHelpers';
