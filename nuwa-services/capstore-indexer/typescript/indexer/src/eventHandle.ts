@@ -3,19 +3,18 @@ import yaml from "js-yaml";
 import { storeToSupabase, queryCIDFromSupabase } from './supabase.js';
 import { RoochClient } from '@roochnetwork/rooch-sdk';
 
-const IPFS_GATEWAY = process.env.IPFS_GATEWAY || 'https://ipfs.io/ipfs';
-const PACKAGE_ID = process.env.PACKAGE_ID || 'YOUR_ROOCH_PACKAGE_ID';
+const DEFAULT_IPFS_GATEWAY = process.env.IPFS_GATEWAY || 'https://ipfs.io/ipfs';
+const DEFAULT_PACKAGE_ID = process.env.PACKAGE_ID || 'YOUR_ROOCH_PACKAGE_ID';
 
 export interface YamlData {
   name: string;
   id: string;
-  cid: string;
 }
 
-export async function fetchAndParseYaml(cid: string): Promise<YamlData> {
+export async function fetchAndParseYaml(cid: string, ipfs: string = DEFAULT_IPFS_GATEWAY): Promise<YamlData> {
   try {
-    const url = `${IPFS_GATEWAY}/${cid}`;
-    const response = await axios.get(url, { timeout: 10000 });
+    const url = `${ipfs}?arg=${cid}`;
+    const response = await axios.post(url, { timeout: 10000 });
 
     if (response.status !== 200) {
       throw new Error(`IPFS request failed with status ${response.status}`);
@@ -24,37 +23,41 @@ export async function fetchAndParseYaml(cid: string): Promise<YamlData> {
     const content = response.data;
     const parsedData = yaml.load(content) as Partial<YamlData>;
 
-    if (!parsedData?.name || !parsedData?.id || !parsedData?.cid) {
+    if (!parsedData?.name || !parsedData?.id) {
       throw new Error('Invalid YAML structure: Missing required fields');
     }
 
     return {
       name: parsedData.name,
       id: parsedData.id,
-      cid: parsedData.cid
     };
   } catch (error) {
     throw new Error(`Failed to fetch or parse YAML: ${(error as Error).message}`);
   }
 }
 
-export async function processRoochRegisterEvent() {
+export async function processRoochRegisterEvent(option: {
+  roochUrl: string,
+  ipfsUrl: string,
+  packageId: string
+}) {
   try {
-    const client = new RoochClient({url: 'https://test-seed.rooch.network'});
+    const client = new RoochClient({url: option.roochUrl});
     const events = await client.queryEvents({
       filter: {
-        event_type: `${PACKAGE_ID}::acp_registry::RegisterEvent`,
+        event_type: `${option.packageId}::acp_registry::RegisterEvent`,
       }
     });
 
     for (const event of events.data) {
       try {
-        const data = event.decoded_event_data as any;
+        
+        const data = (event.decoded_event_data as any)?.value as any;
         if (typeof data.cid !== 'string') {
             throw new Error('Event data does not contain a valid CID string');
         }
         const cid = data.cid;
-        const yamlData = await fetchAndParseYaml(cid);
+        const yamlData = await fetchAndParseYaml(cid, option.ipfsUrl);
 
         await storeToSupabase(yamlData, cid);
 
@@ -87,11 +90,15 @@ export async function queryCID(name: string, id: string) {
   }
 }
 
-export function setupRoochEventListener(interval = 30000) {
+export function setupRoochEventListener(interval = 30000, option: {
+  ipfsUrl: string,
+  roochUrl: string,
+  packageId: string
+}) {
   setInterval(async () => {
     try {
       console.log("Checking Rooch for new RegisterEvents...");
-      await processRoochRegisterEvent();
+      await processRoochRegisterEvent(option);
     } catch (error) {
       console.error(`Event polling error: ${(error as Error).message}`);
     }

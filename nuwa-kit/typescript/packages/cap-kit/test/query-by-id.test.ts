@@ -8,7 +8,7 @@ describe("CapKit", () => {
   let capKit: CapKit;
   let signer: SignerInterface;
   beforeAll(async () => {
-    const { capKit: a, signer: b } = await setupEnv('test');
+    const { capKit: a, signer: b } = await setupEnv('local');
     capKit = a;
     signer = b;
   })

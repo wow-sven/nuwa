@@ -6,8 +6,11 @@ import { create } from 'ipfs-http-client';
 import { CID } from 'multiformats/cid';
 import { Readable } from 'stream';
 import { queryCID, setupRoochEventListener } from './eventHandle.js';
+import { getRoochNodeUrl } from "@roochnetwork/rooch-sdk";
 
 config();
+
+const target : 'testnet' | 'localnet' = 'localnet'
 
 // -----------------------------------------------------------------------------
 // IPFS Client Initialization
@@ -42,7 +45,11 @@ initRoochVDR("local", undefined, registry);
 // -----------------------------------------------------------------------------
 // Event Listener Initialization
 // -----------------------------------------------------------------------------
-setupRoochEventListener();
+setupRoochEventListener(1000, {
+  roochUrl: getRoochNodeUrl(target),
+  ipfsUrl: target === 'localnet' ? 'http://localhost:5001/api/v0/block/get' : 'https://ipfs.io/ipfs',
+  packageId: target === 'localnet' ? '0xeb1deb6f1190f86cd4e05a82cfa5775a8a5929da49fac3ab8f5bf23e9181e625' : '0xdc2a3eba923548660bb642b9df42936941a03e2d8bab223ae6dda6318716e742'
+});
 
 // -----------------------------------------------------------------------------
 // Unified Authentication Function
