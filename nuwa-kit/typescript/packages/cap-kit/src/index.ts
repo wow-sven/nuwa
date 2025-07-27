@@ -12,9 +12,9 @@ export class CapKit {
   protected mcpUrl: string;
 
   constructor(option: {
+    mcpUrl: string,
     roochUrl: string,
     contractAddress: string,
-    mcpUrl: string,
   }) {
     this.roochClient = new RoochClient({url: option.roochUrl});
     this.contractAddress = option.contractAddress;

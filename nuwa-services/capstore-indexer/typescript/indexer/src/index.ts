@@ -6,12 +6,6 @@ import { create } from 'ipfs-http-client';
 import { CID } from 'multiformats/cid';
 import { Readable } from 'stream';
 import { queryCID, setupRoochEventListener } from './eventHandle.js';
-// BUG
-// todo: 大小/速率限制，速率，payload 和逻辑强相关(重放/内容修改)？
-// 返回值mcp 有标准，目前没有按照标准返回。
-// 查询逻辑不对，name 
-// 缺少所以的cap，需要翻页
-// Load environment variables
 
 config();
 
