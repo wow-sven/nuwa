@@ -3,8 +3,8 @@ import { VDRRegistry } from '@nuwa-ai/identity-kit';
 
 // Core types and utilities
 export * from './core/types';
-export * from './core/subrav';
-export * from './core/claim-scheduler';
+export * from './core/SubRav';
+export * from './core/ClaimScheduler';
 
 // Payment processor architecture
 export * from './core/PaymentProcessor';
@@ -84,10 +84,10 @@ export {
   SubRAVSchema,
   CURRENT_SUBRAV_VERSION, 
   SUBRAV_VERSION_1 
-} from './core/subrav';
+} from './core/SubRav';
 
-// HTTP Header codec for Gateway Profile implementation
-export { HttpHeaderCodec, HttpPaymentMiddleware } from './core/http-header';
+// HTTP Transport
+export { HttpPaymentCodec } from './middlewares/http/HttpPaymentCodec';
 
 // HTTP Billing middleware for deferred payment model (refactored)
 export { HttpBillingMiddleware } from './middlewares/http/HttpBillingMiddleware';
