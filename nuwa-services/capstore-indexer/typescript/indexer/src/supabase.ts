@@ -27,7 +27,7 @@ export async function storeToSupabase(data: Cap, cid: string): Promise<void> {
 
 export async function queryCIDFromSupabase(
   name?: string | null,
-  id?: string | null,
+  cid?: string | null,
   page: number = 0,
   pageSize: number = 50
 ): Promise<{
@@ -53,7 +53,7 @@ export async function queryCIDFromSupabase(
 
     // Add filtering conditions
     if (name) query = query.ilike('name', `%${name}%`);
-    if (id) query = query.ilike('id', `%${id}%`);
+    if (cid) query = query.ilike('cid', `%${cid}%`);
 
     // Apply pagination
     query = query.range(offset, offset + validatedPageSize - 1);

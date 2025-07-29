@@ -21,14 +21,12 @@ describe("CapKit", () => {
       signer,
     });
 
-    const resultAll = await capKit.queryCap(signer)
-
-    console.log(resultAll)
+    await new Promise(resolve => setTimeout(resolve, 35000));
 
     const result = await capKit.queryCap(signer, {
       id: cid
     })
 
     console.log(result)
-  });
+  }, 150000);
 });

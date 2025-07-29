@@ -134,13 +134,13 @@ export class CapKit {
         throw new Error((result.content as any) ?.[0]?.text || 'Unknown error');
       }
 
-      const uploadResult = JSON.parse((result.content as any)[0].text);
+      const queryResult = JSON.parse((result.content as any)[0].text);
       
-      if (!uploadResult.success || !uploadResult.ipfsCid) {
-        throw new Error(`query failed: ${uploadResult.error || 'Unknown error'}`);
+      if (queryResult.code !== 200) {
+        throw new Error(`query failed: ${queryResult.error || 'Unknown error'}`);
       }
 
-      return uploadResult.ipfsCid;
+      return queryResult;
     } finally {
       await client.close();
     }
