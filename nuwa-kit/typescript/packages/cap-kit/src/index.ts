@@ -2,6 +2,7 @@ import { RoochClient, Transaction, Args } from "@roochnetwork/rooch-sdk";
 import { type SignerInterface, DIDAuth, DidAccountSigner } from "@nuwa-ai/identity-kit";
 import { experimental_createMCPClient as createMCPClient } from "ai";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import * as yaml from 'js-yaml';
 
 // Polyfill for Buffer in browser environments
 const Buffer = typeof window !== 'undefined' && window.Buffer ? window.Buffer : require('buffer').Buffer;
@@ -183,7 +184,7 @@ export class CapKit {
         throw new Error("downloadFile tool not available on MCP server");
       }
 
-      // Upload file to IPFS
+      // Download file from IPFS
       const result = await downloadFile.execute({
         cid: option.id,
         dataFormat: option.format,
@@ -198,14 +199,73 @@ export class CapKit {
 
       const downloadResult = JSON.parse((result.content as any)[0].text);
 
-      if (!downloadResult.success || !downloadResult.ipfsCid) {
-        throw new Error(`Upload failed: ${downloadResult.error || 'Unknown error'}`);
+      if (!downloadResult.success) {
+        throw new Error(`Download failed: ${downloadResult.error || 'Unknown error'}`);
       }
 
       return downloadResult;
     } finally {
       await client.close();
     }
+  }
+
+  async downloadAndParseYaml(signer: SignerInterface, cid: string) {
+    try {
+      // Try downloading as utf8 first
+      const result = await this.downloadCap(signer, { id: cid, format: 'utf8' });
+      let content = result.content || result.data;
+
+      console.log('Download result structure:', Object.keys(result));
+      console.log('Raw content type:', typeof content);
+      console.log('Raw content preview:', JSON.stringify(content?.toString().substring(0, 100)));
+
+      if (!content) {
+        // If utf8 doesn't work, try base64
+        const base64Result = await this.downloadCap(signer, { id: cid, format: 'base64' });
+        const base64Content = base64Result.content || base64Result.data;
+        
+        if (base64Content) {
+          // Decode base64 to utf8
+          content = Buffer.from(base64Content, 'base64').toString('utf8');
+          console.log('Using base64 decoded content');
+        } else {
+          throw new Error('No content returned from download');
+        }
+      }
+
+      // Clean up the content
+      const cleanedContent = this.cleanYamlContent(content);
+      console.log('Cleaned content for YAML parsing:', JSON.stringify(cleanedContent.substring(0, 200)));
+
+      // Parse YAML
+      const parsedData = yaml.load(cleanedContent);
+      return parsedData;
+    } catch (error) {
+      console.error('Download and parse error:', error);
+      throw new Error(`Failed to download and parse YAML: ${(error as Error).message}`);
+    }
+  }
+
+  private cleanYamlContent(content: string): string {
+    // Handle different data types
+    if (typeof content !== 'string') {
+      content = String(content);
+    }
+
+    // Remove BOM (Byte Order Mark) if present
+    content = content.replace(/^\uFEFF/, '');
+    
+    // Filter out control characters that can cause YAML parsing problems
+    content = content.split('').filter(char => {
+      const code = char.charCodeAt(0);
+      // Keep printable characters, newlines, carriage returns, and tabs
+      return (code >= 32 && code <= 126) || code === 10 || code === 13 || code === 9;
+    }).join('');
+    
+    // Trim whitespace
+    content = content.trim();
+
+    return content;
   }
 
   async registerCap(option: {
@@ -221,7 +281,7 @@ export class CapKit {
     }
 
     // 1. Create ACP (Agent Capability Package) file
-    const acpContent = this.createACPFile(option);
+    const acpContent = await this.createACPFile(option);
     
     // 2. Upload ACP file to IPFS using nuwa-cap-store MCP
     const cid = await this.uploadToIPFS(acpContent, option.signer);
@@ -247,19 +307,21 @@ export class CapKit {
     // return response.json();
   }
 
-  private createACPFile(option: {
+  private async createACPFile(option: {
     name: string;
     description: string;
     options: any;
-  }): string {
+    signer: SignerInterface;
+  }): Promise<string> {
+    const did = (await option.signer.listKeyIds())[0];
     const acp = {
-      id: `did:nuwa:cap:${option.name}@0.1.0`,
+      id: `${did}:${option.name}`,
       name: option.name,
       description: option.description,
       ...option.options,
     };
 
-    return JSON.stringify(acp, null, 2);
+    return yaml.dump(acp);
   }
 
   private async uploadToIPFS(content: string, signer: SignerInterface): Promise<string> {
@@ -301,7 +363,7 @@ export class CapKit {
       // Convert content to base64
       const fileData = Buffer.from(content, 'utf8').toString('base64');
       const fileName = `cap-${Date.now()}.acp.yaml`;
-      console.log(fileName)
+
       // Upload file to IPFS
       const result = await uploadTool.execute({ 
         fileName, 
@@ -316,12 +378,13 @@ export class CapKit {
       }
 
       const uploadResult = JSON.parse((result.content as any)[0].text);
-      
-      if (!uploadResult.success || !uploadResult.ipfsCid) {
+      const uploadData = uploadResult.data;
+
+      if (uploadResult.code !== 200 || !uploadData.ipfsCid) {
         throw new Error(`Upload failed: ${uploadResult.error || 'Unknown error'}`);
       }
-      console.log(uploadResult.ipfsCid)
-      return uploadResult.ipfsCid;
+
+      return uploadData.ipfsCid;
     } finally {
       await client.close();
     }
