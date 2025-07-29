@@ -43,6 +43,8 @@ export interface CreateSelfDidOptions {
   keyFragment?: string;
   /** Skip funding the account (useful if account already has funds) */
   skipFunding?: boolean;
+  /** Custom session key scopes (for Rooch VDR) */
+  customScopes?: string[];
 }
 
 
