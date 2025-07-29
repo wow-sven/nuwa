@@ -9,7 +9,7 @@ export const setupEnv = async (target: 'test' | 'local') => {
   const env = await TestEnv.bootstrap({
     rpcUrl: process.env.ROOCH_NODE_URL || target === 'test' ? 'https://test-seed.rooch.network' : 'http://localhost:6767',
     network: target,
-    debug: true,
+    debug: false,
   });
 
   const contractAddress = target === 'test' ? testContractAddress : localContractAddress;
@@ -22,6 +22,7 @@ export const setupEnv = async (target: 'test' | 'local') => {
     roochUrl: target === 'test' ? 'https://test-seed.rooch.network' : 'http://localhost:6767',
     mcpUrl: target === 'test' ? 'https://nuwa-production-a276.up.railway.app' : 'http://localhost:3000/mcp',
     contractAddress: contractAddress,
+    signer,
   });
   
   return {

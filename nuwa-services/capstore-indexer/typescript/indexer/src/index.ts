@@ -87,15 +87,66 @@ const ipfsService = new FastMCP({
   authenticate: authenticateRequest
 });
 
+ipfsService.addTool({
+  name: "queryWithCID",
+  description: "Query CID",
+  parameters: z.object({
+    cid: z.string().describe("Resource identifier"),
+  }),
+  annotations: {
+    readOnlyHint: true,
+    openWorldHint: true
+  },
+  async execute(args) {
+    try {
+      const { cid } = args;
+      const result = await queryCIDFromSupabase(null, cid);
+
+      if (!result.success) {
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              code: 404,
+              error: result.error || 'No matching records found',
+            } as Result)
+          }]
+        };
+      }
+
+      const item = result.items[0]
+      // MCP standard response with pagination info
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            code: 200,
+            data: item
+          })
+        }]
+      };
+    } catch (error) {
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            code: 500,
+            error: (error as Error).message || 'Unknown error occurred'
+          } as Result)
+        }]
+      };
+    }
+  }
+});
+
 // -----------------------------------------------------------------------------
 // CID Query Tool with Pagination Support
 // -----------------------------------------------------------------------------
 ipfsService.addTool({
-  name: "queryCID",
-  description: "Query CIDs by name and ID with pagination support",
+  name: "queryWithName",
+  description: "Query with name",
   parameters: z.object({
     name: z.string().optional().describe("Resource name (optional)"),
-    id: z.string().optional().describe("Resource identifier (optional)"),
     page: z.number().optional().default(0).describe("Page number starting from 0"),
     pageSize: z.number().optional().default(50).describe("Number of records per page")
   }),
@@ -105,8 +156,8 @@ ipfsService.addTool({
   },
   async execute(args) {
     try {
-      const { name, id, page, pageSize } = args;
-      const result = await queryCIDFromSupabase(name, id, page, pageSize);
+      const { name, page, pageSize } = args;
+      const result = await queryCIDFromSupabase(name, null, page, pageSize);
 
       if (!result.success) {
         return {
@@ -241,7 +292,7 @@ ipfsService.addTool({
   description: "Download a file from IPFS using its CID",
   parameters: z.object({
     cid: z.string().describe("Content Identifier (CID) of the file"),
-    dataFormat: z.enum(['base64', 'utf8']).optional().default('base64')
+    dataFormat: z.enum(['base64', 'utf8']).optional().default('utf8')
       .describe("Output format for file data")
   }),
   async execute({ cid, dataFormat }, context) {
@@ -267,36 +318,38 @@ ipfsService.addTool({
           content: [{
             type: "text",
             text: JSON.stringify({
-              success: false,
               code: 500,
-              data: { error: "The CID format does not meet the requirements" }
+              error: "The CID format does not meet the requirements",
             })
           }]
         };
       }
 
-      // Check if file exists
-      let fileExists = false;
-      for await (const _ of ipfsClient.files.ls(`/ipfs/${cid}`)) {
-        fileExists = true;
-        break;
-      }
-      if (!fileExists) {
-        return {
-          content: [{
-            type: "text",
-            text: `File not found: ${cid}`,
-          }]
-        };
-      }
-
-      // Download file
+      // Download file directly - IPFS will throw an error if CID doesn't exist
       const chunks = [];
       let totalSize = 0;
 
-      for await (const chunk of ipfsClient.cat(cid)) {
-        chunks.push(chunk);
-        totalSize += chunk.length;
+      try {
+        for await (const chunk of ipfsClient.cat(cid)) {
+          chunks.push(chunk);
+          totalSize += chunk.length;
+        }
+      } catch (catError) {
+        // Handle IPFS-specific errors
+        const errorMessage = catError instanceof Error ? catError.message : String(catError);
+        if (errorMessage.includes('not found') || errorMessage.includes('no link named')) {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                code: 404,
+                error: `File not found in IPFS: ${cid}`
+              } as Result)
+            }]
+          };
+        }
+        // Re-throw other errors to be caught by outer catch
+        throw catError;
       }
 
       const fileBuffer = Buffer.concat(chunks, totalSize);
@@ -308,7 +361,6 @@ ipfsService.addTool({
       } else {
         formattedData = fileBuffer.toString('utf8');
       }
-
 
       // MCP standard response format
       return {

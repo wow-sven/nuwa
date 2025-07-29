@@ -8,12 +8,11 @@ import { IPFS_GATEWAY, PACKAGE_ID, ROOCH_NODE_URL } from "./constant.js";
 export async function fetchAndParseYaml(cid: string): Promise<Cap> {
   try {
     // Check if this is a local IPFS API endpoint
-    const isLocalApi = IPFS_GATEWAY.includes(':5001');
-    const url = isLocalApi 
-      ? `${IPFS_GATEWAY}/api/v0/cat?arg=${cid}`
-      : `${IPFS_GATEWAY}/ipfs/${cid}`;
+    // const isLocalApi = IPFS_GATEWAY.includes(':5001');
+    const url = `${IPFS_GATEWAY}/api/v0/cat?arg=${cid}`
+      // : `${IPFS_GATEWAY}/ipfs/${cid}`;
     
-    const requestMethod = isLocalApi ? 'post' : 'get';
+    const requestMethod = 'post' // : 'get';
     const response = await axios[requestMethod](url, { 
       timeout: 10000,
       responseType: 'text',

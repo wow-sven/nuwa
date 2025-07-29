@@ -9,7 +9,7 @@ describe("CapKit", () => {
     capKit = a;
   })
 
-  it("should query cap by id", async () => {
+  it("should query cap by name", async () => {
     const cid = await capKit.registerCap(
       "test_cap",
       "test_cap",
@@ -18,7 +18,7 @@ describe("CapKit", () => {
 
     await new Promise(resolve => setTimeout(resolve, 35000));
 
-    const result = await capKit.queryCapWithCID(cid)
+    const result = await capKit.queryWithName('test')
 
     console.log(result)
   }, 150000);
