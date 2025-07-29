@@ -18,14 +18,9 @@ export class HttpHeaderCodec {
   static buildRequestHeader(payload: HttpRequestPayload): string {
     // Convert payload to serializable format
     const serializable = {
-      channelId: payload.channelId,
       signedSubRav: this.serializeSignedSubRAV(payload.signedSubRav),
       maxAmount: payload.maxAmount?.toString(),
       clientTxRef: payload.clientTxRef,
-      confirmationData: payload.confirmationData ? {
-        subRav: this.serializeSubRAV(payload.confirmationData.subRav),
-        signatureConfirmer: MultibaseCodec.encodeBase64url(payload.confirmationData.signatureConfirmer)
-      } : undefined
     };
 
     // Convert to JSON and encode
@@ -42,14 +37,9 @@ export class HttpHeaderCodec {
       const data = JSON.parse(json);
 
       return {
-        channelId: data.channelId,
         signedSubRav: this.deserializeSignedSubRAV(data.signedSubRav),
         maxAmount: data.maxAmount ? BigInt(data.maxAmount) : undefined,
         clientTxRef: data.clientTxRef,
-        confirmationData: data.confirmationData ? {
-          subRav: this.deserializeSubRAV(data.confirmationData.subRav),
-          signatureConfirmer: MultibaseCodec.decodeBase64url(data.confirmationData.signatureConfirmer)
-        } : undefined
       };
     } catch (error) {
       throw new Error(`Failed to parse request header: ${error}`);

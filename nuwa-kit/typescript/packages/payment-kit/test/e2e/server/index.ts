@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { HttpBillingMiddleware } from '../../../src/core/http-billing-middleware';
+import { HttpBillingMiddleware } from '../../../src/middlewares/http/HttpBillingMiddleware';
 import { HttpHeaderCodec } from '../../../src/core/http-header';
 import type { 
   HttpRequestPayload, 
@@ -15,8 +15,6 @@ export interface BillingServerConfig {
   port?: number;
   serviceId?: string;
   defaultAssetId?: string;
-  autoClaimThreshold?: bigint;
-  autoClaimNonceThreshold?: number;
   debug?: boolean;
 }
 
@@ -26,8 +24,6 @@ export async function createBillingServer(config: BillingServerConfig) {
     port = 3000,
     serviceId = 'echo-service',
     defaultAssetId = '0x3::gas_coin::RGas',
-    autoClaimThreshold = BigInt('100000000'), // 1 RGas
-    autoClaimNonceThreshold = 10,
     debug = true
   } = config;
 
@@ -94,9 +90,6 @@ rules:
     billingEngine: simpleBillingEngine,
     serviceId,
     defaultAssetId,
-    requirePayment: true,
-    autoClaimThreshold,
-    autoClaimNonceThreshold,
     debug
   });
 
@@ -137,33 +130,19 @@ rules:
   });
 
   // 6. 管理接口
-  app.get('/admin/claims', (req: Request, res: Response) => {
-    const claimsStats = paymentMiddleware.getPendingClaimsStats();
-    const subRAVsStats = paymentMiddleware.getPendingSubRAVsStats();
-    
-    // Convert BigInt values to strings for JSON serialization
-    const serializedClaimsStats: Record<string, { count: number; totalAmount: string }> = {};
-    for (const [key, value] of Object.entries(claimsStats)) {
-      serializedClaimsStats[key] = {
-        count: value.count,
-        totalAmount: value.totalAmount.toString()
-      };
+  app.get('/admin/claims', async (req: Request, res: Response) => {
+    try {
+      const claimsStatus = paymentMiddleware.getClaimStatus();
+      const processingStats = paymentMiddleware.getProcessingStats();
+      
+      res.json({ 
+        claimsStatus,
+        processingStats,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
-    
-    const serializedSubRAVsStats: Record<string, { channelId: string; nonce: string; amount: string }> = {};
-    for (const [key, value] of Object.entries(subRAVsStats)) {
-      serializedSubRAVsStats[key] = {
-        channelId: value.channelId,
-        nonce: value.nonce.toString(),
-        amount: value.amount.toString()
-      };
-    }
-    
-    res.json({ 
-      pendingClaims: serializedClaimsStats,
-      pendingSubRAVs: serializedSubRAVsStats,
-      timestamp: new Date().toISOString()
-    });
   });
 
   app.post('/admin/claim/:channelId', async (req: Request, res: Response) => {
@@ -175,26 +154,34 @@ rules:
     }
   });
 
-  app.get('/admin/subrav/:channelId/:nonce', (req: Request, res: Response) => {
-    const { channelId, nonce } = req.params;
-    const subRAV = paymentMiddleware.findPendingSubRAV(channelId, BigInt(nonce));
-    if (subRAV) {
-      res.json(subRAV);
-    } else {
-      res.status(404).json({ error: 'SubRAV not found' });
+  app.get('/admin/subrav/:channelId/:nonce', async (req: Request, res: Response) => {
+    try {
+      const { channelId, nonce } = req.params;
+      const subRAV = await paymentMiddleware.findPendingProposal(channelId, BigInt(nonce));
+      if (subRAV) {
+        res.json(subRAV);
+      } else {
+        res.status(404).json({ error: 'SubRAV not found' });
+      }
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
     }
   });
 
-  app.delete('/admin/cleanup', (req: Request, res: Response) => {
-    const maxAge = parseInt(req.query.maxAge as string) || 30;
-    const clearedCount = paymentMiddleware.clearExpiredPendingSubRAVs(maxAge);
-    res.json({ clearedCount, maxAgeMinutes: maxAge });
+  app.delete('/admin/cleanup', async (req: Request, res: Response) => {
+    try {
+      const maxAge = parseInt(req.query.maxAge as string) || 30;
+      const clearedCount = await paymentMiddleware.clearExpiredProposals(maxAge);
+      res.json({ clearedCount, maxAgeMinutes: maxAge });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   app.get('/admin/security', (req: Request, res: Response) => {
-    const suspiciousActivity = paymentMiddleware.getSuspiciousActivityStats();
+    // Security metrics are no longer tracked in the new architecture
     res.json({
-      suspiciousActivity,
+      message: 'Security metrics not available in refactored architecture',
       timestamp: new Date().toISOString()
     });
   });
@@ -220,35 +207,47 @@ rules:
 // 客户端调用示例（延迟支付模式）
 export function createTestClient(payerClient: any, baseURL: string, channelId: string) {
   let pendingSubRAV: SubRAV | null = null; // 缓存上一次的 SubRAV
-  let payerKeyId: string | null = null; // 缓存 payer 的 key ID
+  let isFirstRequest = true; // 标记是否为首次请求
 
   return {
     async callEcho(query: string) {
       let headers: Record<string, string> = {};
       
-      // 1. 总是提供 channelId，如果有上一次的 SubRAV，也签名并放入请求头
+      // 1. 总是生成签名的 SubRAV
+      let signedSubRAV: any;
+      
       if (pendingSubRAV) {
-        const signedRav = await payerClient.signSubRAV(pendingSubRAV);
+        // 使用服务器提案的 SubRAV
+        signedSubRAV = await payerClient.signSubRAV(pendingSubRAV);
+      } else if (isFirstRequest) {
+        // 首次请求：生成握手 SubRAV (nonce=0, amount=0)
+        const channelInfo = await payerClient.getChannelInfo(channelId);
+        const keyIds = await payerClient.signer.listKeyIds();
+        const vmIdFragment = keyIds[0].split('#')[1]; // 提取 fragment 部分
         
-        const requestPayload: HttpRequestPayload = {
+        const handshakeSubRAV: SubRAV = {
+          version: 1,
+          chainId: BigInt(4), // 根据网络配置
           channelId,
-          signedSubRav: signedRav,
-          maxAmount: BigInt('50000000'), // 最大接受 0.05 RGas
-          clientTxRef: `client_${Date.now()}`
+          channelEpoch: channelInfo.epoch,
+          vmIdFragment,
+          accumulatedAmount: 0n,
+          nonce: 0n
         };
-
-        headers['X-Payment-Channel-Data'] = HttpHeaderCodec.buildRequestHeader(requestPayload);
-      } else {
-        // 首次请求，需要获取 payer 的 key ID
-        if (!payerKeyId) {
-          const keyIds = await payerClient.signer.listKeyIds();
-          payerKeyId = keyIds[0]; // 使用第一个 key ID
-        }
         
-        // 首次请求，提供 channelId 和 payerKeyId（用于生成 SubRAV 提案）
-        headers['X-Payment-Channel-ID'] = channelId;
-        headers['X-Payment-Payer-Key-ID'] = payerKeyId!;
+        signedSubRAV = await payerClient.signSubRAV(handshakeSubRAV);
+        isFirstRequest = false;
+      } else {
+        throw new Error('No pending SubRAV available for non-first request');
       }
+
+      const requestPayload: HttpRequestPayload = {
+        signedSubRav: signedSubRAV,
+        maxAmount: BigInt('50000000'), // 最大接受 0.05 RGas
+        clientTxRef: `client_${Date.now()}`
+      };
+
+      headers['X-Payment-Channel-Data'] = HttpHeaderCodec.buildRequestHeader(requestPayload);
       
       // 2. 发送请求
       const url = `${baseURL}/v1/echo?q=${encodeURIComponent(query)}`;
@@ -279,29 +278,41 @@ export function createTestClient(payerClient: any, baseURL: string, channelId: s
         'Content-Type': 'application/json'
       };
       
-      // 如果有上一次的 SubRAV，签名并放入请求头
+      // 生成签名的 SubRAV
+      let signedSubRAV: any;
+      
       if (pendingSubRAV) {
-        const signedRav = await payerClient.signSubRAV(pendingSubRAV);
+        // 使用服务器提案的 SubRAV
+        signedSubRAV = await payerClient.signSubRAV(pendingSubRAV);
+      } else if (isFirstRequest) {
+        // 首次请求：生成握手 SubRAV (nonce=0, amount=0)
+        const channelInfo = await payerClient.getChannelInfo(channelId);
+        const keyIds = await payerClient.signer.listKeyIds();
+        const vmIdFragment = keyIds[0].split('#')[1]; // 提取 fragment 部分
         
-        const requestPayload: HttpRequestPayload = {
+        const handshakeSubRAV: SubRAV = {
+          version: 1,
+          chainId: BigInt(4), // 根据网络配置
           channelId,
-          signedSubRav: signedRav,
-          maxAmount: BigInt('50000000'), // 最大接受 0.05 RGas
-          clientTxRef: `client_${Date.now()}`
+          channelEpoch: channelInfo.epoch,
+          vmIdFragment,
+          accumulatedAmount: 0n,
+          nonce: 0n
         };
-
-        headers['X-Payment-Channel-Data'] = HttpHeaderCodec.buildRequestHeader(requestPayload);
-      } else {
-        // 首次请求，需要获取 payer 的 key ID
-        if (!payerKeyId) {
-          const keyIds = await payerClient.signer.listKeyIds();
-          payerKeyId = keyIds[0]; // 使用第一个 key ID
-        }
         
-        // 首次请求，提供 channelId 和 payerKeyId（用于生成 SubRAV 提案）
-        headers['X-Payment-Channel-ID'] = channelId;
-        headers['X-Payment-Payer-Key-ID'] = payerKeyId!;
+        signedSubRAV = await payerClient.signSubRAV(handshakeSubRAV);
+        isFirstRequest = false;
+      } else {
+        throw new Error('No pending SubRAV available for non-first request');
       }
+
+      const requestPayload: HttpRequestPayload = {
+        signedSubRav: signedSubRAV,
+        maxAmount: BigInt('50000000'), // 最大接受 0.05 RGas
+        clientTxRef: `client_${Date.now()}`
+      };
+
+      headers['X-Payment-Channel-Data'] = HttpHeaderCodec.buildRequestHeader(requestPayload);
       
       const response = await fetch(`${baseURL}/v1/process`, {
         method: 'POST',
@@ -339,6 +350,7 @@ export function createTestClient(payerClient: any, baseURL: string, channelId: s
     // 清除待支付的 SubRAV（用于测试）
     clearPendingSubRAV() {
       pendingSubRAV = null;
+      isFirstRequest = true; // 重置为首次请求状态
     },
 
     // 获取管理信息

@@ -14,14 +14,32 @@ import type {
 } from '../core/types';
 import type { IPaymentChannelContract, ClaimResult } from '../contracts/IPaymentChannelContract';
 import type { SignerInterface, DIDResolver } from '@nuwa-ai/identity-kit';
-import { ChannelStateStorage, MemoryChannelStateStorage, type StorageOptions } from '../core/ChannelStateStorage';
+import type { ChannelRepository, RAVRepository, PendingSubRAVRepository } from '../storage';
+import { createChannelRepoAuto, createRAVRepoAuto, createPendingSubRAVRepoAuto } from '../storage';
 import { SubRAVManager, SubRAVUtils } from '../core/subrav';
+import { PaymentUtils } from '../core/PaymentUtils';
+
+/**
+ * Storage options for PaymentChannelPayeeClient
+ */
+export interface PayeeStorageOptions {
+  /** Storage backend type */
+  backend?: 'memory' | 'indexeddb' | 'sql';
+  /** Custom repository implementations */
+  customChannelRepo?: ChannelRepository;
+  customRAVRepo?: RAVRepository;
+  customPendingSubRAVRepo?: PendingSubRAVRepository;
+  /** PostgreSQL connection pool for SQL backend */
+  pool?: any;
+  /** Table name prefix for SQL backends */
+  tablePrefix?: string;
+}
 
 export interface PaymentChannelPayeeClientOptions {
   contract: IPaymentChannelContract;
   signer: SignerInterface;
   didResolver: DIDResolver; // Required for signature verification
-  storageOptions?: StorageOptions;
+  storageOptions?: PayeeStorageOptions;
 }
 
 export interface VerificationResult {
@@ -72,20 +90,43 @@ export class PaymentChannelPayeeClient {
   private contract: IPaymentChannelContract;
   private signer: SignerInterface;
   private didResolver: DIDResolver;
-  private stateStorage: ChannelStateStorage;
+  private channelRepo: ChannelRepository;
+  private ravRepo: RAVRepository;
+  private pendingSubRAVRepo: PendingSubRAVRepository;
   private ravManager: SubRAVManager;
   private chainIdCache?: bigint;
 
   constructor(options: PaymentChannelPayeeClientOptions) {
     this.contract = options.contract;
     this.signer = options.signer;
-    this.didResolver = options.didResolver; // Now required
+    this.didResolver = options.didResolver;
     
-    // Initialize storage
-    if (options.storageOptions?.customStorage) {
-      this.stateStorage = options.storageOptions.customStorage;
+    // Initialize repositories
+    if (options.storageOptions?.customChannelRepo) {
+      this.channelRepo = options.storageOptions.customChannelRepo;
     } else {
-      this.stateStorage = new MemoryChannelStateStorage();
+      this.channelRepo = createChannelRepoAuto({
+        pool: options.storageOptions?.pool,
+        tablePrefix: options.storageOptions?.tablePrefix,
+      });
+    }
+    
+    if (options.storageOptions?.customRAVRepo) {
+      this.ravRepo = options.storageOptions.customRAVRepo;
+    } else {
+      this.ravRepo = createRAVRepoAuto({
+        pool: options.storageOptions?.pool,
+        tablePrefix: options.storageOptions?.tablePrefix,
+      });
+    }
+    
+    if (options.storageOptions?.customPendingSubRAVRepo) {
+      this.pendingSubRAVRepo = options.storageOptions.customPendingSubRAVRepo;
+    } else {
+      this.pendingSubRAVRepo = createPendingSubRAVRepoAuto({
+        pool: options.storageOptions?.pool,
+        tablePrefix: options.storageOptions?.tablePrefix,
+      });
     }
     
     this.ravManager = new SubRAVManager();
@@ -107,7 +148,7 @@ export class PaymentChannelPayeeClient {
     // Get current sub-channel state or initialize if first time
     let subChannelState;
     try {
-      subChannelState = await this.stateStorage.getSubChannelState(channelId, payerKeyId);
+      subChannelState = await this.channelRepo.getSubChannelState(channelId, payerKeyId);
     } catch (error) {
       // First SubRAV for this sub-channel, initialize state
       subChannelState = {
@@ -119,7 +160,7 @@ export class PaymentChannelPayeeClient {
       };
       
       // Store initial state
-      await this.stateStorage.updateSubChannelState(channelId, payerKeyId, subChannelState);
+      await this.channelRepo.updateSubChannelState(channelId, payerKeyId, subChannelState);
     }
 
     // Validate that epoch matches
@@ -166,7 +207,11 @@ export class PaymentChannelPayeeClient {
     const channelInfo = await this.getChannelInfoCached(signedSubRAV.subRav.channelId);
     const keyId = this.reconstructKeyId(channelInfo.payerDid, signedSubRAV.subRav.vmIdFragment);
     
-    await this.stateStorage.updateSubChannelState(signedSubRAV.subRav.channelId, keyId, {
+    // Special handling for handshake reset (nonce=0, amount=0)
+    const isHandshakeReset = signedSubRAV.subRav.nonce === BigInt(0) && 
+                           signedSubRAV.subRav.accumulatedAmount === BigInt(0);
+    
+    await this.channelRepo.updateSubChannelState(signedSubRAV.subRav.channelId, keyId, {
       channelId: signedSubRAV.subRav.channelId,
       epoch: signedSubRAV.subRav.channelEpoch,
       accumulatedAmount: signedSubRAV.subRav.accumulatedAmount,
@@ -174,7 +219,14 @@ export class PaymentChannelPayeeClient {
       lastUpdated: Date.now(),
     });
 
-    console.log(`Successfully processed signed SubRAV for channel ${signedSubRAV.subRav.channelId}, nonce ${signedSubRAV.subRav.nonce}`);
+    // Persist the signed SubRAV to RAVStore for ClaimScheduler and persistence
+    await this.ravRepo.save(signedSubRAV);
+
+    if (isHandshakeReset) {
+      console.log(`Successfully processed handshake reset for channel ${signedSubRAV.subRav.channelId}, nonce ${signedSubRAV.subRav.nonce}`);
+    } else {
+      console.log(`Successfully processed signed SubRAV for channel ${signedSubRAV.subRav.channelId}, nonce ${signedSubRAV.subRav.nonce}`);
+    }
   }
 
   // -------- SubRAV Verification --------
@@ -237,14 +289,18 @@ export class PaymentChannelPayeeClient {
       // 4. Verify nonce progression (if we have previous state)
       const keyId = this.reconstructKeyId(channelInfo.payerDid, signedSubRAV.subRav.vmIdFragment);
       try {
-        const prevState = await this.stateStorage.getSubChannelState(signedSubRAV.subRav.channelId, keyId);
+        const prevState = await this.channelRepo.getSubChannelState(signedSubRAV.subRav.channelId, keyId);
         
         // Allow same nonce if it's the exact same SubRAV (same amount and other fields)
         const isSameSubRAV = signedSubRAV.subRav.nonce === prevState.nonce && 
                             signedSubRAV.subRav.accumulatedAmount === prevState.accumulatedAmount &&
                             signedSubRAV.subRav.channelEpoch === prevState.epoch;
         
-        const nonceProgression = signedSubRAV.subRav.nonce > prevState.nonce || isSameSubRAV;
+        // Allow handshake reset: nonce 0 with amount 0 is always valid as a reset
+        const isHandshakeReset = signedSubRAV.subRav.nonce === BigInt(0) && 
+                               signedSubRAV.subRav.accumulatedAmount === BigInt(0);
+        
+        const nonceProgression = signedSubRAV.subRav.nonce > prevState.nonce || isSameSubRAV || isHandshakeReset;
         result.details!.nonceProgression = nonceProgression;
         
         if (!nonceProgression) {
@@ -252,8 +308,8 @@ export class PaymentChannelPayeeClient {
           return result;
         }
 
-        // Verify amount is not decreasing (unless it's the same SubRAV)
-        const amountValid = signedSubRAV.subRav.accumulatedAmount >= prevState.accumulatedAmount;
+        // Verify amount is not decreasing (unless it's the same SubRAV or handshake reset)
+        const amountValid = signedSubRAV.subRav.accumulatedAmount >= prevState.accumulatedAmount || isHandshakeReset;
         result.details!.amountValid = amountValid;
         
         if (!amountValid) {
@@ -262,11 +318,20 @@ export class PaymentChannelPayeeClient {
         }
       } catch (error) {
         // No previous state found - this is the first SubRAV for this sub-channel
-        result.details!.nonceProgression = signedSubRAV.subRav.nonce === BigInt(1);
-        result.details!.amountValid = signedSubRAV.subRav.accumulatedAmount > BigInt(0);
+        // Allow nonce 0 (handshake) or nonce 1 (first payment)
+        const isHandshake = signedSubRAV.subRav.nonce === BigInt(0) && signedSubRAV.subRav.accumulatedAmount === BigInt(0);
+        const isFirstPayment = signedSubRAV.subRav.nonce === BigInt(1) && signedSubRAV.subRav.accumulatedAmount > BigInt(0);
+        
+        result.details!.nonceProgression = isHandshake || isFirstPayment;
+        result.details!.amountValid = isHandshake || signedSubRAV.subRav.accumulatedAmount > BigInt(0);
         
         if (!result.details!.nonceProgression) {
-          result.error = `First nonce must be 1, got ${signedSubRAV.subRav.nonce}`;
+          result.error = `First SubRAV must have nonce 0 (handshake) or nonce 1 (first payment), got ${signedSubRAV.subRav.nonce}`;
+          return result;
+        }
+        
+        if (!result.details!.amountValid) {
+          result.error = `First payment SubRAV must have positive amount, got ${signedSubRAV.subRav.accumulatedAmount}`;
           return result;
         }
       }
@@ -296,7 +361,7 @@ export class PaymentChannelPayeeClient {
     const keyId = this.reconstructKeyId(channelInfo.payerDid, signedSubRAV.subRav.vmIdFragment);
 
     // Update sub-channel state
-    await this.stateStorage.updateSubChannelState(signedSubRAV.subRav.channelId, keyId, {
+    await this.channelRepo.updateSubChannelState(signedSubRAV.subRav.channelId, keyId, {
       channelId: signedSubRAV.subRav.channelId,
       epoch: signedSubRAV.subRav.channelEpoch,
       accumulatedAmount: signedSubRAV.subRav.accumulatedAmount,
@@ -372,10 +437,10 @@ export class PaymentChannelPayeeClient {
     });
 
     // Update local cache to mark channel as closed
-    const metadata = await this.stateStorage.getChannelMetadata(channelId);
+    const metadata = await this.channelRepo.getChannelMetadata(channelId);
     if (metadata) {
       metadata.status = 'closed';
-      await this.stateStorage.setChannelMetadata(channelId, metadata);
+      await this.channelRepo.setChannelMetadata(channelId, metadata);
     }
 
     return { txHash: result.txHash };
@@ -389,13 +454,13 @@ export class PaymentChannelPayeeClient {
   }
 
   /**
-   * Get channel info with caching using ChannelStateStorage
+   * Get channel info with caching using ChannelRepository
    * This checks local storage first, then falls back to chain if not found or stale
    */
   private async getChannelInfoCached(channelId: string, forceRefresh: boolean = false): Promise<ChannelInfo> {
     // Try to get from local storage first (unless forced refresh)
     if (!forceRefresh) {
-      const cachedMetadata = await this.stateStorage.getChannelMetadata(channelId);
+      const cachedMetadata = await this.channelRepo.getChannelMetadata(channelId);
       if (cachedMetadata) {
         // Convert ChannelMetadata to ChannelInfo
         return cachedMetadata;
@@ -407,13 +472,13 @@ export class PaymentChannelPayeeClient {
       const channelInfo = await this.contract.getChannelStatus({ channelId });
       
       // Store in cache as ChannelMetadata
-      await this.stateStorage.setChannelMetadata(channelId, channelInfo);
+      await this.channelRepo.setChannelMetadata(channelId, channelInfo);
       
       return channelInfo;
     } catch (error) {
       // If chain call fails and we have stale cache, use it
       if (!forceRefresh) {
-        const staleMetadata = await this.stateStorage.getChannelMetadata(channelId);
+        const staleMetadata = await this.channelRepo.getChannelMetadata(channelId);
         if (staleMetadata) {
           console.warn(`Chain call failed for channel ${channelId}, using stale cache`);
           return staleMetadata;
@@ -430,7 +495,7 @@ export class PaymentChannelPayeeClient {
     const payeeDid = await this.signer.getDid();
     
     // Get channels from storage first
-    const storageResult = await this.stateStorage.listChannelMetadata(
+    const storageResult = await this.channelRepo.listChannelMetadata(
       { 
         payeeDid, 
         status: options.status || 'active' 
@@ -514,5 +579,214 @@ export class PaymentChannelPayeeClient {
       this.chainIdCache = await this.contract.getChainId();
     }
     return this.chainIdCache;
+  }
+
+  // -------- Enhanced Methods for PaymentProcessor --------
+
+  /**
+   * Verify handshake request (specialized method for nonce=0, amount=0)
+   */
+  async verifyHandshake(signedSubRAV: SignedSubRAV): Promise<VerificationResult> {
+    // Verify this is actually a handshake
+    if (!PaymentUtils.isHandshake(signedSubRAV.subRav)) {
+      return {
+        isValid: false,
+        error: `Not a handshake SubRAV: nonce=${signedSubRAV.subRav.nonce}, amount=${signedSubRAV.subRav.accumulatedAmount}`
+      };
+    }
+
+    // Use standard verification but optimized for handshake case
+    const result = await this.verifySubRAV(signedSubRAV);
+    
+    if (result.isValid) {
+      console.log(`✅ Handshake verified for channel ${signedSubRAV.subRav.channelId}`);
+    } else {
+      console.log(`❌ Handshake verification failed: ${result.error}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Confirm signed proposal from pending store
+   * Integrates pending store validation with signature verification
+   */
+  async confirmSignedProposal(
+    signedSubRAV: SignedSubRAV,
+    pendingStore: PendingSubRAVRepository
+  ): Promise<VerificationResult> {
+    try {
+      // Check if this SubRAV matches one we previously sent
+      const pendingSubRAV = await pendingStore.find(
+        signedSubRAV.subRav.channelId,
+        signedSubRAV.subRav.nonce
+      );
+      
+      if (!pendingSubRAV) {
+        return {
+          isValid: false,
+          error: `SubRAV not found in pending list: ${signedSubRAV.subRav.channelId}:${signedSubRAV.subRav.nonce}`
+        };
+      }
+
+      // Verify that the signed SubRAV matches our pending unsigned SubRAV
+      if (!PaymentUtils.subRAVsMatch(pendingSubRAV, signedSubRAV.subRav)) {
+        return {
+          isValid: false,
+          error: `Signed SubRAV does not match pending SubRAV: ${signedSubRAV.subRav.channelId}:${signedSubRAV.subRav.nonce}`
+        };
+      }
+
+      // Use standard verification for signature and other checks
+      const result = await this.verifySubRAV(signedSubRAV);
+      
+      if (result.isValid) {
+        // Remove from pending list on successful verification
+        await pendingStore.remove(signedSubRAV.subRav.channelId, signedSubRAV.subRav.nonce);
+        console.log(`✅ Confirmed signed proposal for channel ${signedSubRAV.subRav.channelId}, nonce ${signedSubRAV.subRav.nonce}`);
+      } else {
+        console.log(`❌ Signed proposal verification failed: ${result.error}`);
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        isValid: false,
+        error: `Proposal confirmation failed: ${error}`
+      };
+    }
+  }
+
+  /**
+   * Generate proposal with enhanced parameters
+   * High-level method that automatically handles payer key ID construction
+   */
+  async generateProposal(params: {
+    channelId: string;
+    vmIdFragment: string;
+    amount: bigint;
+    description?: string;
+  }): Promise<SubRAV> {
+    // Get channel info to construct proper payer key ID
+    const channelInfo = await this.getChannelInfoCached(params.channelId);
+    const payerKeyId = `${channelInfo.payerDid}#${params.vmIdFragment}`;
+
+    return await this.generateSubRAV({
+      channelId: params.channelId,
+      payerKeyId,
+      amount: params.amount,
+      description: params.description || `Payment proposal for ${params.channelId}`
+    });
+  }
+
+  /**
+   * Batch verify multiple SubRAVs efficiently
+   */
+  async batchVerifySubRAVs(signedSubRAVs: SignedSubRAV[]): Promise<VerificationResult[]> {
+    const results: VerificationResult[] = [];
+    
+    // Group by channel for efficient channel info fetching
+    const channelGroups = new Map<string, SignedSubRAV[]>();
+    for (const subRAV of signedSubRAVs) {
+      const channelId = subRAV.subRav.channelId;
+      if (!channelGroups.has(channelId)) {
+        channelGroups.set(channelId, []);
+      }
+      channelGroups.get(channelId)!.push(subRAV);
+    }
+
+    // Verify each group
+    for (const [channelId, subRAVs] of channelGroups) {
+      try {
+        // Pre-fetch channel info once per channel
+        await this.getChannelInfoCached(channelId);
+        
+        // Verify each SubRAV in the group
+        for (const subRAV of subRAVs) {
+          const result = await this.verifySubRAV(subRAV);
+          results.push(result);
+        }
+      } catch (error) {
+        // If channel info fetch fails, mark all SubRAVs in this channel as invalid
+        for (const _ of subRAVs) {
+          results.push({
+            isValid: false,
+            error: `Channel verification failed: ${error}`
+          });
+        }
+      }
+    }
+
+    return results;
+  }
+
+  /**
+   * Get verification statistics for monitoring
+   */
+  getVerificationStats(): {
+    totalVerifications: number;
+    successfulVerifications: number;
+    failedVerifications: number;
+    commonErrors: Record<string, number>;
+  } {
+    // In production, you'd track these metrics
+    // For now, return placeholder stats
+    return {
+      totalVerifications: 0,
+      successfulVerifications: 0,
+      failedVerifications: 0,
+      commonErrors: {}
+    };
+  }
+
+  /**
+   * Pre-validate SubRAV structure before signature verification
+   * Useful for quick validation without expensive signature operations
+   */
+  validateSubRAVStructure(subRAV: SubRAV): { isValid: boolean; error?: string } {
+    return PaymentUtils.validateSubRAV(subRAV);
+  }
+
+  /**
+   * Get channel health metrics
+   */
+  async getChannelHealth(channelId: string): Promise<{
+    isHealthy: boolean;
+    issues: string[];
+    lastActivity?: Date;
+    pendingClaims: number;
+  }> {
+    const issues: string[] = [];
+    
+    try {
+      const channelInfo = await this.getChannelInfoCached(channelId);
+      
+      // Check if channel is closed
+      if (channelInfo.status === 'closed') {
+        issues.push('Channel is closed');
+      }
+      
+      // Check if channel is closing
+      if (channelInfo.status === 'closing') {
+        issues.push('Channel is in closing state');
+      }
+      
+      // In production, add more health checks like:
+      // - Check for stuck transactions
+      // - Monitor claim success rates
+      // - Check for unusual nonce gaps
+      
+      return {
+        isHealthy: issues.length === 0,
+        issues,
+        pendingClaims: 0 // Would query from contract/storage
+      };
+    } catch (error) {
+      return {
+        isHealthy: false,
+        issues: [`Channel access failed: ${error}`],
+        pendingClaims: 0
+      };
+    }
   }
 } 

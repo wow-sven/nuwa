@@ -6,38 +6,29 @@ export * from './core/types';
 export * from './core/subrav';
 export * from './core/claim-scheduler';
 
+// Payment processor architecture
+export * from './core/PaymentProcessor';
+export * from './core/PaymentUtils';
+export * from './core/BillingContextBuilder';
+
+// Payment codecs
+// export * from './codecs/PaymentCodec';
+
 // Contract interfaces
 export * from './contracts/IPaymentChannelContract';
 
-// Chain-agnostic client
+// Chain-agnostic clients
 export * from './client/PaymentChannelPayerClient';
+export * from './client/PaymentChannelPayeeClient';
 
 // Factory for creating clients
 export * from './factory/chainFactory';
 
-// Storage layer - unified storage abstractions
-export type { 
-  RAVStore, 
-  ChannelStateStorage as BaseChannelStateStorage,
-  ChannelStateCache 
-} from './core/BaseStorage';
-export { 
-  MemoryRAVStore, 
-  IndexedDBRAVStore,
-  MemoryChannelStateCache 
-} from './core/BaseStorage';
+// Modern storage layer - refactored architecture
+export * from './storage';
 
-// Extended storage implementations with advanced features  
-export type { 
-  ChannelStateStorage, 
-  CacheStats, 
-  StorageOptions 
-} from './core/ChannelStateStorage';
-export { 
-  MemoryChannelStateStorage, 
-  IndexedDBChannelStateStorage,
-  SQLChannelStateStorage
-} from './core/ChannelStateStorage';
+// HTTP billing middleware (new refactored version)
+export * from './middlewares/http/HttpBillingMiddleware';
 
 // Rooch implementation
 export * from './rooch/RoochPaymentChannelContract';
@@ -98,8 +89,8 @@ export {
 // HTTP Header codec for Gateway Profile implementation
 export { HttpHeaderCodec, HttpPaymentMiddleware } from './core/http-header';
 
-// HTTP Billing middleware for deferred payment model
-export { HttpBillingMiddleware } from './core/http-billing-middleware';
+// HTTP Billing middleware for deferred payment model (refactored)
+export { HttpBillingMiddleware } from './middlewares/http/HttpBillingMiddleware';
 
 // Billing system (excluding conflicting types)
 export * from './billing';
