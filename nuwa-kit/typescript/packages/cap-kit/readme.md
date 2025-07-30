@@ -194,7 +194,7 @@ const content = await capKit.downloadCap(
 
 // Parse YAML content
 import * as yaml from 'js-yaml';
-const capability = yaml.load(content.data);
+const capability = yaml.load(content.data.fileData);
 ```
 
 ## Configuration
