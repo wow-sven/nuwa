@@ -1,6 +1,6 @@
 {
   "name": "@nuwa-ai/cap-kit",
-  "version": "0.2.1",
+  "version": "0.2.0",
   "description": "caps",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -12,6 +12,9 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     }
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "tsup --watch",
