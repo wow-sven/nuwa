@@ -11,7 +11,6 @@ export class UsdBillingEngine implements CostCalculator {
   constructor(
     private readonly configLoader: ConfigLoader,
     private readonly rateProvider: RateProvider,
-    private readonly defaultAssetConfigs: Record<string, { decimals: number }> = {}
   ) {}
 
   /**
@@ -71,13 +70,10 @@ export class UsdBillingEngine implements CostCalculator {
         throw new RateProviderError(`Invalid price for asset ${assetId}: ${price}`);
       }
 
-      // Get asset decimals
-      const decimals = await this.getAssetDecimals(assetId);
-      const decimalMultiplier = BigInt(10 ** decimals);
-
-      // Calculate asset cost with ceiling (向上取整)
-      // Formula: assetCost = ceil(usdCost * decimals / price)
-      const assetCost = (usdCost * decimalMultiplier + price - 1n) / price;
+      // Calculate asset cost with ceiling
+      // Formula: assetCost = ceil(usdCost / price)
+      // price is already in picoUSD per smallest unit, so no need to multiply by decimals
+      const assetCost = (usdCost + price - 1n) / price;
 
       return {
         assetCost,
@@ -94,40 +90,7 @@ export class UsdBillingEngine implements CostCalculator {
       );
     }
   }
-
-  /**
-   * Get asset decimal places
-   */
-  private async getAssetDecimals(assetId: string): Promise<number> {
-    try {
-      // First try to get from rate provider (which may query chain)
-      const assetInfo = await this.rateProvider.getAssetInfo(assetId);
-      if (assetInfo) {
-        return assetInfo.decimals;
-      }
-    } catch (error) {
-      console.warn(`Failed to get asset info from rate provider for ${assetId}:`, error);
-    }
-
-    // Fallback to hardcoded defaults
-    const config = this.defaultAssetConfigs[assetId];
-    if (config) {
-      return config.decimals;
-    }
-
-    // Final fallback based on asset type
-    if (assetId.includes('::gas_coin::') || assetId.startsWith('0x')) {
-      return 18; // Most blockchain native tokens
-    } else if (assetId.includes('usdc') || assetId.includes('USDC')) {
-      return 6; // USDC standard
-    } else if (assetId.includes('btc') || assetId.includes('BTC')) {
-      return 8; // Bitcoin standard
-    }
-    
-    // Conservative default
-    return 18;
-  }
-
+ 
   /**
    * Clear strategy cache for a specific service or all services
    */
@@ -157,23 +120,4 @@ export class UsdBillingEngine implements CostCalculator {
     return Array.from(this.strategyCache.keys());
   }
 
-  /**
-   * Set asset configuration for fallback
-   * @deprecated Use RateProvider.getAssetInfo() instead
-   */
-  setAssetConfig(assetId: string, config: { decimals: number }): void {
-    this.defaultAssetConfigs[assetId] = config;
-  }
 }
-
-/**
- * Default asset decimal configurations
- */
-export const DEFAULT_ASSET_DECIMALS: Record<string, { decimals: number }> = {
-  'ethereum': { decimals: 18 },
-  'usd-coin': { decimals: 6 },
-  'bitcoin': { decimals: 8 },
-  '0x3::gas_coin::RGas': { decimals: 18 }, // Rooch gas token
-  'erc20:USDC': { decimals: 6 },
-  'erc20:ETH': { decimals: 18 },
-}; 
