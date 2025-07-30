@@ -2,6 +2,7 @@ import { SignerInterface } from '../signers/types';
 import { KeyType, roochSignatureSchemeToKeyType } from '../types/crypto';
 import { CryptoUtils } from '../crypto';
 import { KeyStore, StoredKey, MemoryKeyStore } from './KeyStore';
+import { StoredKeyCodec } from './StoredKeyCodec';
 import {
   signWithKeyStore,
   canSignWithKeyStore,
@@ -255,6 +256,16 @@ export class KeyManager implements SignerInterface {
       throw new Error(`Key ID ${keyId} already exists in store`);
     }
 
+    // Validate key pair consistency for security
+    const isConsistent = await CryptoUtils.validateKeyPairConsistency(
+      keyPair.privateKey, 
+      keyPair.publicKey, 
+      type
+    );
+    if (!isConsistent) {
+      throw new Error('Key pair validation failed: private and public keys are inconsistent');
+    }
+
     await this.importKey({
       keyId,
       keyType: type,
@@ -277,5 +288,45 @@ export class KeyManager implements SignerInterface {
       },
       keyType
     );
+  }
+
+  /**
+   * Export a stored key to a base58btc encoded string
+   * @param keyId The ID of the key to export
+   * @returns base58btc encoded string representation of the StoredKey
+   */
+  async exportKeyToString(keyId: string): Promise<string> {
+    const key = await this.getStoredKey(keyId);
+    if (!key) {
+      throw new Error(`Key ${keyId} not found`);
+    }
+    return StoredKeyCodec.encode(key);
+  }
+
+  /**
+   * Import a StoredKey from a base58btc encoded string into the current KeyManager
+   * @param serialized The base58btc encoded string representation of a StoredKey
+   * @returns The imported StoredKey
+   */
+  async importKeyFromString(serialized: string): Promise<StoredKey> {
+    const key = await StoredKeyCodec.decode(serialized);
+    await this.importKey(key);
+    return key;
+  }
+
+  /**
+   * Create a new KeyManager from a serialized StoredKey string
+   * @param serialized The base58btc encoded string representation of a StoredKey
+   * @param store Optional key store (defaults to MemoryKeyStore)
+   * @returns A new KeyManager instance with the imported key
+   */
+  static async fromSerializedKey(
+    serialized: string,
+    store: KeyStore = new MemoryKeyStore()
+  ): Promise<KeyManager> {
+    const key = await StoredKeyCodec.decode(serialized);
+    const km = KeyManager.createEmpty(getDidWithoutFragment(key.keyId), store);
+    await km.importKey(key);
+    return km;
   }
 }
