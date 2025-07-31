@@ -335,6 +335,22 @@ export class PaymentChannelPayerClient {
   }
  
   /**
+   * Deposit funds to the payment hub for the current payer
+   */
+  async depositToHub(params: { assetId: string; amount: bigint }): Promise<{ txHash: string }> {
+    const payerDid = await this.signer.getDid();
+    
+    const result = await this.contract.depositToHub({
+      targetDid: payerDid,
+      assetId: params.assetId,
+      amount: params.amount,
+      signer: this.signer,
+    });
+
+    return { txHash: result.txHash };
+  }
+
+  /**
    * Close a payment channel
    */
   async closeChannel(channelId: string, cooperative: boolean = true): Promise<{ txHash: string }> {
@@ -397,18 +413,15 @@ export class PaymentChannelPayerClient {
     return this.contract.getAssetPrice(assetId);
   }
 
-  // -------- Private Helpers --------
-
-  /**
-   * Get cached chain ID or fetch from contract
-   */
-  private async getChainId(): Promise<bigint> {
+  public async getChainId(): Promise<bigint> {
     if (this.chainIdCache === undefined) {
       this.chainIdCache = await this.contract.getChainId();
     }
     return this.chainIdCache;
   }
 
+  // -------- Private Helpers --------
+  
   /**
    * Extract fragment from full key ID
    */

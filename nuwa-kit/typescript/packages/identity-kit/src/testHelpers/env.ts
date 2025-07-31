@@ -14,6 +14,13 @@ import {
 
 /**
  * Test environment for Rooch DID integration testing
+ * 
+ * Provides a pre-configured environment with:
+ * - Rooch client and VDR registry
+ * - Helper methods for creating test identities
+ * 
+ * Note: Each createSelfDid() call returns its own dedicated IdentityEnv,
+ * which is preferred for multi-party testing scenarios to avoid conflicts.
  */
 export class TestEnv {
   private static instance?: TestEnv;
@@ -46,6 +53,7 @@ export class TestEnv {
       this.vdrRegistry.registerVDR(this.roochVDR);
     }
 
+
     if (options.debug) {
       this.logger.debug('TestEnv initialized', {
         rpcUrl: this.rpcUrl,
@@ -68,6 +76,8 @@ export class TestEnv {
     
     return new TestEnv(resolvedOptions);
   }
+
+
 
   /**
    * Check if integration tests should be skipped

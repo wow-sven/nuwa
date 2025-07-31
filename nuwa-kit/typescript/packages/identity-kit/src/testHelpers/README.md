@@ -60,6 +60,73 @@ Creates a custodian DID with CADOP service.
 #### createDidViaCadop()
 Creates a user DID via CADOP protocol using an existing custodian.
 
+## Payment Kit Integration
+
+TestEnv now includes a pre-configured `IdentityEnv` that can be used directly with Payment Kit:
+
+```ts
+import { TestEnv, createSelfDid } from '@nuwa-ai/identity-kit/testHelpers';
+import { createHttpClient } from '@nuwa-ai/payment-kit';
+
+describe('Payment Integration Test', () => {
+  test('should work with simplified API', async () => {
+    if (TestEnv.skipIfNoNode()) return;
+    
+    // Bootstrap test environment
+    const env = await TestEnv.bootstrap({
+      rpcUrl: 'http://localhost:6767',
+      network: 'local'
+    });
+    
+    // Create a test DID (now includes its own IdentityEnv)
+    const payer = await createSelfDid(env);
+    
+    // Create HTTP client with automatic service discovery
+    const client = await createHttpClient({
+      baseUrl: 'https://api.example.com',
+      env: payer.identityEnv,  // Use the DID's dedicated IdentityEnv
+      maxAmount: BigInt('1000000000')
+    });
+    
+    // Make paid API calls
+    const result = await client.get('/v1/echo?q=hello');
+  });
+});
+```
+
+### Multi-Identity Testing
+
+Each DID created with `createSelfDid` gets its own `IdentityEnv`, making it perfect for testing scenarios with multiple parties:
+
+```ts
+describe('Multi-Party Payment Test', () => {
+  test('should work with separate identities', async () => {
+    if (TestEnv.skipIfNoNode()) return;
+    
+    const env = await TestEnv.bootstrap({
+      rpcUrl: 'http://localhost:6767',
+      network: 'local'
+    });
+    
+    // Create separate identities for payer and payee
+    const payer = await createSelfDid(env);
+    const payee = await createSelfDid(env);
+    
+    // Each has their own IdentityEnv - no conflicts!
+    const payerClient = await createHttpClient({
+      baseUrl: 'https://api.example.com',
+      env: payer.identityEnv,  // Payer's IdentityEnv
+      maxAmount: BigInt('1000000000')
+    });
+    
+    // You could also create a payee service using payee.identityEnv
+    // without any interference between the two
+    
+    const result = await payerClient.get('/v1/echo?q=hello');
+  });
+});
+```
+
 ## Environment Variables
 
 - `ROOCH_NODE_URL`: RPC endpoint for Rooch node (defaults to `http://localhost:6767`)
