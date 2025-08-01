@@ -5,7 +5,7 @@ import { setupEnv } from "./setup";
 describe("CapKit", () => {
   let capKit: CapKit;
   beforeAll(async () => {
-    const { capKit: a } = await setupEnv('local');
+    const { capKit: a } = await setupEnv('test');
     capKit = a;
   })
 
@@ -17,5 +17,5 @@ describe("CapKit", () => {
     );
 
     console.log(result)
-  });
+  }, 60000); // 30 second timeout for blockchain operations
 });

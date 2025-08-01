@@ -1,4 +1,4 @@
-import { Secp256k1Keypair, Ed25519Keypair } from '@roochnetwork/rooch-sdk';
+import { Secp256k1Keypair, Ed25519Keypair, Keypair } from '@roochnetwork/rooch-sdk';
 import { KeyType } from '../types/crypto';
 import { KeyManager } from '../keys/KeyManager';
 import { MemoryKeyStore } from '../keys/KeyStore';
@@ -38,11 +38,19 @@ export async function createSelfDid(
   } = options;
 
   // Generate keypair based on type
-  let roochKeyPair;
+  let roochKeyPair: Keypair;
   if (keyType === KeyType.SECP256K1) {
-    roochKeyPair = Secp256k1Keypair.generate();
+    if (options.secretKey) {
+      roochKeyPair = Secp256k1Keypair.fromSecretKey(options.secretKey);
+    } else {
+      roochKeyPair = Secp256k1Keypair.generate();
+    }
   } else if (keyType === KeyType.ED25519) {
-    roochKeyPair = Ed25519Keypair.generate();
+    if (options.secretKey) {
+      roochKeyPair = Ed25519Keypair.fromSecretKey(options.secretKey);
+    } else {
+      roochKeyPair = Ed25519Keypair.generate();
+    }
   } else {
     throw new Error(`Unsupported key type for Rooch: ${keyType}`);
   }
