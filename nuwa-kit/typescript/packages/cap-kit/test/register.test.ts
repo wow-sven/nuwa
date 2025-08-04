@@ -17,5 +17,5 @@ describe("CapKit", () => {
     );
 
     console.log(result)
-  });
+  }, 60000); // 30 second timeout for blockchain operations
 });

@@ -1,4 +1,3 @@
-import { DIDDocument } from '../types/did';
 import { KeyManager } from '../keys/KeyManager';
 import { SignerInterface } from '../signers/types';
 import { KeyType } from '../types/crypto';
@@ -42,6 +41,7 @@ export interface CreateSelfDidResult {
 export interface CreateSelfDidOptions {
   /** Key type to use for the account key */
   keyType?: KeyType;
+  secretKey?: string;
   /** Custom fragment for the account key */
   keyFragment?: string;
   /** Skip funding the account (useful if account already has funds) */

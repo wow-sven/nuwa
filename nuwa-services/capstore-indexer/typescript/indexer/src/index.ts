@@ -8,7 +8,7 @@ import { z } from "zod";
 
 import { DIDAuth, VDRRegistry, initRoochVDR } from "@nuwa-ai/identity-kit";
 
-import { IPFS_NODE, IPFS_NODE_PORT, TARGET } from "./constant.js";
+import {IPFS_NODE, IPFS_NODE_PORT, IPFS_NODE_URL, TARGET} from "./constant.js";
 import { setupRoochEventListener } from './event-handle.js';
 import { queryCIDFromSupabase } from "./supabase.js";
 import type { Result } from "./type.js";
@@ -23,17 +23,24 @@ let ipfsClient: any;
 
 (async () => {
   try {
-    // Create IPFS HTTP client
-    ipfsClient = create({
-      host: IPFS_NODE,
-      port: parseInt(IPFS_NODE_PORT),
-      protocol: 'http'
-    });
 
-    // Verify connection
-    const nodeId = await ipfsClient.id();
-    console.log('✅ IPFS client initialized');
-    console.log(`🌐 Connected to go-ipfs node: ${nodeId.id}`);
+    if (IPFS_NODE_URL) {
+      ipfsClient = create({
+        url: IPFS_NODE_URL
+      });
+    } else {
+      // Create IPFS HTTP client
+      ipfsClient = create({
+        host: IPFS_NODE,
+        port: parseInt(IPFS_NODE_PORT),
+        protocol: 'http'
+      });
+
+      // Verify connection
+      const nodeId = await ipfsClient.id();
+      console.log('✅ IPFS client initialized');
+      console.log(`🌐 Connected to go-ipfs node: ${nodeId.id}`);
+    }
   } catch (error) {
     console.error('❌ Failed to initialize IPFS client:', error);
     process.exit(1);
