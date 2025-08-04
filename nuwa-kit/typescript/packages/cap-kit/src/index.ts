@@ -1,10 +1,7 @@
 import { RoochClient, Transaction, Args } from "@roochnetwork/rooch-sdk";
-import { type SignerInterface, DIDAuth, DidAccountSigner } from "@nuwa-ai/identity-kit";
+import { type SignerInterface, DidAccountSigner } from "@nuwa-ai/identity-kit";
 import * as yaml from 'js-yaml';
 import { buildClient } from "./client";
-
-// Polyfill for Buffer in browser environments
-const Buffer = typeof window !== 'undefined' && window.Buffer ? window.Buffer : require('buffer').Buffer;
 
 export class CapKit {
   protected roochClient: RoochClient;

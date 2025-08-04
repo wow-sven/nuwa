@@ -5,7 +5,7 @@ import { setupEnv } from "./setup";
 describe("CapKit", () => {
   let capKit: CapKit;
   beforeAll(async () => {
-    const { capKit: a } = await setupEnv('test');
+    const { capKit: a } = await setupEnv('local');
     capKit = a;
   })
 
