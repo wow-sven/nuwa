@@ -5,9 +5,9 @@ import { setupEnv } from "./setup";
 describe("CapKit", () => {
   let capKit: CapKit;
   beforeAll(async () => {
-    const { capKit: a } = await setupEnv('local');
+    const { capKit: a } = await setupEnv('test');
     capKit = a;
-  })
+  }, 60000)
 
   it("should register a cap", async () => {
     const result = await capKit.registerCap(
