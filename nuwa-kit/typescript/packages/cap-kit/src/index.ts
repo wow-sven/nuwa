@@ -149,8 +149,8 @@ export class CapKit {
     const acpContent = await this.createACPFile({name, description, options});
     
     // 2. Upload ACP file to IPFS using nuwa-cap-store MCP
-    const cid = await this.uploadToIPFS(acpContent, this.signer);
-    
+    const cid = await this.uploadToIPFS(name, acpContent, this.signer);
+
     // 3. Call Move contract to register the capability
     const result = await this.registerOnChain(name, cid, this.signer);
 
@@ -177,7 +177,7 @@ export class CapKit {
     return yaml.dump(acp);
   }
 
-  private async uploadToIPFS(content: string, signer: SignerInterface): Promise<string> {
+  private async uploadToIPFS(name: string, content: string, signer: SignerInterface): Promise<string> {
 
     const client = await buildClient(this.mcpUrl, signer);
 
@@ -192,7 +192,7 @@ export class CapKit {
 
       // Convert content to base64
       const fileData = Buffer.from(content, 'utf8').toString('base64');
-      const fileName = `cap-${Date.now()}.acp.yaml`;
+      const fileName = `${name}-${Date.now()}.cap.yaml`;
 
       // Upload file to IPFS
       const result = await uploadTool.execute({ 
@@ -228,6 +228,7 @@ export class CapKit {
       target: `${this.contractAddress}::acp_registry::register`,
       typeArgs: [],
       args: [Args.string(name), Args.string(cid)],
+      maxGas: 500000000
     })
 
     return await this.roochClient.signAndExecuteTransaction({

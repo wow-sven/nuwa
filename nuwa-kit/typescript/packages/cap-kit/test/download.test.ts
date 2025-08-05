@@ -5,22 +5,21 @@ import {setupEnv} from "./setup";
 describe("CapKit", () => {
   let capKit: CapKit;
   beforeAll(async () => {
-    const { capKit: a } = await setupEnv('local');
+    const { capKit: a } = await setupEnv();
     capKit = a;
   })
 
   it("download cap by id", async () => {
-    // const cid = await capKit.registerCap({
-    //   name: "test_cap",
-    //   description: "test_cap",
-    //   options: {},
-    //   signer,
-    // });
+    const cid = await capKit.registerCap(
+      "test_cap",
+      "test_cap",
+      {}
+    );
 
-    // await new Promise(resolve => setTimeout(resolve, 35000));
+    await new Promise(resolve => setTimeout(resolve, 35000));
 
     const result = await capKit.downloadCap(
-      'QmcG8y4tGQacqSMJdWUQuJvf4921psvoasfQrasMRRTC3q'
+      cid
     )
 
     console.log(result)

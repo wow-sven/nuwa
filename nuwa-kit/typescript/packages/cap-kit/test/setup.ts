@@ -1,13 +1,31 @@
 import { createSelfDid, TestEnv } from "@nuwa-ai/identity-kit";
 import { CapKit } from "../src";
-import { Secp256k1Keypair } from "@roochnetwork/rooch-sdk";
 
 const localContractAddress = "0xeb1deb6f1190f86cd4e05a82cfa5775a8a5929da49fac3ab8f5bf23e9181e625";
 const testContractAddress = "0xdc2a3eba923548660bb642b9df42936941a03e2d8bab223ae6dda6318716e742";
-const testMcpUrl = "https://nuwa-production-7dab.up.railway.app/";
+const testMcpUrl = "https://test-cap.nuwa.dev/mcp";
 const localMcpUrl = "http://localhost:3000/mcp";
+const DEFAULT_FAUCET_URL = 'https://test-faucet.rooch.network';
 
-export const setupEnv = async (target: 'test' | 'local') => {
+async function claimTestnetGas(
+  agentAddress: string,
+  faucetUrl: string = DEFAULT_FAUCET_URL
+): Promise<number> {
+  const resp = await fetch(`${faucetUrl}/faucet`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ claimer: agentAddress }),
+  });
+
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    throw new Error(data.error || `Claim failed with status ${resp.status}`);
+  }
+  const data = await resp.json();
+  return data.gas || 5_000_000_000; // default fallback
+}
+
+export const setupEnv = async (target: 'test' | 'local' = 'test') => {
   const roochUrl = process.env.ROOCH_NODE_URL || target === 'test' ? 'https://test-seed.rooch.network' : 'http://localhost:6767';
   const mcpUrl = process.env.MCP_URL || target === 'test' ? testMcpUrl : localMcpUrl;
   const contractAddress = process.env.CONTRACT_ADDRESS || target === 'test' ? testContractAddress : localContractAddress;
@@ -16,13 +34,15 @@ export const setupEnv = async (target: 'test' | 'local') => {
     network: target,
     debug: false,
   });
-  // const keypair = Secp256k1Keypair.generate();
-  // console.log(keypair.getSecretKey());
 
-  const { signer } = await createSelfDid(env, {
+  const { signer, did } = await createSelfDid(env, {
     customScopes: [`${contractAddress}::*::*`],
-    secretKey: 'roochsecretkey1qxff6t07ursnamzc2dmzdxccfvr9l33y09uz4a6zj8rwspcxdzzev7k83t5'
+    secretKey: 'roochsecretkey1qylp6ehfqx4c0zw6w7jpdwxm7q3e739d9fkxq0ym6xjtt2v0lxgpvvhcqg6'
   });
+
+  if (target === 'test') {
+    await claimTestnetGas(did.split(':')[2]);
+  }
 
   const capKit = new CapKit({
     roochUrl: roochUrl,
@@ -30,7 +50,7 @@ export const setupEnv = async (target: 'test' | 'local') => {
     contractAddress: contractAddress,
     signer,
   });
-  
+
   return {
     env,
     signer,
