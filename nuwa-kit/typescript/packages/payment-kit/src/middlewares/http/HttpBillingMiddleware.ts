@@ -24,8 +24,30 @@ import type { CostCalculator } from '../../billing/types';
 import type { PendingSubRAVRepository } from '../../storage/interfaces/PendingSubRAVRepository';
 import type { ClaimScheduler } from '../../core/ClaimScheduler';
 
-// Express types (optional dependency)
-interface Request {
+// Generic HTTP interfaces (framework-agnostic)
+export interface GenericHttpRequest {
+  path: string;
+  method: string;
+  headers: Record<string, string | string[] | undefined>;
+  query: Record<string, any>;
+  body?: any;
+}
+
+export interface ResponseAdapter {
+  setStatus(code: number): ResponseAdapter;
+  json(obj: any): ResponseAdapter | void;
+  setHeader(name: string, value: string): ResponseAdapter;
+}
+
+// Rule information for payment processing (protocol-agnostic)
+export interface PaymentRule {
+  paymentRequired?: boolean;
+  authRequired?: boolean;
+  adminOnly?: boolean;
+}
+
+// Express types (for backward compatibility)
+interface ExpressRequest {
   path: string;
   method: string;
   headers: Record<string, string | string[]>;
@@ -33,10 +55,11 @@ interface Request {
   body?: any;
 }
 
-interface Response {
-  status(code: number): Response;
-  json(obj: any): Response;
-  setHeader(name: string, value: string): Response;
+interface ExpressResponse {
+  status(code: number): ExpressResponse;
+  json(obj: any): ExpressResponse;
+  setHeader(name: string, value: string): ExpressResponse;
+  headersSent: boolean;
 }
 
 interface NextFunction {
@@ -110,55 +133,81 @@ export class HttpBillingMiddleware {
   }
 
   /**
-   * Create Express middleware function
+   * Framework-agnostic payment processing handler
    */
-  createExpressMiddleware() {
-    return async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        this.log('🔍 Processing HTTP payment request:', req.method, req.path);
-        
-        const result = await this.processHttpPayment(req);
-        
-        if (!result.success) {
-          const statusCode = this.mapErrorToHttpStatus(result.errorCode);
-          return res.status(statusCode).json({ 
-            error: result.error || 'Payment required',
-            code: result.errorCode,
-            assetId: result.assetId
+  async handle(req: GenericHttpRequest, resAdapter: ResponseAdapter, rule?: PaymentRule): Promise<ProcessorPaymentResult | null> {
+    try {
+      this.log('🔍 Processing HTTP payment request:', req.method, req.path);
+      
+      // Step 1: Early payment requirement check if rule is provided
+      let cachedPaymentData: HttpRequestPayload | null = null;
+      if (rule?.paymentRequired) {
+        cachedPaymentData = this.extractPaymentData(req.headers);
+        if (!cachedPaymentData?.signedSubRav) {
+          this.log(`💳 Payment required but no signed SubRAV provided for ${req.method} ${req.path}`);
+          resAdapter.setStatus(402).json({
+            error: 'Payment Required',
+            message: 'Signed SubRAV required for this endpoint',
+            code: 'PAYMENT_REQUIRED'
           });
+          return null;
         }
-
-        // Add payment proposal to response if available
-        if (result.unsignedSubRAV) {
-          this.addPaymentProposalToResponse(res, result);
-        }
-
-        // Attach payment result to request for downstream handlers
-        (req as any).paymentResult = result;
-        
-        next();
-      } catch (error) {
-        this.log('🚨 HTTP payment middleware error:', error);
-        res.status(500).json({ 
-          error: 'Payment processing failed',
-          code: 'PAYMENT_ERROR',
-          details: error instanceof Error ? error.message : String(error)
-        });
+        this.log(`💳 Payment data found for ${req.method} ${req.path}`);
       }
-    };
+      
+      // Step 2: Process payment with pre-extracted payment data to avoid re-parsing
+      // Use cached payment data or extract from HTTP headers
+      const paymentData = cachedPaymentData || this.extractPaymentData(req.headers);
+      
+      // Build protocol-agnostic request metadata
+      const requestMeta = this.buildRequestMetadata(req, paymentData || undefined);
+      
+      // Delegate to PaymentProcessor for core payment logic
+      const result = await this.processor.processPayment(
+        requestMeta,
+        paymentData?.signedSubRav
+      );
+      
+      if (!result.success) {
+        const statusCode = this.mapErrorToHttpStatus(result.errorCode);
+        resAdapter.setStatus(statusCode).json({ 
+          error: result.error || 'Payment required',
+          code: result.errorCode,
+          assetId: result.assetId
+        });
+        return null;
+      }
+
+      // Add payment proposal to response if available
+      if (result.unsignedSubRAV) {
+        this.addPaymentProposalToResponse(resAdapter, result);
+      }
+
+      // Success - return result for framework-specific handling
+      this.log('✅ Payment processing completed successfully');
+      return result;
+    } catch (error) {
+      this.log('🚨 HTTP payment middleware error:', error);
+      resAdapter.setStatus(500).json({ 
+        error: 'Payment processing failed',
+        code: 'PAYMENT_ERROR',
+        details: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    }
   }
 
   /**
    * Process HTTP payment request
    */
-  async processHttpPayment(req: Request): Promise<ProcessorPaymentResult> {
-    // 1. Extract payment data from HTTP headers
-    const paymentData = this.extractPaymentData(req.headers as Record<string, string>);
+  async processHttpPayment(req: GenericHttpRequest): Promise<ProcessorPaymentResult> {
+    // Extract payment data from HTTP headers
+    const paymentData = this.extractPaymentData(req.headers);
     
-    // 2. Build protocol-agnostic request metadata
+    // Build protocol-agnostic request metadata
     const requestMeta = this.buildRequestMetadata(req, paymentData || undefined);
     
-    // 3. Delegate to PaymentProcessor for core payment logic
+    // Delegate to PaymentProcessor for core payment logic
     const result = await this.processor.processPayment(
       requestMeta,
       paymentData?.signedSubRav
@@ -167,10 +216,12 @@ export class HttpBillingMiddleware {
     return result;
   }
 
+
+
   /**
    * Extract payment data from HTTP request headers
    */
-  private extractPaymentData(headers: Record<string, string>): HttpRequestPayload | null {
+  extractPaymentData(headers: Record<string, string | string[] | undefined>): HttpRequestPayload | null {
     const headerValue = HttpPaymentCodec.extractPaymentHeader(headers);
     
     if (!headerValue) {
@@ -191,7 +242,7 @@ export class HttpBillingMiddleware {
   /**
    * Build protocol-agnostic request metadata from HTTP request
    */
-  private buildRequestMetadata(req: Request, paymentData?: HttpRequestPayload): RequestMetadata {
+  private buildRequestMetadata(req: GenericHttpRequest, paymentData?: HttpRequestPayload): RequestMetadata {
     return {
       operation: `${req.method.toLowerCase()}:${req.path}`,
       
@@ -219,7 +270,7 @@ export class HttpBillingMiddleware {
   /**
    * Add payment proposal to HTTP response headers
    */
-  private addPaymentProposalToResponse(res: Response, result: ProcessorPaymentResult): void {
+  private addPaymentProposalToResponse(resAdapter: ResponseAdapter, result: ProcessorPaymentResult): void {
     if (!result.unsignedSubRAV) return;
 
     try {
@@ -233,7 +284,7 @@ export class HttpBillingMiddleware {
         }
       );
 
-      res.setHeader(HttpPaymentCodec.getHeaderName(), responseHeader);
+      resAdapter.setHeader(HttpPaymentCodec.getHeaderName(), responseHeader);
       this.log('✅ Added payment proposal to response header');
     } catch (error) {
       this.log('⚠️ Failed to add payment proposal to response:', error);
@@ -323,6 +374,26 @@ export class HttpBillingMiddleware {
   }
 
   /**
+   * Create ExpressJS ResponseAdapter
+   */
+  private createExpressResponseAdapter(res: ExpressResponse): ResponseAdapter {
+    return {
+      setStatus: (code: number) => {
+        res.status(code);
+        return this.createExpressResponseAdapter(res); // Return adapter for chaining
+      },
+      json: (obj: any) => {
+        res.json(obj);
+        // Note: Express res.json() returns void, so we return void to match interface
+      },
+      setHeader: (name: string, value: string) => {
+        res.setHeader(name, value);
+        return this.createExpressResponseAdapter(res); // Return adapter for chaining
+      }
+    };
+  }
+
+  /**
    * Debug logging
    */
   private log(...args: any[]): void {
@@ -376,5 +447,46 @@ export function createBasicBillingConfig(
         }
       }
     ]
+  };
+}
+
+/**
+ * Utility function to create ExpressJS ResponseAdapter
+ */
+export function createExpressResponseAdapter(res: any): ResponseAdapter {
+  return {
+    setStatus: (code: number) => {
+      res.status(code);
+      return createExpressResponseAdapter(res);
+    },
+    json: (obj: any) => {
+      res.json(obj);
+    },
+    setHeader: (name: string, value: string) => {
+      res.setHeader(name, value);
+      return createExpressResponseAdapter(res);
+    }
+  };
+}
+
+// Re-export ProcessorPaymentResult for framework integrations
+export type { ProcessorPaymentResult } from '../../core/PaymentProcessor';
+
+/**
+ * Utility function to create Koa ResponseAdapter (example for other frameworks)
+ */
+export function createKoaResponseAdapter(ctx: any): ResponseAdapter {
+  return {
+    setStatus: (code: number) => {
+      ctx.status = code;
+      return createKoaResponseAdapter(ctx);
+    },
+    json: (obj: any) => {
+      ctx.body = obj;
+    },
+    setHeader: (name: string, value: string) => {
+      ctx.set(name, value);
+      return createKoaResponseAdapter(ctx);
+    }
   };
 } 
