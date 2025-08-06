@@ -10,7 +10,8 @@
  */
 
 import { jest, describe, test, expect, beforeAll, afterAll } from '@jest/globals';
-import { PaymentChannelHttpClient, createHttpClient } from '../../src/integrations/http';
+import { PaymentChannelHttpClient, createHttpClient, PaymentChannelAdminClient, createAdminClient } from '../../src/integrations/http';
+import { safeStringify } from '../../src/utils/json';
 import { PaymentChannelFactory } from '../../src/factory/chainFactory';
 import { RoochPaymentChannelContract } from '../../src/rooch/RoochPaymentChannelContract';
 import type { AssetInfo } from '../../src/core/types';
@@ -29,6 +30,7 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
   let testAsset: AssetInfo;
   let billingServerInstance: any;
   let httpClient: PaymentChannelHttpClient;
+  let adminClient: PaymentChannelAdminClient;
 
   beforeAll(async () => {
     if (!shouldRunE2ETests()) {
@@ -91,8 +93,12 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
       debug: true
     });
 
+    // Create admin client for testing admin endpoints
+    adminClient = createAdminClient(httpClient);
+
     console.log(`✅ Billing server started on ${billingServerInstance.baseURL}`);
     console.log(`✅ HTTP client created using simplified createHttpClient API with automatic service discovery`);
+    console.log(`✅ Admin client created for testing admin endpoints`);
   }, 180000); // 3 minutes timeout for setup
 
   afterAll(async () => {
@@ -107,24 +113,7 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
     // Note: PaymentChannelHttpClient should handle channel cleanup automatically
     // or provide explicit cleanup methods in the future
     console.log('🏁 HTTP Payment Kit E2E Tests completed');
-  }, 60000); // 1 minute timeout for cleanup
-
-  // Helper function to generate admin authentication header
-  async function generateAdminAuthHeader(): Promise<string> {
-    const keyIds = await payer.keyManager.listKeyIds();
-    const keyId = keyIds[0];
-
-    const signedObject = await DIDAuth.v1.createSignature(
-      { 
-        operation: 'admin_request',
-        params: { uri: billingServerInstance.baseURL }
-      },
-      payer.keyManager,
-      keyId
-    );
-
-    return DIDAuth.v1.toAuthorizationHeader(signedObject);
-  }
+  }, 60000); // 1 minute timeout for cleanup 
 
   test('Service discovery with createHttpClient', async () => {
     if (!shouldRunE2ETests()) return;
@@ -143,19 +132,7 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
       serviceId: serviceInfo.serviceId,
       network: serviceInfo.network
     });
-
-    // Test asset price discovery
-    // const priceInfo = await httpClient.getAssetPrice(testAsset.assetId);
-    // expect(priceInfo.assetId).toBe(testAsset.assetId);
-    // expect(priceInfo.pricePicoUSD).toBeTruthy();
-    // expect(priceInfo.priceUSD).toBeTruthy();
-
-    // console.log('✅ Asset price discovery successful:', {
-    //   asset: priceInfo.assetId,
-    //   priceUSD: priceInfo.priceUSD,
-    //   source: priceInfo.source
-    // });
-
+ 
     console.log('🎉 Service discovery test successful!');
   }, 60000);
 
@@ -203,10 +180,9 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
       console.log(`✅ Request ${i} successful`);
     }
 
-    // Check admin stats for payment tracking
-    // Create a basic HTTP client for admin endpoints (no payment required)
-    const adminStats = await httpClient.get(`/payment-channel/admin/claims`);
-    console.log('📊 Admin stats after multiple requests:', JSON.stringify(adminStats, null, 2));
+    // Check admin stats for payment tracking using AdminClient
+    const adminStats = await adminClient.getClaimsStatus();
+    console.log('📊 Admin stats after multiple requests:', safeStringify(adminStats, 2));
 
     console.log('🎉 Complete HTTP deferred payment flow successful!');
   }, 120000); // 2 minutes timeout
@@ -236,9 +212,9 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
 
     console.log('✅ Mixed request types processed successfully');
 
-    // Check accumulated costs
-    const adminStats = await httpClient.get(`/payment-channel/admin/claims`);
-    console.log('📊 Final admin stats:', JSON.stringify(adminStats, null, 2));
+    // Check accumulated costs using AdminClient
+    const adminStats = await adminClient.getClaimsStatus();
+    console.log('📊 Final admin stats:', safeStringify(adminStats, 2));
 
     console.log('🎉 Mixed request types test successful!');
   }, 120000);
@@ -250,17 +226,14 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
 
     console.log('⚠️ Testing error handling in deferred payment');
 
-    const healthResponse = await httpClient.healthCheck();
-    console.log('📊 Health check response:', JSON.stringify(healthResponse, null, 2));
+    // Test health check using AdminClient
+    const healthResponse = await adminClient.healthCheck();
+    console.log('📊 Health check response:', safeStringify(healthResponse, 2));
     expect(healthResponse.success).toBe(true);
 
-    // console.log('✅ Health check works without payment');
-
-    // Test admin endpoints
-    const adminResponse = await httpClient.get(`/payment-channel/admin/claims`);
-    
-
-    console.log('✅ Admin endpoints accessible response:', JSON.stringify(adminResponse, null, 2));
+    // Test admin endpoints using AdminClient
+    const adminResponse = await adminClient.getClaimsStatus();
+    console.log('✅ Admin endpoints accessible response:', safeStringify(adminResponse, 2));
     expect(adminResponse.claimsStatus).toBeTruthy();
     console.log('🎉 Error handling test successful!');
   }, 60000);
@@ -331,7 +304,7 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
     const recoveryData = await httpClient.recoverFromService();
     
     expect(recoveryData.channel).toBeTruthy();
-    expect(recoveryData.channel.channelId).toBe(httpClient.getChannelId());
+    expect(recoveryData.channel!.channelId).toBe(httpClient.getChannelId());
     expect(recoveryData.timestamp).toBeTruthy();
 
     console.log('✅ Recovery data retrieved:', {
@@ -355,4 +328,79 @@ describe('HTTP Payment Kit E2E (Real Blockchain + HTTP Server)', () => {
 
     console.log('🎉 Recovery functionality test successful!');
   }, 60000);
+
+  test('Admin Client functionality', async () => {
+    if (!shouldRunE2ETests()) return;
+
+    console.log('🔧 Testing Admin Client functionality');
+
+    // Test 1: Health check (public endpoint)
+    console.log('📞 Testing health check via AdminClient');
+    const healthResponse = await adminClient.healthCheck();
+    expect(healthResponse.success).toBe(true);
+    expect(healthResponse.status).toBe('healthy');
+    expect(healthResponse.paymentKitEnabled).toBe(true);
+    console.log('✅ Health check successful:', healthResponse);
+
+    // Test 2: Service discovery
+    console.log('📞 Testing service discovery via AdminClient');
+    const discoveryResponse = await adminClient.discoverService();
+    expect(discoveryResponse.serviceDid).toBe(payee.did);
+    expect(discoveryResponse.serviceId).toBe('e2e-test-service');
+    expect(discoveryResponse.defaultAssetId).toBe(testAsset.assetId);
+    console.log('✅ Service discovery successful:', discoveryResponse);
+
+    // Test 3: Claims status (admin endpoint)
+    console.log('📞 Testing claims status via AdminClient');
+    const claimsStatus = await adminClient.getClaimsStatus();
+    expect(claimsStatus.claimsStatus).toBeTruthy();
+    expect(claimsStatus.processingStats).toBeTruthy();
+    expect(claimsStatus.timestamp).toBeTruthy();
+    console.log('✅ Claims status retrieval successful');
+
+    // Make a paid request to have some SubRAV data for query test
+    await httpClient.get('/echo?q=admin%20test');
+
+    // Test 4: SubRAV query (authenticated endpoint)
+    console.log('📞 Testing SubRAV query via AdminClient');
+    const channelId = httpClient.getChannelId();
+    expect(channelId).toBeTruthy();
+
+    try {
+      // Query a SubRAV that should exist
+      const subRavResponse = await adminClient.querySubRav({
+        channelId: channelId!,
+        nonce: '1'
+      });
+      console.log('✅ SubRAV query successful:', subRavResponse);
+    } catch (error) {
+      // It's OK if SubRAV doesn't exist or user doesn't have permission
+      console.log('ℹ️ SubRAV query failed (expected if no SubRAV exists):', error);
+    }
+
+    // Test 5: Manual claim trigger (admin endpoint)
+    console.log('📞 Testing manual claim trigger via AdminClient');
+    try {
+      const triggerResponse = await adminClient.triggerClaim({
+        channelId: channelId!
+      });
+      expect(triggerResponse.success).toBe(true);
+      expect(triggerResponse.channelId).toBe(channelId);
+      console.log('✅ Manual claim trigger successful:', triggerResponse);
+    } catch (error) {
+      // It's OK if there's nothing to claim
+      console.log('ℹ️ Manual claim trigger failed (expected if nothing to claim):', error);
+    }
+
+    // Test 6: Cleanup (admin endpoint)
+    console.log('📞 Testing cleanup via AdminClient');
+    const cleanupResponse = await adminClient.cleanup({
+      maxAgeMinutes: 1 // 1 minute
+    });
+    expect(cleanupResponse.clearedCount).toBeGreaterThanOrEqual(0);
+    expect(Number(cleanupResponse.maxAgeMinutes)).toBe(1);
+    console.log('✅ Cleanup successful:', cleanupResponse);
+
+    console.log('🎉 Admin Client functionality test successful!');
+  }, 120000);
 }); 

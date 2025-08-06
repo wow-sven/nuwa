@@ -7,6 +7,15 @@ import type {
   HostChannelMappingStore 
 } from './types';
 import type { SubRAV, SignedSubRAV } from '../../core/types';
+import type { ApiResponse } from '../../types/api';
+import type { 
+  DiscoveryResponse,
+  HealthResponse,
+  RecoveryResponse,
+  CommitResponse
+} from '../../schema';
+import { ErrorCode } from '../../types/api';
+import { PaymentKitError } from '../../errors';
 import { PaymentChannelPayerClient } from '../../client/PaymentChannelPayerClient';
 import { PaymentChannelFactory } from '../../factory/chainFactory';
 import { DidAuthHelper } from './internal/DidAuthHelper';
@@ -16,6 +25,16 @@ import {
   extractHost,
   MemoryHostChannelMappingStore 
 } from './internal/HostChannelMappingStore';
+import { parseJsonResponse } from '../../utils/json';
+import { 
+  RecoveryResponseSchema,
+  HealthResponseSchema,
+  DiscoveryResponseSchema,
+  // Also import core schemas for direct use
+  ServiceDiscoverySchema,
+  HealthCheckSchema
+} from '../../schema';
+import type { z } from 'zod';
 
 /**
  * HTTP Client State enum for internal state management
@@ -47,8 +66,7 @@ export class PaymentChannelHttpClient {
   private state: ClientState = ClientState.INIT;
   private clientState: HttpClientState;
   private discoveredBasePath?: string;
-  private discoveryAttempted: boolean = false;
-  private cachedDiscoveryInfo?: any;
+  private cachedDiscoveryInfo?: DiscoveryResponse;
 
   constructor(options: HttpPayerOptions) {
     this.options = options;
@@ -83,15 +101,15 @@ export class PaymentChannelHttpClient {
     path: string,
     init?: RequestInit
   ): Promise<Response> {
-    // First perform discovery if not attempted yet
-    if (!this.discoveryAttempted) {
+    // First perform discovery if not done yet
+    if (!this.cachedDiscoveryInfo) {
       await this.performDiscovery();
     }
     
-    // Build URL - use buildPaymentUrl for relative paths, direct construction for absolute paths
-    const fullUrl = path.startsWith('http') || path.startsWith('/') && this.pathAlreadyIncludesBasePath(path)
-      ? new URL(path, this.options.baseUrl).toString()
-      : this.buildPaymentUrl(path);
+    // Build URL - use direct construction for all paths except relative ones
+    const fullUrl = path.startsWith('http')
+      ? path
+      : new URL(path, this.options.baseUrl).toString();
     
     // Ensure channel is ready
     await this.ensureChannelReady();
@@ -188,16 +206,9 @@ export class PaymentChannelHttpClient {
   /**
    * Discover service information and get service DID
    */
-  async discoverService(): Promise<{
-    serviceId: string;
-    serviceDid: string;
-    network: string;
-    defaultAssetId: string;
-    defaultPricePicoUSD?: string;
-    basePath?: string;
-  }> {
-    // Perform discovery using the well-known endpoint
-    if (!this.discoveryAttempted) {
+  async discoverService(): Promise<DiscoveryResponse> {
+    // Perform discovery using the well-known endpoint if not done yet
+    if (!this.cachedDiscoveryInfo) {
       await this.performDiscovery();
     }
     
@@ -209,61 +220,19 @@ export class PaymentChannelHttpClient {
     
     // If discovery failed, we can't proceed
     throw new Error('Service discovery failed: No discovery information available');
-  }
+  } 
 
-  /**
-   * Get asset price from service
-   */
-  async getAssetPrice(assetId: string): Promise<{
-    assetId: string;
-    priceUSD: string;
-    pricePicoUSD: string;
-    timestamp: string;
-    source: string;
-    lastUpdated?: string;
-  }> {
-    const priceUrl = this.buildPaymentUrl('/price');
-    
-    try {
-      const response = await this.fetchImpl(priceUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get asset price: HTTP ${response.status}`);
-      }
-
-      const priceInfo = await response.json();
-      this.log('Asset price retrieved:', priceInfo);
-      return priceInfo;
-    } catch (error) {
-      const errorMessage = `Asset price query failed: ${error instanceof Error ? error.message : String(error)}`;
-      this.log(errorMessage);
-      throw new Error(errorMessage);
-    }
-  }
-
-  async healthCheck(): Promise<{
-    success: boolean;
-    timestamp: string;
-  }> {
-    const healthUrl = this.buildPaymentUrl('/admin/health');
+  async healthCheck(): Promise<HealthResponse> {
+    const healthUrl = this.buildPaymentUrl('/health');
     const response = await this.fetchImpl(healthUrl, { method: 'GET' });
-    return response.json();
+    return this.parseJsonResponseWithSchema(response, HealthResponseSchema);
   } 
 
   /**
    * Recover channel state and pending SubRAV from service
    * This requires DID authentication
    */
-  async recoverFromService(): Promise<{
-    channel: any | null;
-    pendingSubRav: SubRAV | null;
-    timestamp: string;
-  }> {
+  async recoverFromService(): Promise<RecoveryResponse> {
     const recoveryUrl = this.buildPaymentUrl('/recovery');
     
     try {
@@ -295,7 +264,7 @@ export class PaymentChannelHttpClient {
         throw new Error(`Failed to recover from service: HTTP ${response.status}`);
       }
 
-      const recoveryData = await response.json();
+      const recoveryData = await this.parseJsonResponseWithSchema(response, RecoveryResponseSchema) as RecoveryResponse;
       
       // If there's a pending SubRAV, cache it
       if (recoveryData.pendingSubRav) {
@@ -324,7 +293,7 @@ export class PaymentChannelHttpClient {
   /**
    * Commit a signed SubRAV to the service
    */
-  async commitSubRAV(signedSubRAV: SignedSubRAV): Promise<{ success: boolean }> {
+  async commitSubRAV(signedSubRAV: SignedSubRAV): Promise<CommitResponse> {
     const commitUrl = this.buildPaymentUrl('/commit');
     
     try {
@@ -358,7 +327,8 @@ export class PaymentChannelHttpClient {
         throw new Error(`Failed to commit SubRAV: HTTP ${response.status} - ${errorBody}`);
       }
 
-      const result = await response.json();
+      const result = await this.parseJsonResponse<CommitResponse>(response);
+      
       this.log('SubRAV committed successfully');
       return result;
     } catch (error) {
@@ -674,25 +644,115 @@ export class PaymentChannelHttpClient {
   }
 
   /**
-   * Parse JSON response with error handling
+   * Parse Response to JSON with Zod schema validation and BigInt support
    */
-  private async parseJsonResponse<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-      console.log('Response error:', response);
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
+  private async parseJsonResponseWithSchema<T>(response: Response, schema: z.ZodType<T>): Promise<T> {
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
       throw new Error('Response is not JSON');
     }
 
+    // Handle non-ok HTTP status first
+    if (!response.ok) {
+      console.log('Response error:', response);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    let responseData: any;
     try {
-      return await response.json();
+      // Use lossless-json for automatic BigInt handling
+      responseData = await parseJsonResponse<any>(response);
     } catch (error) {
       throw new Error('Failed to parse JSON response');
     }
+
+    // Expect ApiResponse format
+    if (responseData && typeof responseData === 'object' && 'success' in responseData) {
+      const apiResponse = responseData as ApiResponse<any>;
+      
+      if (apiResponse.success) {
+        // Apply Zod schema validation and transformation
+        return schema.parse(apiResponse.data);
+      } else {
+        // Handle error response
+        const error = apiResponse.error;
+        if (error) {
+          throw new PaymentKitError(
+            error.code || ErrorCode.INTERNAL_ERROR,
+            error.message || 'Unknown error',
+            error.httpStatus || response.status,
+            error.details
+          );
+        } else {
+          throw new PaymentKitError(
+            ErrorCode.INTERNAL_ERROR,
+            'Unknown error occurred',
+            response.status
+          );
+        }
+      }
+    }
+
+    // If response doesn't follow ApiResponse format, treat as raw data and validate
+    return schema.parse(responseData);
   }
+
+  /**
+   * Parse JSON response with error handling
+   * Expects standard ApiResponse format
+   * @deprecated Use parseJsonResponseWithSchema for better type safety
+   */
+  private async parseJsonResponse<T>(response: Response): Promise<T> {
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      throw new Error('Response is not JSON');
+    }
+
+    // Handle non-ok HTTP status first
+    if (!response.ok) {
+      console.log('Response error:', response);
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    let responseData: any;
+    try {
+      // Use lossless-json for automatic BigInt handling
+      responseData = await parseJsonResponse<any>(response);
+    } catch (error) {
+      throw new Error('Failed to parse JSON response');
+    }
+
+    // Expect ApiResponse format
+    if (responseData && typeof responseData === 'object' && 'success' in responseData) {
+      const apiResponse = responseData as ApiResponse<T>;
+      
+      if (apiResponse.success) {
+        return apiResponse.data as T;
+      } else {
+        // Handle error response
+        const error = apiResponse.error;
+        if (error) {
+          throw new PaymentKitError(
+            error.code || ErrorCode.INTERNAL_ERROR,
+            error.message || 'Unknown error',
+            error.httpStatus || response.status,
+            error.details
+          );
+        } else {
+          throw new PaymentKitError(
+            ErrorCode.INTERNAL_ERROR,
+            'Unknown error occurred',
+            response.status
+          );
+        }
+      }
+    }
+
+    // If response doesn't follow ApiResponse format, treat as raw data
+    return responseData as T;
+  }
+
+
 
   /**
    * Handle errors with optional custom error handler
@@ -782,7 +842,6 @@ export class PaymentChannelHttpClient {
    * Perform discovery using the well-known endpoint
    */
   private async performDiscovery(): Promise<void> {
-    this.discoveryAttempted = true;
     const discoveryUrl = new URL('/.well-known/nuwa-payment/info', this.options.baseUrl);
     
     try {
@@ -795,7 +854,7 @@ export class PaymentChannelHttpClient {
       });
 
       if (response.ok) {
-        const serviceInfo = await response.json();
+        const serviceInfo = await response.json() as DiscoveryResponse;
         this.log('Service discovery successful:', serviceInfo);
         
         // Cache the discovery info for later use
@@ -824,18 +883,12 @@ export class PaymentChannelHttpClient {
     return this.discoveredBasePath || '/payment-channel';
   }
 
-  /**
-   * Check if path already includes the base path
-   */
-  private pathAlreadyIncludesBasePath(path: string): boolean {
-    const basePath = this.getBasePath();
-    return path.startsWith(basePath);
-  }
+
 
   /**
    * Build URL for payment-related endpoints
    */
-  private buildPaymentUrl(endpoint: string): string {
+  public buildPaymentUrl(endpoint: string): string {
     const basePath = this.getBasePath();
     return new URL(`${basePath}${endpoint}`, this.options.baseUrl).toString();
   }
