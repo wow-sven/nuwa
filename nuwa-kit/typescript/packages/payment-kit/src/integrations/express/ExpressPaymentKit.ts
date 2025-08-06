@@ -1,7 +1,7 @@
 import express, { Router, RequestHandler, Request, Response, NextFunction } from 'express';
 import { BillableRouter, RouteOptions } from './BillableRouter';
-import { HttpBillingMiddleware, ResponseAdapter, PaymentRule } from '../../middlewares/http/HttpBillingMiddleware';
-import { UsdBillingEngine } from '../../billing/usd-engine';
+import { HttpBillingMiddleware, ResponseAdapter } from '../../middlewares/http/HttpBillingMiddleware';
+import { BillingEngine, RateProvider } from '../../billing';
 import { ContractRateProvider } from '../../billing/rate/contract';
 import { PaymentChannelPayeeClient } from '../../client/PaymentChannelPayeeClient';
 import { RoochPaymentChannelContract } from '../../rooch/RoochPaymentChannelContract';
@@ -9,8 +9,6 @@ import { MemoryChannelRepository } from '../../storage';
 import { ClaimScheduler } from '../../core/ClaimScheduler';
 import { DIDAuth, VDRRegistry, RoochVDR } from '@nuwa-ai/identity-kit';
 import { deriveChannelId } from '../../rooch/ChannelUtils';
-import type { StrategyConfig } from '../../billing/types';
-import type { RateProvider } from '../../billing/rate/types';
 import type { SignerInterface, DIDResolver } from '@nuwa-ai/identity-kit';
 import type { IPaymentChannelContract } from '../../contracts/IPaymentChannelContract';
 
@@ -93,9 +91,8 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
       defaultPricePicoUSD: config.defaultPricePicoUSD
     });
 
-    // Create billing engine
-    const configLoader = this.billableRouter.getConfigLoader();
-    const usdBillingEngine = new UsdBillingEngine(configLoader, rateProvider);
+    // Create billing engine using the billable router as rule provider
+    const billingEngine = new BillingEngine(this.billableRouter, rateProvider);
 
     // Create ClaimScheduler for automated claiming
     // Use the same RAV repository and contract as the PayeeClient
@@ -117,7 +114,8 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
     // Create HTTP billing middleware with ClaimScheduler
     this.middleware = new HttpBillingMiddleware({
       payeeClient,
-      billingEngine: usdBillingEngine,
+      billingEngine,
+      ruleProvider: this.billableRouter, // V2 optimization for pre-matching rules
       serviceId: config.serviceId,
       defaultAssetId: config.defaultAssetId || '0x3::gas_coin::RGas',
       debug: config.debug || false,
@@ -502,15 +500,8 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
           // Create response adapter for framework-agnostic billing
           const resAdapter = this.createResponseAdapter(res);
           
-          // Extract rule information for protocol-agnostic payment processing
-          const paymentRule: PaymentRule = {
-            paymentRequired: rule.paymentRequired,
-            authRequired: rule.authRequired,
-            adminOnly: rule.adminOnly
-          };
-          
           // Use the new framework-agnostic handle method with rule information
-          const result = await this.middleware.handle(req, resAdapter, paymentRule);
+          const result = await this.middleware.handle(req, resAdapter, rule);
           
           // Attach payment result to request for downstream handlers (Express-specific)
           if (result) {
@@ -601,35 +592,30 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
   get(path: string, options: RouteOptions, handler: RequestHandler, ruleId?: string): this {
     this.validateRouteOptions(options);
     this.billableRouter.get(path, options, handler, ruleId);
-    this.clearBillingCache(); // Clear cache after adding route
     return this;
   }
 
   post(path: string, options: RouteOptions, handler: RequestHandler, ruleId?: string): this {
     this.validateRouteOptions(options);
     this.billableRouter.post(path, options, handler, ruleId);
-    this.clearBillingCache(); // Clear cache after adding route
     return this;
   }
 
   put(path: string, options: RouteOptions, handler: RequestHandler, ruleId?: string): this {
     this.validateRouteOptions(options);
     this.billableRouter.put(path, options, handler, ruleId);
-    this.clearBillingCache(); // Clear cache after adding route
     return this;
   }
 
   delete(path: string, options: RouteOptions, handler: RequestHandler, ruleId?: string): this {
     this.validateRouteOptions(options);
     this.billableRouter.delete(path, options, handler, ruleId);
-    this.clearBillingCache(); // Clear cache after adding route
     return this;
   }
 
   patch(path: string, options: RouteOptions, handler: RequestHandler, ruleId?: string): this {
     this.validateRouteOptions(options);
     this.billableRouter.patch(path, options, handler, ruleId);
-    this.clearBillingCache(); // Clear cache after adding route
     return this;
   }
 
@@ -650,16 +636,7 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
       throw new Error('Cannot create admin endpoints without authentication: adminOnly requires authRequired to be true or undefined');
     }
   }
-
-  /**
-   * Clear billing engine cache to ensure new routes are picked up
-   */
-  private clearBillingCache(): void {
-    // Access the billing engine through the middleware and clear its cache
-    // This ensures that newly registered routes are picked up on next billing calculation
-    (this.middleware as any).processor?.billingEngine?.clearCache?.(this.config.serviceId);
-  }
-
+ 
   /**
    * Create Express ResponseAdapter for framework-agnostic billing
    */

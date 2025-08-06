@@ -6,10 +6,11 @@ import { PaymentChannelPayeeClient } from '../client/PaymentChannelPayeeClient';
 import type { VerificationResult } from '../client/PaymentChannelPayeeClient';
 import type { 
   BillingContext,
-  CostCalculator
-} from '../billing/types';
+  CostCalculator,
+  BillingRule,
+} from '../billing';
 import type { ConversionResult } from '../billing/rate/types';
-import { UsdBillingEngine } from '../billing/usd-engine';
+
 import type { PendingSubRAVRepository } from '../storage/interfaces/PendingSubRAVRepository';
 import { createPendingSubRAVRepo } from '../storage/factories/createPendingSubRAVRepo';
 import type { ClaimScheduler } from './ClaimScheduler';
@@ -56,6 +57,9 @@ import { BillingContextBuilder } from './BillingContextBuilder';
     /** Payment channel information (extracted from signed SubRAV) */
     channelId?: string;
     vmIdFragment?: string;
+    
+    /** Pre-matched billing rule (optimization to avoid duplicate rule matching) */
+    billingRule?: BillingRule;
     
     /** Protocol-specific additional metadata */
     [key: string]: any;
@@ -215,7 +219,8 @@ export interface PaymentVerificationResult extends VerificationResult {
         );
   
         // Step 3: Calculate cost for current request with conversion details
-        const costResult = await this.calculateCostWithDetails(billingContext);
+        const preMatchedRule = requestMeta.billingRule;
+        const costResult = await this.calculateCostWithDetails(billingContext, preMatchedRule);
         const { cost, conversion } = costResult;
 
         if (cost === 0n) {
@@ -418,20 +423,19 @@ export interface PaymentVerificationResult extends VerificationResult {
     /**
      * Calculate cost with conversion details (USD billing)
      */
-    private async calculateCostWithDetails(context: BillingContext): Promise<{cost: bigint, conversion?: ConversionResult}> {
+    private async calculateCostWithDetails(context: BillingContext, preMatchedRule?: BillingRule): Promise<{cost: bigint, conversion?: ConversionResult}> {
       try {
-        // Check if billing engine supports detailed conversion
-        if (this.config.billingEngine instanceof UsdBillingEngine) {
-          const conversion = await this.config.billingEngine.calcCostWithDetails(context);
-          return {
-            cost: conversion.assetCost,
-            conversion
-          };
+        let cost: bigint;
+        
+        if (preMatchedRule) {
+          // Use pre-matched rule to avoid duplicate rule matching (V2 optimization)
+          cost = await this.config.billingEngine.calcCostByRule(context, preMatchedRule);
         } else {
-          // Fallback to simple cost calculation
-          const cost = await this.config.billingEngine.calcCost(context);
-          return { cost };
+          // Fallback to standard method
+          cost = await this.config.billingEngine.calcCost(context);
         }
+        
+        return { cost };
       } catch (error) {
         this.log('Billing calculation error:', error);
         throw new Error(`Failed to calculate cost: ${error}`);
