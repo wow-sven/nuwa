@@ -90,3 +90,20 @@ export function bigintToString(value: bigint): string {
 export function stringToBigint(value: string): bigint {
   return BigInt(value);
 }
+
+/**
+ * Format picoUSD amount to human-readable USD string
+ * @param picoUsd Amount in picoUSD (1 USD = 1,000,000,000,000 picoUSD)
+ * @returns Formatted USD string (e.g., "$0.0123")
+ */
+export function formatUsdAmount(picoUsd: bigint): string {
+  // 1 USD = 1,000,000,000,000 picoUSD
+  const divisor = 1_000_000_000_000n;
+  const whole = picoUsd / divisor;
+  const remainder = picoUsd % divisor;
+  // Format remainder as a 12-digit string, then take the first 4 digits for 4 decimal places
+  const remainderStr = remainder.toString().padStart(12, '0').slice(0, 4);
+  // Remove trailing zeros from the fractional part, but keep at least one zero if all are zero
+  const fractional = remainderStr.replace(/0+$/, '') || '0';
+  return `$${whole.toString()}.${fractional}`;
+}
