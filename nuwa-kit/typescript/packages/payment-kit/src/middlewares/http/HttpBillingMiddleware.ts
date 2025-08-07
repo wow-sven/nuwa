@@ -9,10 +9,9 @@
 import { PaymentProcessor } from '../../core/PaymentProcessor';
 import type { 
   PaymentProcessorConfig,
-  RequestMetadata,
   ProcessorPaymentResult
 } from '../../core/PaymentProcessor';
-import { BillingContextBuilder } from '../../core/BillingContextBuilder';
+import type { BillingContext } from '../../billing';
 import { HttpPaymentCodec } from './HttpPaymentCodec';
 import type { 
   PaymentHeaderPayload,
@@ -22,6 +21,7 @@ import type {
 } from '../../core/types';
 import { PaymentChannelPayeeClient } from '../../client/PaymentChannelPayeeClient';
 import type { CostCalculator, BillingRule, RuleProvider } from '../../billing';
+import { findRule } from '../../billing/core/rule-matcher';
 import type { PendingSubRAVRepository } from '../../storage/interfaces/PendingSubRAVRepository';
 import type { ClaimScheduler } from '../../core/ClaimScheduler';
 
@@ -58,6 +58,16 @@ interface ExpressResponse {
 
 interface NextFunction {
   (error?: any): void;
+}
+
+/**
+ * Payment session for deferred billing - simplified to use unified BillingContext
+ */
+export interface PaymentSession {
+  rule: BillingRule;
+  signedSubRav?: SignedSubRAV;
+  ctx: BillingContext;
+  paymentRequired: boolean;
 }
 
 /**
@@ -130,6 +140,53 @@ export class HttpBillingMiddleware {
   }
 
   /**
+   * Enhanced framework-agnostic payment processing handler with automatic pre/post-flight detection
+   * 
+   * This method automatically determines whether to use pre-flight or post-flight billing
+   * based on the strategy's `deferred` property.
+   */
+  async handleWithAutoDetection(req: GenericHttpRequest, resAdapter: ResponseAdapter): Promise<{ 
+    isDeferred: boolean; 
+    paymentSession?: PaymentSession; 
+    result?: ProcessorPaymentResult | null  // null = failed, undefined = no rule matched
+  }> {
+    try {
+      this.log('🔍 Processing HTTP payment request with auto-detection:', req.method, req.path);
+      
+      // Step 1: Find matching billing rule
+      const rule = this.findBillingRule(req);
+      
+      if (!rule) {
+        this.log('📝 No billing rule matched - proceeding without payment processing');
+        return { isDeferred: false };
+      }
+
+      // Step 2: Check if the strategy requires deferred calculation
+      const isDeferred = this.isBillingDeferred(rule);
+      
+      if (!isDeferred) {
+        // Pre-flight billing - calculate cost immediately
+        this.log('⚡ Pre-flight billing detected - processing payment now');
+        const result = await this.handle(req, resAdapter, rule);
+        return { isDeferred: false, result };
+      } else {
+        // Post-flight billing - prepare payment session
+        this.log('⏳ Post-flight billing detected - preparing payment session');
+        const paymentSession = await this.prepareDeferredPayment(req, rule);
+        return { isDeferred: true, paymentSession };
+      }
+    } catch (error) {
+      this.log('🚨 Auto-detection payment processing error:', error);
+      resAdapter.setStatus(500).json({ 
+        error: 'Payment processing failed',
+        code: 'PAYMENT_ERROR',
+        details: error instanceof Error ? error.message : String(error)
+      });
+      return { isDeferred: false };
+    }
+  }
+
+  /**
    * Framework-agnostic payment processing handler
    */
   async handle(req: GenericHttpRequest, resAdapter: ResponseAdapter, billingRule?: BillingRule): Promise<ProcessorPaymentResult | null> {
@@ -156,14 +213,11 @@ export class HttpBillingMiddleware {
       // Use cached payment data or extract from HTTP headers
       const paymentData = cachedPaymentData || this.extractPaymentData(req.headers);
       
-      // Build protocol-agnostic request metadata
-      const requestMeta = this.buildRequestMetadata(req, paymentData || undefined, billingRule);
+      // Build billing context
+      const ctx = this.buildBillingContext(req, paymentData || undefined, billingRule);
       
       // Delegate to PaymentProcessor for core payment logic
-      const result = await this.processor.processPayment(
-        requestMeta,
-        paymentData?.signedSubRav
-      );
+      const result = await this.processor.processPayment(ctx);
       
       if (!result.success) {
         const statusCode = this.mapErrorToHttpStatus(result.errorCode);
@@ -194,6 +248,118 @@ export class HttpBillingMiddleware {
   }
 
   /**
+   * Find matching billing rule for the request
+   */
+  private findBillingRule(req: GenericHttpRequest): BillingRule | undefined {
+    if (!this.config.ruleProvider) {
+      throw new Error('RuleProvider is required for auto-detection. Please configure it in HttpBillingMiddlewareConfig.');
+    }
+    
+    const meta = {
+      path: req.path,
+      method: req.method,
+      // Include other relevant metadata for rule matching
+      httpQuery: req.query,
+      httpBody: req.body,
+      httpHeaders: req.headers
+    };
+    
+    return findRule(meta, this.config.ruleProvider.getRules());
+  }
+
+  /**
+   * Check if billing for this rule should be deferred (post-flight)
+   */
+  private isBillingDeferred(rule: BillingRule): boolean {
+    // Now that isDeferred is part of the CostCalculator interface,
+    // we can call it directly without type checking
+    return this.config.billingEngine.isDeferred(rule);
+  }
+
+  /**
+   * Prepare payment session for deferred (post-flight) billing
+   */
+  private async prepareDeferredPayment(req: GenericHttpRequest, rule: BillingRule): Promise<PaymentSession> {
+    // Extract payment data if payment is required
+    let signedSubRav: SignedSubRAV | undefined;
+    if (rule.paymentRequired) {
+      const extractedPaymentData = this.extractPaymentData(req.headers);
+      if (!extractedPaymentData?.signedSubRav) {
+        throw new Error('Payment required but no signed SubRAV provided');
+      }
+      signedSubRav = extractedPaymentData.signedSubRav;
+    }
+
+    let paymentData: PaymentHeaderPayload | undefined;
+    if (signedSubRav) {
+      paymentData = {
+        signedSubRav,
+        maxAmount: 0n, // Will be determined during processing
+        version: 1
+      };
+    }
+    
+    const ctx = this.buildBillingContext(req, paymentData, rule);
+    
+    return {
+      rule,
+      signedSubRav,
+      ctx,
+      paymentRequired: rule.paymentRequired ?? false
+    };
+  }
+
+  /**
+   * Complete deferred billing after request execution
+   */
+  async completeDeferredBilling(
+    paymentSession: PaymentSession, 
+    usage: Record<string, any>, 
+    resAdapter: ResponseAdapter
+  ): Promise<ProcessorPaymentResult | null> {
+    try {
+      this.log('🔄 Completing deferred billing with usage data:', usage);
+      
+      // Update context with usage information
+      const enhancedCtx: BillingContext = {
+        ...paymentSession.ctx,
+        meta: {
+          ...paymentSession.ctx.meta,
+          ...usage
+        }
+      };
+
+      // Process payment with updated context
+      const result = await this.processor.processPayment(enhancedCtx);
+      
+      if (!result.success) {
+        const statusCode = this.mapErrorToHttpStatus(result.errorCode);
+        resAdapter.setStatus(statusCode).json({ 
+          error: result.error || 'Payment required',
+          code: result.errorCode,
+        });
+        return null;
+      }
+
+      // Add payment proposal to response if available
+      if (result.unsignedSubRAV) {
+        this.addPaymentProposalToResponse(resAdapter, result);
+      }
+
+      this.log('✅ Deferred billing completed successfully');
+      return result;
+    } catch (error) {
+      this.log('🚨 Deferred billing completion error:', error);
+      resAdapter.setStatus(500).json({ 
+        error: 'Deferred payment processing failed',
+        code: 'PAYMENT_ERROR',
+        details: error instanceof Error ? error.message : String(error)
+      });
+      return null;
+    }
+  }
+
+  /**
    * Extract payment data from HTTP request headers
    */
   extractPaymentData(headers: Record<string, string | string[] | undefined>): PaymentHeaderPayload | null {
@@ -211,30 +377,33 @@ export class HttpBillingMiddleware {
   }
 
   /**
-   * Build protocol-agnostic request metadata from HTTP request
+   * Build billing context from HTTP request
    */
-  private buildRequestMetadata(req: GenericHttpRequest, paymentData?: PaymentHeaderPayload, billingRule?: BillingRule): RequestMetadata {
+  private buildBillingContext(req: GenericHttpRequest, paymentData?: PaymentHeaderPayload, billingRule?: BillingRule): BillingContext {
     return {
-      operation: `${req.method.toLowerCase()}:${req.path}`,
-      
-      // Extract payment channel info from signed SubRAV
-      channelId: paymentData?.signedSubRav.subRav.channelId,
-      vmIdFragment: paymentData?.signedSubRav.subRav.vmIdFragment,
-      maxAmount: paymentData?.maxAmount,
-      
-      // Pre-matched billing rule (V2 optimization)
-      billingRule,
-      
-      // HTTP-specific metadata for billing rules
-      method: req.method,
-      path: req.path,
-      
-      // Also keep HTTP-prefixed versions for other uses
-      httpMethod: req.method,
-      httpPath: req.path,
-      httpQuery: req.query,
-      httpBody: req.body,
-      httpHeaders: req.headers
+      serviceId: this.config.serviceId,
+      assetId: this.config.defaultAssetId,
+      meta: {
+        operation: `${req.method.toLowerCase()}:${req.path}`,
+        
+        // Pre-matched billing rule (V2 optimization)
+        billingRule,
+        
+        // Payment data from HTTP headers
+        maxAmount: paymentData?.maxAmount,
+        signedSubRav: paymentData?.signedSubRav,
+        
+        // HTTP-specific metadata for billing rules
+        method: req.method,
+        path: req.path,
+        
+        // Also keep HTTP-prefixed versions for other uses
+        httpMethod: req.method,
+        httpPath: req.path,
+        httpQuery: req.query,
+        httpBody: req.body,
+        httpHeaders: req.headers
+      }
     };
   }
 

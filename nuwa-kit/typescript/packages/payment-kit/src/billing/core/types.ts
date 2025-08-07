@@ -5,19 +5,34 @@
  * JavaScript runtime (browser / worker / Node) without modification.
  */
 
+import type { SignedSubRAV } from '../../core/types';
+
 export interface BillingContext {
     /** Service identifier (e.g. "llm-gateway", "mcp-server") */
     serviceId: string;
-    /** Operation name within the service (e.g. "chat:completion") */
-    operation: string;
     /**
      * Optional asset identifier for settlement. If provided and a `RateProvider`
      * is injected into `BillingEngine`, costs will automatically be converted
      * from picoUSD to the asset's smallest unit.
      */
     assetId?: string;
-    /** Arbitrary metadata passed along the billing pipeline */
-    meta: Record<string, any>;
+    /** All billing-related context information */
+    meta: {
+      /** Business operation identifier (e.g., "POST:/api/chat/completions") */
+      operation: string;
+      /** Pre-matched billing rule (optimization to avoid duplicate rule matching) */
+      billingRule?: BillingRule;
+      /** HTTP path */
+      path?: string;
+      /** HTTP method */
+      method?: string;
+      /** Usage data for post-flight billing (e.g. token counts) */
+      usage?: Record<string, any>;
+      /** Signed SubRAV for payment verification (contains channelId and vmIdFragment) */
+      signedSubRav?: SignedSubRAV;
+      /** Additional arbitrary metadata */
+      [key: string]: any;
+    };
   }
   
   /**
@@ -27,6 +42,12 @@ export interface BillingContext {
    */
   export interface Strategy {
     evaluate(ctx: BillingContext): Promise<bigint>;
+    /**
+     * Whether this strategy requires execution results (usage data) to calculate costs.
+     * - `false` (default): Can calculate cost before request execution (pre-flight)
+     * - `true`: Must wait for request execution to complete (post-flight)
+     */
+    readonly deferred?: boolean;
   }
   
   /**
@@ -80,12 +101,8 @@ export interface BillingContext {
     path?: string;
     /** Match by path regex */
     pathRegex?: string;
-    /** Match by model name */
-    model?: string;
     /** Match by HTTP method */
     method?: string;
-    /** Match by asset identifier */
-    assetId?: string;
     /** Match by metadata fields */
     [key: string]: any;
   }
@@ -120,4 +137,16 @@ export interface BillingContext {
 export interface CostCalculator {
   calcCost(ctx: BillingContext): Promise<bigint>;
   calcCostByRule(ctx: BillingContext, rule: BillingRule): Promise<bigint>;
+  /**
+   * Check if a billing rule requires deferred (post-flight) calculation
+   * @param rule The billing rule to check
+   * @returns true if the rule requires post-flight billing, false otherwise
+   */
+  isDeferred(rule: BillingRule): boolean;
 }
+
+/**
+ * @deprecated Use BillingContext.meta instead
+ * This type alias is provided for backward compatibility during migration
+ */
+export type RequestMetadata = BillingContext['meta'];

@@ -163,7 +163,9 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
 
     // 3. Apply billing middleware wrapper to built-in payment routes only
     const paymentRouter = express.Router();
-    paymentRouter.use(this.createBillingWrapper());
+    const billingWrapper = this.createBillingWrapper();
+    
+    paymentRouter.use(billingWrapper);
     
     // Mount adapter router for built-in API handlers under payment routes
     paymentRouter.use(adapterRouter);
@@ -173,7 +175,7 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
     
     // 4. Mount business routes directly on main router with billing middleware
     // This allows business routes to keep their original paths without basePath prefix
-    this.router.use(this.createBillingWrapper(), this.billableRouter.router);
+    this.router.use(billingWrapper, this.billableRouter.router);
   }
 
   /**
@@ -200,15 +202,10 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
   }
 
   /**
-   * Create billing middleware wrapper that includes DID auth and billing logic
+   * Create billing middleware wrapper with automatic pre/post-flight detection
    */
   private createBillingWrapper(): RequestHandler {
     return async (req: Request, res: Response, next: NextFunction) => {
-      // Skip everything for health routes only
-              if (req.path === '/health') {
-        return next();
-      }
-
       try {
         // Step 1: Find matching billing rule to determine auth and billing requirements
         const rule = this.billableRouter.findRule(req.method, req.path);
@@ -240,13 +237,65 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
           // Create response adapter for framework-agnostic billing
           const resAdapter = this.createResponseAdapter(res);
           
-          // Use the new framework-agnostic handle method with rule information
-          const result = await this.middleware.handle(req, resAdapter, rule);
+          // Use auto-detection for pre/post-flight billing
+          const detection = await this.middleware.handleWithAutoDetection(req, resAdapter);
           
-          // Attach payment result to request for downstream handlers (Express-specific)
-          if (result) {
-            (req as any).paymentResult = result;
+          if (!detection.isDeferred) {
+            // Pre-flight billing completed or no billing needed
+            if (detection.result) {
+              // Pre-flight billing successful
+              (req as any).paymentResult = detection.result;
+              return next();
+            } else if (detection.result === null) {
+              // Pre-flight billing failed - response already sent by middleware
+              if (this.config.debug) {
+                console.log('❌ Pre-flight billing failed, blocking request continuation');
+              }
+              return;
+            } else {
+              // No billing rule matched (result is undefined) - proceed without payment
+              return next();
+            }
+          } else {
+          // Post-flight billing - attach payment session to response locals
+          if (detection.paymentSession) {
+            res.locals.paymentSession = detection.paymentSession;
+            
+            // Use Express 'header' event to catch the moment before response is sent
+            // Add safety guards to prevent multiple executions and header conflicts
+            let billingCompleted = false;
+            res.on('header', async () => {
+              // Guard 1: Prevent multiple executions
+              if (billingCompleted) {
+                return;
+              }
+              billingCompleted = true;
+
+              // Guard 2: Check if headers have been sent (safety check)
+              if (res.headersSent) {
+                console.warn('⚠️ Headers already sent, skipping post-flight billing header update');
+                return;
+              }
+
+              try {
+                // Extract usage data from response locals (populated by business logic)
+                const usage = res.locals.usage || {};
+                if (Object.keys(usage).length > 0) {
+                  // Perform post-flight billing calculation
+                  await this.middleware.completeDeferredBilling(
+                    detection.paymentSession!, 
+                    usage, 
+                    resAdapter
+                  );
+                }
+              } catch (error) {
+                console.error('🚨 Post-flight billing error:', error);
+                // Don't fail the request, just log the error
+              }
+            });
           }
+          return next();
+        }
         } else {
           if (this.config.debug) {
             console.log(`⏭️ Skipping billing for ${req.method} ${req.path} (unregistered route)`);
@@ -263,6 +312,8 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
       }
     };
   }
+
+
 
   /**
    * Perform admin authorization check
