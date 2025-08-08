@@ -22,6 +22,7 @@ import type { SignerInterface } from '@nuwa-ai/identity-kit';
 import type { ChannelRepository } from '../storage/interfaces/ChannelRepository';
 import { createChannelRepoAuto } from '../storage/factories/createChannelRepo';
 import { SubRAVManager } from '../core/SubRav';
+import { assertSubRavProgression } from '../core/SubRavValidator';
 import { PaymentHubClient } from './PaymentHubClient';
 
 export interface PayerOpenChannelParams {
@@ -318,23 +319,20 @@ export class PaymentChannelPayerClient {
         throw new Error(`First payment SubRAV must have nonce 1, got ${subRAV.nonce}`);
       }
       
-      // Check accumulated amount against maximum amount limit for first payment
-      if (maxAmount && maxAmount > 0n && subRAV.accumulatedAmount > maxAmount) {
-        throw new Error(`SubRAV amount ${subRAV.accumulatedAmount} exceeds maximum allowed ${maxAmount}`);
+      // Check delta amount against maximum amount limit for first payment
+      if (maxAmount && maxAmount > 0n) {
+        const deltaAmount = subRAV.accumulatedAmount - prevState.accumulatedAmount;
+        if (deltaAmount > maxAmount) {
+          throw new Error(`Delta amount ${deltaAmount} exceeds maximum allowed ${maxAmount}`);
+        }
       }
     } else {
-      // Subsequent payments - verify strict progression
-      
-      // Verify nonce increments by 1
-      const expectedNonce = prevState.nonce + BigInt(1);
-      if (subRAV.nonce !== expectedNonce) {
-        throw new Error(`Invalid nonce: expected ${expectedNonce}, got ${subRAV.nonce}`);
-      }
-
-      // Verify amount only increases
-      if (subRAV.accumulatedAmount <= prevState.accumulatedAmount) {
-        throw new Error(`Amount must increase: previous ${prevState.accumulatedAmount}, new ${subRAV.accumulatedAmount}`);
-      }
+      // Subsequent payments - verify progression using shared util (no zero-cost allowed here)
+      assertSubRavProgression(
+        { nonce: prevState.nonce, accumulatedAmount: prevState.accumulatedAmount },
+        { nonce: subRAV.nonce, accumulatedAmount: subRAV.accumulatedAmount },
+        true,
+      );
 
       // Check delta amount against maximum amount limit
       if (maxAmount && maxAmount > 0n) {

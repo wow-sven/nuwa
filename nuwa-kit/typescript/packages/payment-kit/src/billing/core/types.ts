@@ -6,6 +6,7 @@
  */
 
 import type { SignedSubRAV, SubRAV } from '../../core/types';
+import type { RateResult } from '../rate/types';
 
 export interface BillingContext {
     /** Service identifier (e.g. "llm-gateway", "mcp-server") */
@@ -42,6 +43,8 @@ export interface BillingContext {
       
       // Step B: Charging
       cost?: bigint;
+      /** Pre-fetched exchange rate used for conversion (if asset settlement is used) */
+      exchangeRate?: RateResult;
       
       // Step C: Issuing
       unsignedSubRav?: SubRAV;
@@ -49,6 +52,12 @@ export interface BillingContext {
       serviceTxRef?: string;
       nonce?: bigint;
       
+      // Protocol-level error (used to short-circuit response with error header)
+      error?: {
+        code: string;
+        message?: string;
+      };
+
       // Step D: Persistence
       persisted?: boolean;
       
@@ -63,7 +72,11 @@ export interface BillingContext {
    * default.
    */
   export interface Strategy {
-    evaluate(ctx: BillingContext): Promise<bigint>;
+    /**
+     * Synchronous cost evaluation returning picoUSD cost.
+     * units: caller-provided usage units (must be a positive integer). For PerRequest, pass 1.
+     */
+    evaluate(ctx: BillingContext, units: number): bigint;
     /**
      * Whether this strategy requires execution results (usage data) to calculate costs.
      * - `false` (default): Can calculate cost before request execution (pre-flight)
@@ -85,7 +98,6 @@ export interface BillingContext {
   
   /**
    * Interface for providing billing rules to the BillingEngine.
-   * This replaces the ConfigLoader pattern and removes serviceId dependency.
    */
   export interface RuleProvider {
     /**
@@ -140,35 +152,3 @@ export interface BillingContext {
     /** List of billing rules */
     rules: BillingRule[];
   }
-  
-  /**
-   * Configuration loader interface
-   */
-  export interface ConfigLoader {
-    /**
-     * Load billing configuration for a service
-     * @param serviceId Service identifier
-     * @returns Billing configuration
-     */
-    load(serviceId: string): Promise<BillingConfig>;
-  } 
-
-/**
- * Interface for calculating costs
- */
-export interface CostCalculator {
-  calcCost(ctx: BillingContext): Promise<bigint>;
-  calcCostByRule(ctx: BillingContext, rule: BillingRule): Promise<bigint>;
-  /**
-   * Check if a billing rule requires deferred (post-flight) calculation
-   * @param rule The billing rule to check
-   * @returns true if the rule requires post-flight billing, false otherwise
-   */
-  isDeferred(rule: BillingRule): boolean;
-}
-
-/**
- * @deprecated Use BillingContext.meta instead
- * This type alias is provided for backward compatibility during migration
- */
-export type RequestMetadata = BillingContext['meta'];

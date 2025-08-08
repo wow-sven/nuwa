@@ -8,8 +8,7 @@
 
 import { PaymentProcessor } from '../../core/PaymentProcessor';
 import type { 
-  PaymentProcessorConfig,
-  ProcessorPaymentResult
+  PaymentProcessorConfig
 } from '../../core/PaymentProcessor';
 import type { BillingContext } from '../../billing';
 import { HttpPaymentCodec } from './HttpPaymentCodec';
@@ -20,7 +19,8 @@ import type {
   SignedSubRAV
 } from '../../core/types';
 import { PaymentChannelPayeeClient } from '../../client/PaymentChannelPayeeClient';
-import type { CostCalculator, BillingRule, RuleProvider } from '../../billing';
+import type { BillingRule, RuleProvider } from '../../billing';
+import type { RateProvider } from '../../billing/rate/types';
 import { findRule } from '../../billing/core/rule-matcher';
 import type { PendingSubRAVRepository } from '../../storage/interfaces/PendingSubRAVRepository';
 import type { ClaimScheduler } from '../../core/ClaimScheduler';
@@ -40,34 +40,11 @@ export interface ResponseAdapter {
   setHeader(name: string, value: string): ResponseAdapter;
 }
 
-// Express types (for backward compatibility)
-interface ExpressRequest {
-  path: string;
-  method: string;
-  headers: Record<string, string | string[]>;
-  query: Record<string, any>;
-  body?: any;
-}
-
 interface ExpressResponse {
   status(code: number): ExpressResponse;
   json(obj: any): ExpressResponse;
   setHeader(name: string, value: string): ExpressResponse;
   headersSent: boolean;
-}
-
-interface NextFunction {
-  (error?: any): void;
-}
-
-/**
- * Payment session for deferred billing - simplified to use unified BillingContext
- */
-export interface PaymentSession {
-  rule: BillingRule;
-  signedSubRav?: SignedSubRAV;
-  ctx: BillingContext;
-  paymentRequired: boolean;
 }
 
 /**
@@ -76,10 +53,10 @@ export interface PaymentSession {
 export interface HttpBillingMiddlewareConfig {
   /** Payee client for payment operations */
   payeeClient: PaymentChannelPayeeClient;
-  /** Billing engine for cost calculation */
-  billingEngine: CostCalculator;
   /** Rule provider for pre-matching billing rules (V2 optimization) */
-  ruleProvider?: RuleProvider;
+  ruleProvider: RuleProvider;
+  /** Rate provider for asset conversion (preferred path) */
+  rateProvider: RateProvider;
   /** Service ID for billing configuration */
   serviceId: string;
   /** Default asset ID if not provided in request context */
@@ -127,9 +104,9 @@ export class HttpBillingMiddleware {
     // Initialize PaymentProcessor with config
     this.processor = new PaymentProcessor({
       payeeClient: config.payeeClient,
-      billingEngine: config.billingEngine,
       serviceId: config.serviceId,
       defaultAssetId: config.defaultAssetId,
+      rateProvider: config.rateProvider,
       pendingSubRAVStore: config.pendingSubRAVStore,
       claimScheduler: config.claimScheduler,
       debug: config.debug
@@ -142,10 +119,7 @@ export class HttpBillingMiddleware {
   /**
    * New unified billing handler using the three-step process
    */
-  async handleWithNewAPI(req: GenericHttpRequest): Promise<{
-    ctx: BillingContext;
-    isDeferred: boolean;
-  } | null> {
+  async handleWithNewAPI(req: GenericHttpRequest): Promise<BillingContext| null> {
     try {
       this.log('🔍 Processing HTTP payment request with new API:', req.method, req.path);
       
@@ -170,10 +144,7 @@ export class HttpBillingMiddleware {
         return null;
       }
       
-      // Step 5: Check if this is deferred billing
-      const isDeferred = this.isBillingDeferred(rule);
-      
-      this.log(`📋 Request pre-processed for ${rule.strategy.type}, deferred: ${isDeferred}`);
+      this.log(`📋 Request pre-processed for ${rule.strategy.type}`);
       if (processedCtx.state) {
         this.log(`📋 Context state:`, {
           signedSubRavVerified: processedCtx.state.signedSubRavVerified,
@@ -181,7 +152,7 @@ export class HttpBillingMiddleware {
           headerValue: !!processedCtx.state.headerValue
         });
       }
-      return { ctx: processedCtx, isDeferred };
+      return processedCtx;
 
     } catch (error) {
       this.log('🚨 New API payment processing error:', error);
@@ -192,7 +163,7 @@ export class HttpBillingMiddleware {
   /**
    * Complete billing settlement synchronously (Step B & C) - for on-headers use
    */
-  settleBillingSync(ctx: BillingContext, usage?: Record<string, any>, resAdapter?: ResponseAdapter): boolean {
+  settleBillingSync(ctx: BillingContext, usage?: number, resAdapter?: ResponseAdapter): boolean {
     try {
       this.log('🔄 Settling billing synchronously with usage:', usage);
       
@@ -237,154 +208,6 @@ export class HttpBillingMiddleware {
   }
 
   /**
-   * Complete billing settlement (Step B & C) - async version
-   */
-  async settleBilling(ctx: BillingContext, usage?: Record<string, any>, resAdapter?: ResponseAdapter): Promise<boolean> {
-    try {
-      this.log('🔄 Settling billing with usage:', usage);
-      
-      const settledCtx = this.processor.settle(ctx, usage);
-      
-      if (!settledCtx.state?.headerValue) {
-        this.log('⚠️ No header value generated during settlement');
-        return false;
-      }
-
-      // Add response header if adapter provided
-      if (resAdapter) {
-        resAdapter.setHeader('X-Payment-Channel-Data', settledCtx.state.headerValue);
-        this.log('✅ Payment header added to response');
-      }
-
-      // Trigger async persistence (Step D)
-      this.processor.persist(settledCtx).catch(error => {
-        this.log('🚨 Async persistence error:', error);
-      });
-
-      return true;
-    } catch (error) {
-      this.log('🚨 Billing settlement error:', error);
-      if (resAdapter) {
-        resAdapter.setStatus(500).json({ 
-          error: 'Billing settlement failed',
-          code: 'PAYMENT_ERROR',
-          details: error instanceof Error ? error.message : String(error)
-        });
-      }
-      return false;
-    }
-  }
-
-  /**
-   * Enhanced framework-agnostic payment processing handler with automatic pre/post-flight detection
-   * 
-   * This method automatically determines whether to use pre-flight or post-flight billing
-   * based on the strategy's `deferred` property.
-   * @deprecated Use handleWithNewAPI + settleBilling instead
-   */
-  async handleWithAutoDetection(req: GenericHttpRequest, resAdapter: ResponseAdapter): Promise<{ 
-    isDeferred: boolean; 
-    paymentSession?: PaymentSession; 
-    result?: ProcessorPaymentResult | null  // null = failed, undefined = no rule matched
-  }> {
-    try {
-      this.log('🔍 Processing HTTP payment request with auto-detection:', req.method, req.path);
-      
-      // Step 1: Find matching billing rule
-      const rule = this.findBillingRule(req);
-      
-      if (!rule) {
-        this.log('📝 No billing rule matched - proceeding without payment processing');
-        return { isDeferred: false };
-      }
-
-      // Step 2: Check if the strategy requires deferred calculation
-      const isDeferred = this.isBillingDeferred(rule);
-      
-      if (!isDeferred) {
-        // Pre-flight billing - calculate cost immediately
-        this.log('⚡ Pre-flight billing detected - processing payment now');
-        const result = await this.handle(req, resAdapter, rule);
-        return { isDeferred: false, result };
-      } else {
-        // Post-flight billing - prepare payment session
-        this.log('⏳ Post-flight billing detected - preparing payment session');
-        const paymentSession = await this.prepareDeferredPayment(req, rule);
-        return { isDeferred: true, paymentSession };
-      }
-    } catch (error) {
-      this.log('🚨 Auto-detection payment processing error:', error);
-      resAdapter.setStatus(500).json({ 
-        error: 'Payment processing failed',
-        code: 'PAYMENT_ERROR',
-        details: error instanceof Error ? error.message : String(error)
-      });
-      return { isDeferred: false };
-    }
-  }
-
-  /**
-   * Framework-agnostic payment processing handler
-   */
-  async handle(req: GenericHttpRequest, resAdapter: ResponseAdapter, billingRule?: BillingRule): Promise<ProcessorPaymentResult | null> {
-    try {
-      this.log('🔍 Processing HTTP payment request:', req.method, req.path);
-      
-      // Step 1: Early payment requirement check if rule is provided
-      let cachedPaymentData: HttpRequestPayload | null = null;
-      if (billingRule?.paymentRequired) {
-        cachedPaymentData = this.extractPaymentData(req.headers);
-        if (!cachedPaymentData?.signedSubRav) {
-          this.log(`💳 Payment required but no signed SubRAV provided for ${req.method} ${req.path}`);
-          resAdapter.setStatus(402).json({
-            error: 'Payment Required',
-            message: 'Signed SubRAV required for this endpoint',
-            code: 'PAYMENT_REQUIRED'
-          });
-          return null;
-        }
-        this.log(`💳 Payment data found for ${req.method} ${req.path}`);
-      }
-      
-      // Step 2: Process payment with pre-extracted payment data to avoid re-parsing
-      // Use cached payment data or extract from HTTP headers
-      const paymentData = cachedPaymentData || this.extractPaymentData(req.headers);
-      
-      // Build billing context
-      const ctx = this.buildBillingContext(req, paymentData || undefined, billingRule);
-      
-      // Delegate to PaymentProcessor for core payment logic
-      const result = await this.processor.processPayment(ctx);
-      
-      if (!result.success) {
-        const statusCode = this.mapErrorToHttpStatus(result.errorCode);
-        resAdapter.setStatus(statusCode).json({ 
-          error: result.error || 'Payment required',
-          code: result.errorCode,
-        });
-        return null;
-      }
-
-      // Add payment proposal to response if available
-      if (result.unsignedSubRAV) {
-        this.addPaymentProposalToResponse(resAdapter, result);
-      }
-
-      // Success - return result for framework-specific handling
-      this.log('✅ Payment processing completed successfully');
-      return result;
-    } catch (error) {
-      this.log('🚨 HTTP payment middleware error:', error);
-      resAdapter.setStatus(500).json({ 
-        error: 'Payment processing failed',
-        code: 'PAYMENT_ERROR',
-        details: error instanceof Error ? error.message : String(error)
-      });
-      return null;
-    }
-  }
-
-  /**
    * Find matching billing rule for the request
    */
   private findBillingRule(req: GenericHttpRequest): BillingRule | undefined {
@@ -402,98 +225,6 @@ export class HttpBillingMiddleware {
     };
     
     return findRule(meta, this.config.ruleProvider.getRules());
-  }
-
-  /**
-   * Check if billing for this rule should be deferred (post-flight)
-   */
-  private isBillingDeferred(rule: BillingRule): boolean {
-    // Now that isDeferred is part of the CostCalculator interface,
-    // we can call it directly without type checking
-    return this.config.billingEngine.isDeferred(rule);
-  }
-
-  /**
-   * Prepare payment session for deferred (post-flight) billing
-   */
-  private async prepareDeferredPayment(req: GenericHttpRequest, rule: BillingRule): Promise<PaymentSession> {
-    // Extract payment data if payment is required
-    let signedSubRav: SignedSubRAV | undefined;
-    if (rule.paymentRequired) {
-      const extractedPaymentData = this.extractPaymentData(req.headers);
-      if (!extractedPaymentData?.signedSubRav) {
-        throw new Error('Payment required but no signed SubRAV provided');
-      }
-      signedSubRav = extractedPaymentData.signedSubRav;
-    }
-
-    let paymentData: PaymentHeaderPayload | undefined;
-    if (signedSubRav) {
-      paymentData = {
-        signedSubRav,
-        maxAmount: 0n, // Will be determined during processing
-        version: 1
-      };
-    }
-    
-    const ctx = this.buildBillingContext(req, paymentData, rule);
-    
-    return {
-      rule,
-      signedSubRav,
-      ctx,
-      paymentRequired: rule.paymentRequired ?? false
-    };
-  }
-
-  /**
-   * Complete deferred billing after request execution
-   */
-  async completeDeferredBilling(
-    paymentSession: PaymentSession, 
-    usage: Record<string, any>, 
-    resAdapter: ResponseAdapter
-  ): Promise<ProcessorPaymentResult | null> {
-    try {
-      this.log('🔄 Completing deferred billing with usage data:', usage);
-      
-      // Update context with usage information
-      const enhancedCtx: BillingContext = {
-        ...paymentSession.ctx,
-        meta: {
-          ...paymentSession.ctx.meta,
-          ...usage
-        }
-      };
-
-      // Process payment with updated context
-      const result = await this.processor.processPayment(enhancedCtx);
-      
-      if (!result.success) {
-        const statusCode = this.mapErrorToHttpStatus(result.errorCode);
-        resAdapter.setStatus(statusCode).json({ 
-          error: result.error || 'Payment required',
-          code: result.errorCode,
-        });
-        return null;
-      }
-
-      // Add payment proposal to response if available
-      if (result.unsignedSubRAV) {
-        this.addPaymentProposalToResponse(resAdapter, result);
-      }
-
-      this.log('✅ Deferred billing completed successfully');
-      return result;
-    } catch (error) {
-      this.log('🚨 Deferred billing completion error:', error);
-      resAdapter.setStatus(500).json({ 
-        error: 'Deferred payment processing failed',
-        code: 'PAYMENT_ERROR',
-        details: error instanceof Error ? error.message : String(error)
-      });
-      return null;
-    }
   }
 
   /**
@@ -543,32 +274,6 @@ export class HttpBillingMiddleware {
         httpHeaders: req.headers
       }
     };
-  }
-
-  /**
-   * Add payment proposal to HTTP response headers
-   */
-  private addPaymentProposalToResponse(resAdapter: ResponseAdapter, result: ProcessorPaymentResult): void {
-    if (!result.unsignedSubRAV) return;
-
-    try {
-      const responseHeader = this.codec.encodeResponse(
-        result.unsignedSubRAV,
-        result.cost,
-        result.serviceTxRef || '',
-        {
-          isHandshake: result.isHandshake,
-          autoClaimTriggered: result.autoClaimTriggered,
-          clientTxRef: result.clientTxRef
-        }
-      );
-
-      resAdapter.setHeader(HttpPaymentCodec.getHeaderName(), responseHeader);
-      this.log('✅ Added payment proposal to response header');
-    } catch (error) {
-      this.log('⚠️ Failed to add payment proposal to response:', error);
-      // Non-fatal error - don't fail the request
-    }
   }
 
   /**
@@ -646,14 +351,6 @@ export class HttpBillingMiddleware {
   }
 
   /**
-   * Security: Check if a client should be rate-limited
-   */
-  shouldRateLimit(clientId: string): boolean {
-    // Delegate to processor or implement HTTP-specific rate limiting
-    return false;
-  }
-
-  /**
    * Create ExpressJS ResponseAdapter
    */
   private createExpressResponseAdapter(res: ExpressResponse): ResponseAdapter {
@@ -689,45 +386,6 @@ export class HttpBillingMiddleware {
     return new HttpBillingMiddleware(config);
   }
 
-  /**
-   * Static factory method with billing engine
-   */
-  static createWithBillingEngine(
-    payeeClient: PaymentChannelPayeeClient,
-    billingEngine: CostCalculator,
-    serviceId: string,
-    options: Partial<HttpBillingMiddlewareConfig> = {}
-  ): HttpBillingMiddleware {
-    return new HttpBillingMiddleware({
-      payeeClient,
-      billingEngine,
-      serviceId,
-      ...options
-    });
-  }
-}
-
-/**
- * Utility function to create basic billing configuration
- */
-export function createBasicBillingConfig(
-  serviceId: string,
-  defaultPrice: string | bigint
-): any {
-  return {
-    version: 1,
-    serviceId,
-    rules: [
-      {
-        id: 'default-pricing',
-        default: true,
-        strategy: {
-          type: 'PerRequest',
-          price: defaultPrice.toString()
-        }
-      }
-    ]
-  };
 }
 
 /**
@@ -749,8 +407,7 @@ export function createExpressResponseAdapter(res: any): ResponseAdapter {
   };
 }
 
-// Re-export ProcessorPaymentResult for framework integrations
-export type { ProcessorPaymentResult } from '../../core/PaymentProcessor';
+// No longer re-export ProcessorPaymentResult; results are available via BillingContext.state
 
 /**
  * Utility function to create Koa ResponseAdapter (example for other frameworks)

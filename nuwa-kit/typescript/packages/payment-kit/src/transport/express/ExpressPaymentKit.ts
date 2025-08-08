@@ -3,7 +3,7 @@ import onHeaders from 'on-headers';
 import { BillableRouter, RouteOptions } from './BillableRouter';
 import { registerHandlersWithBillableRouter } from './HandlerRestAdapter';
 import { HttpBillingMiddleware, ResponseAdapter } from '../../middlewares/http/HttpBillingMiddleware';
-import { BillingEngine, RateProvider } from '../../billing';
+import { RateProvider } from '../../billing';
 import { ContractRateProvider } from '../../billing/rate/contract';
 import { PaymentChannelPayeeClient } from '../../client/PaymentChannelPayeeClient';
 import { RoochPaymentChannelContract } from '../../rooch/RoochPaymentChannelContract';
@@ -94,9 +94,6 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
       defaultPricePicoUSD: config.defaultPricePicoUSD
     });
 
-    // Create billing engine using the billable router as rule provider
-    const billingEngine = new BillingEngine(this.billableRouter, rateProvider);
-
     // Create ClaimScheduler for automated claiming
     this.claimScheduler = new ClaimScheduler({
       store: payeeClient.getRAVRepository(),
@@ -116,7 +113,7 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
     // Create HTTP billing middleware with ClaimScheduler
     this.middleware = new HttpBillingMiddleware({
       payeeClient,
-      billingEngine,
+      rateProvider: this.rateProvider,
       ruleProvider: this.billableRouter,
       serviceId: config.serviceId,
       defaultAssetId: config.defaultAssetId || '0x3::gas_coin::RGas',
@@ -230,9 +227,9 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
           const resAdapter = this.createResponseAdapter(res);
           
           // Use new unified billing API  
-          const billingResult = await this.middleware.handleWithNewAPI(req);
+          const billingContext = await this.middleware.handleWithNewAPI(req);
           
-          if (!billingResult) {
+          if (!billingContext) {
             // No billing rule matched - proceed without payment
             if (this.config.debug) {
               console.log(`⏭️ No billing rule for ${req.method} ${req.path}`);
@@ -240,128 +237,83 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
             return next();
           }
 
-          const { ctx: billingContext, isDeferred } = billingResult;
+          // Unified handling for both pre-flight and post-flight
+          res.locals.billingContext = billingContext;
 
-          if (!isDeferred) {
-            // Pre-flight billing completed in preProcess
-            if (billingContext.state?.headerValue) {
-              // Pre-flight billing successful - header already generated
-              resAdapter.setHeader('X-Payment-Channel-Data', billingContext.state.headerValue);
-              // Set paymentResult with correct structure for backward compatibility
-              (req as any).paymentResult = {
-                ...billingContext,
-                cost: billingContext.state.cost,
-                subRav: billingContext.state.unsignedSubRav
-              };
-              
-              // CRITICAL: Async persist for pre-flight billing
-              // This stores the unsignedSubRAV for future verification
-              if (billingContext.state.unsignedSubRav) {
-                this.middleware.persistBilling(billingContext).catch((error) => {
-                  console.error('🚨 Failed to persist pre-flight billing:', error);
-                });
-              }
-              
-              return next();
-            } else if (billingContext.state?.cost === 0n) {
-              // Zero-cost request - no header needed, just proceed
-              if (this.config.debug) {
-                console.log('✅ Zero-cost request processed successfully');
-              }
-              // Set minimal paymentResult for backward compatibility
-              (req as any).paymentResult = {
-                ...billingContext,
-                cost: billingContext.state.cost
-              };
-              return next();
-            } else {
-              // Pre-flight billing failed
-              if (this.config.debug) {
-                console.log('❌ Pre-flight billing failed, blocking request continuation');
-              }
-              res.status(402).json({ error: 'Payment required' });
-              return;
+          // If processor marked a protocol-level error, short-circuit and return immediately
+          if (billingContext.state?.error) {
+            const err = billingContext.state.error as { code: string; message?: string };
+            // Map to HTTP status
+            let status = 500;
+            switch (err.code) {
+              case 'PAYMENT_REQUIRED':
+              case 'INSUFFICIENT_FUNDS':
+                status = 402; break;
+              case 'INVALID_PAYMENT':
+              case 'UNKNOWN_SUBRAV':
+              case 'TAMPERED_SUBRAV':
+              case 'CHANNEL_CLOSED':
+              case 'EPOCH_MISMATCH':
+              case 'MAX_AMOUNT_EXCEEDED':
+                status = 400; break;
+              case 'SUBRAV_CONFLICT':
+                status = 409; break;
+              default:
+                status = 500; break;
             }
-          } else {
-            // Post-flight billing - attach billing context for later processing
-            res.locals.billingContext = billingContext;
-            
-            // For compatibility, also set paymentResult even though it's incomplete
-            // The complete payment result will be available after response processing
-            (req as any).paymentResult = billingContext;
-            
-            // Use on-headers package for reliable header interception
-            let billingCompleted = false;
-            let headerWritten = false;
-            
-            // CRITICAL: Use on-headers package to intercept before headers are sent
-            onHeaders(res, () => {
-              console.log('🔄 on-headers triggered for post-flight billing');
-              
-              // Guard 1: Prevent multiple executions
-              if (headerWritten) {
-                return;
-              }
-              headerWritten = true;
 
-              try {
-                // Extract usage data from response locals (populated by business logic)
-                const usage = res.locals.usage || {};
-                if (Object.keys(usage).length > 0) {
-                  if (this.config.debug) {
-                    console.log('🔄 Processing post-flight billing synchronously with usage:', usage);
-                  }
-                  
-                  // Complete deferred billing synchronously using new API
-                  this.middleware.settleBillingSync(billingContext, usage, resAdapter);
-                  
-                  // Update req.paymentResult with calculated cost for backward compatibility
-                  if (billingContext.state?.cost !== undefined) {
-                    (req as any).paymentResult = {
-                      ...billingContext,
-                      cost: billingContext.state.cost,
-                      subRav: billingContext.state.unsignedSubRav
-                    };
-                  }
-                  
-                  if (this.config.debug) {
-                    console.log('✅ Post-flight billing header completed synchronously');
-                  }
-                } else {
-                  console.warn('⚠️ No usage data found in res.locals.usage for post-flight billing');
-                }
-              } catch (error) {
-                console.error('🚨 Post-flight billing header error:', error);
-                // Don't fail the request, just log the error
+            // Build protocol error header
+            const { HttpPaymentCodec } = await import('../../middlewares/http/HttpPaymentCodec');
+            let clientTxRef: string | undefined;
+            try {
+              const headerValueIn = HttpPaymentCodec.extractPaymentHeader(req.headers as any);
+              if (headerValueIn) {
+                const payload = HttpPaymentCodec.parseRequestHeader(headerValueIn);
+                clientTxRef = payload.clientTxRef;
               }
-            });
-            
-            // Use 'finish' event for async chain operations after headers are sent
-            res.on('finish', async () => {
-              if (billingCompleted) return;
-              billingCompleted = true;
-              
-              try {
-                const usage = res.locals.usage || {};
-                if (Object.keys(usage).length > 0) {
-                  if (this.config.debug) {
-                    console.log('🔄 Completing async post-flight chain operations with usage:', usage);
-                  }
-                  
-                  // This handles the async chain operations (SubRAV persistence, etc.)
-                  if (billingContext.state?.unsignedSubRav) {
-                    await this.middleware.persistBilling(billingContext);
-                  }
-                  
-                  if (this.config.debug) {
-                    console.log('✅ Async post-flight chain operations completed');
-                  }
-                }
-              } catch (error) {
-                console.error('🚨 Async post-flight chain operations error:', error);
-              }
+            } catch {}
+            const headerValue = HttpPaymentCodec.buildResponseHeader({
+              error: { code: err.code, message: err.message },
+              clientTxRef,
+              version: 1
+            } as any);
+            res.setHeader('X-Payment-Channel-Data', headerValue);
+
+            return res.status(status).json({
+              success: false,
+              error: { code: err.code, message: err.message, httpStatus: status }
             });
           }
+
+          let billingCompleted = false;
+          let headerWritten = false;
+
+          // Intercept headers to write payment header synchronously
+          onHeaders(res, () => {
+            if (headerWritten) return;
+            headerWritten = true;
+            try {
+              const raw = (res.locals as any).usage;
+              const units = typeof raw === 'number' && Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 1;
+              this.middleware.settleBillingSync(billingContext, units, resAdapter);
+            } catch (error) {
+              console.error('🚨 Billing header error:', error);
+            }
+          });
+
+          // Persist after response is sent
+          res.on('finish', async () => {
+            if (billingCompleted) return;
+            billingCompleted = true;
+            try {
+              if (billingContext.state?.unsignedSubRav) {
+                await this.middleware.persistBilling(billingContext);
+              }
+            } catch (error) {
+              console.error('🚨 Billing persistence error:', error);
+            }
+          });
+
           return next();
         } else {
           if (this.config.debug) {
@@ -448,7 +400,8 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
 
       // Success path: extract signer DID and set it on the request
       (req as any).didInfo = { 
-        did: verifyResult.signedObject.signature.signer_did 
+        did: verifyResult.signedObject.signature.signer_did,
+        keyId: verifyResult.signedObject.signature.key_id
       };
 
     } catch (error) {
@@ -527,26 +480,6 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
         return this.createResponseAdapter(res);
       }
     };
-  }
-
-  /**
-   * Create a null response adapter that doesn't modify the response
-   * Used for async operations after headers are sent
-   */
-  private createNullResponseAdapter(): ResponseAdapter {
-    return {
-      setStatus: (code: number) => {
-        // Do nothing - headers already sent
-        return this.createNullResponseAdapter();
-      },
-      json: (obj: any) => {
-        // Do nothing - response already sent
-      },
-      setHeader: (name: string, value: string) => {
-        // Do nothing - headers already sent
-        return this.createNullResponseAdapter();
-      }
-    };
   } 
 
   /**
@@ -555,8 +488,6 @@ class ExpressPaymentKitImpl implements ExpressPaymentKit {
   getPayeeClient(): PaymentChannelPayeeClient {
     return this.payeeClient;
   }
-
-
 
 }
 
@@ -619,6 +550,7 @@ declare global {
     interface Request {
       didInfo?: {
         did: string;
+        keyId: string;
       };
     }
   }

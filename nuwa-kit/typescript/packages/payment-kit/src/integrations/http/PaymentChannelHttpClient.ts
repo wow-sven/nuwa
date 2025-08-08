@@ -18,6 +18,7 @@ import type {
 import { ErrorCode } from '../../types/api';
 import { PaymentKitError } from '../../errors';
 import { PaymentChannelPayerClient } from '../../client/PaymentChannelPayerClient';
+import { assertSubRavProgression } from '../../core/SubRavValidator';
 import { PaymentChannelFactory } from '../../factory/chainFactory';
 import { DidAuthHelper } from './internal/DidAuthHelper';
 import { HttpPaymentCodec } from './internal/codec';
@@ -26,7 +27,7 @@ import {
   extractHost,
   MemoryHostChannelMappingStore 
 } from './internal/HostChannelMappingStore';
-import { parseJsonResponse } from '../../utils/json';
+import { parseJsonResponse, serializeJson } from '../../utils/json';
 import { 
   RecoveryResponseSchema,
   HealthResponseSchema,
@@ -121,11 +122,8 @@ export class PaymentChannelHttpClient {
     // Generate or extract clientTxRef
     const clientTxRef = this.extractOrGenerateClientTxRef(init?.headers);
     
-    // Create payment promise for this request
-    const paymentPromise = this.createPaymentPromise(clientTxRef);
-    
     // Prepare headers with clientTxRef
-    const headers = await this.prepareHeaders(fullUrl, method, init?.headers, clientTxRef);
+    const { headers, sentedSubRav } = await this.prepareHeaders(fullUrl, method, init?.headers, clientTxRef);
     
     // Build request context
     const requestContext: PaymentRequestContext = {
@@ -135,6 +133,9 @@ export class PaymentChannelHttpClient {
       body: init?.body
     };
 
+    // Create payment promise for this request
+    const paymentPromise = this.createPaymentPromise(clientTxRef, requestContext, sentedSubRav);
+    
     try {
       // Execute request
       const response = await this.executeRequest(requestContext, init);
@@ -518,7 +519,7 @@ export class PaymentChannelHttpClient {
   /**
    * Create a payment promise for tracking request payment info
    */
-  private createPaymentPromise(clientTxRef: string): Promise<PaymentInfo | undefined> {
+  private createPaymentPromise(clientTxRef: string, requestContext: PaymentRequestContext, sentedSubRav: SignedSubRAV): Promise<PaymentInfo | undefined> {
     if (!this.clientState.pendingPayments) {
       this.clientState.pendingPayments = new Map();
     }
@@ -540,7 +541,10 @@ export class PaymentChannelHttpClient {
         timestamp: new Date(),
         channelId: this.clientState.channelId!,
         assetId: defaultAssetId,
-        timeoutId
+        timeoutId,
+        // Bind the RAV we are about to send with this specific pending request
+        sendedSubRav: sentedSubRav,
+        requestContext
       });
     });
   }
@@ -553,7 +557,7 @@ export class PaymentChannelHttpClient {
     method: string, 
     providedHeaders?: HeadersInit,
     clientTxRef?: string
-  ): Promise<Record<string, string>> {
+  ): Promise<{ headers: Record<string, string>; sentedSubRav: SignedSubRAV }> {
     const headers: Record<string, string> = {};
 
     // Copy provided headers
@@ -588,74 +592,26 @@ export class PaymentChannelHttpClient {
       this.log('Failed to generate DID auth header:', error);
     }
 
-    // Add payment channel header with clientTxRef
-    await this.addPaymentChannelHeader(headers, clientTxRef);
+    // Add payment channel header with clientTxRef and return the actual SubRAV used
+    const sentedSubRav = await this.addPaymentChannelHeader(headers, clientTxRef);
 
-    return headers;
+    return { headers, sentedSubRav };
   }
 
   /**
    * Add payment channel data to headers
    */
-  private async addPaymentChannelHeader(headers: Record<string, string>, clientTxRef?: string): Promise<void> {
+  private async addPaymentChannelHeader(headers: Record<string, string>, clientTxRef?: string): Promise<SignedSubRAV> {
     if (!this.clientState.channelId) {
       throw new Error('Channel not initialized');
     }
 
     try {
-      let signedSubRAV: SignedSubRAV;
+      const signedSubRAV = await this.buildSignedSubRavIfNeeded();
 
-      if (this.clientState.pendingSubRAV) {
-        // Sign the pending SubRAV
-        const pendingSubRAV = this.clientState.pendingSubRAV;
-        this.clientState.pendingSubRAV = undefined; // Clear after taking
-        
-        // Check amount limit if configured
-        if (this.options.maxAmount && pendingSubRAV.accumulatedAmount > this.options.maxAmount) {
-          throw new Error(`Payment amount ${pendingSubRAV.accumulatedAmount} exceeds maximum allowed ${this.options.maxAmount}`);
-        }
-        
-        signedSubRAV = await this.payerClient.signSubRAV(pendingSubRAV, {
-          maxAmount: this.options.maxAmount
-        });
-        this.log('Signed pending SubRAV:', pendingSubRAV.nonce, pendingSubRAV.accumulatedAmount);
-      } else {
-        // First request or handshake - create nonce=0, amount=0 SubRAV manually
-        const channelInfo = await this.payerClient.getChannelInfo(this.clientState.channelId);
-        const signer = this.options.signer;
-        
-        const keyIds = await signer.listKeyIds();
-        const vmIdFragment = keyIds[0]?.split('#')[1] // Extract fragment part
-
-        if (!vmIdFragment) {
-          throw new Error('No VM ID fragment found');
-        }
-        
-        const chainId = await this.payerClient.getChainId();
-        const handshakeSubRAV: SubRAV = {
-          version: 1,
-          chainId: chainId,
-          channelId: this.clientState.channelId,
-          channelEpoch: channelInfo.epoch,
-          vmIdFragment,
-          accumulatedAmount: BigInt(0),
-          nonce: BigInt(0)
-        };
-        
-        signedSubRAV = await this.payerClient.signSubRAV(handshakeSubRAV);
-        this.log('Created handshake SubRAV:', handshakeSubRAV.nonce);
-      }
-
-      // Encode to header
-      const codec = new HttpPaymentCodec();
-      const headerValue = codec.encodePayload({
-        signedSubRav: signedSubRAV,
-        maxAmount: this.options.maxAmount || BigInt(0),
-        clientTxRef: clientTxRef || crypto.randomUUID(),
-        version: 1
-      });
+      const headerValue = this.encodePaymentHeader(signedSubRAV, clientTxRef);
       headers[HttpPaymentCodec.getHeaderName()] = headerValue;
-      
+      return signedSubRAV;
     } catch (error) {
       this.handleError('Failed to add payment channel header', error);
       throw error;
@@ -673,6 +629,7 @@ export class PaymentChannelHttpClient {
       // Extract headers from init to avoid overriding context.headers
       const { headers: _, ...initWithoutHeaders } = init || {};
       
+
       const response = await this.fetchImpl(context.url, {
         method: context.method,
         headers: context.headers,
@@ -698,50 +655,122 @@ export class PaymentChannelHttpClient {
     
     if (paymentHeader) {
       try {
-        const responsePayload = HttpPaymentCodec.parseResponseHeader(paymentHeader);
+        const responsePayload = this.parsePaymentHeader(paymentHeader) as any;
         
-        // Handle clientTxRef-based payment resolution
-        if (responsePayload.clientTxRef && this.clientState.pendingPayments?.has(responsePayload.clientTxRef)) {
-          const pendingRequest = this.clientState.pendingPayments.get(responsePayload.clientTxRef)!;
+        // Protocol-level error branch with robust fallback matching
+        if (responsePayload.error) {
+          const errorCode = responsePayload.error.code;
+          const status = response.status;
+          const message = responsePayload.error.message || response.statusText || 'Payment error';
+          const err = new PaymentKitError(errorCode, message, status);
+
+          // Preferred: reject by clientTxRef
+          if (responsePayload.clientTxRef && this.clientState.pendingPayments?.has(responsePayload.clientTxRef)) {
+            const pendingRequest = this.clientState.pendingPayments.get(responsePayload.clientTxRef)!;
+            clearTimeout(pendingRequest.timeoutId);
+            this.clientState.pendingPayments.delete(responsePayload.clientTxRef);
+            // Recovery: clear pendingSubRAV for safety
+            this.clientState.pendingSubRAV = undefined;
+            await this.persistClientState();
+            pendingRequest.reject(err);
+            return; // Skip success path processing
+          }
+
+          // Fallback: no clientTxRef in header – try to resolve uniquely
+          if (this.clientState.pendingPayments && this.clientState.pendingPayments.size === 1) {
+            const [[onlyKey, pendingRequest]] = this.clientState.pendingPayments.entries();
+            clearTimeout(pendingRequest.timeoutId);
+            this.clientState.pendingPayments.delete(onlyKey);
+            this.clientState.pendingSubRAV = undefined;
+            await this.persistClientState();
+            pendingRequest.reject(err);
+            return;
+          }
+
+          // Last resort: reject all pending to avoid timeouts
+          // If we reach here and still have pending items (>=0), reject all to avoid timeouts
+          if (this.clientState.pendingPayments && this.clientState.pendingPayments.size >= 1) {
+            for (const [key, pendingRequest] of this.clientState.pendingPayments.entries()) {
+              clearTimeout(pendingRequest.timeoutId);
+              pendingRequest.reject(err);
+              this.clientState.pendingPayments.delete(key);
+            }
+            this.clientState.pendingSubRAV = undefined;
+            await this.persistClientState();
+            return;
+          }
+        }
+
+        // Handle clientTxRef-based payment resolution (success)
+        if (responsePayload.subRav && responsePayload.cost !== undefined) {
+          
+          // Preferred: resolve by clientTxRef
+          let pendingRequest: PendingPaymentRequest | undefined;
+          let keyToDelete: string | undefined;
+          if (responsePayload.clientTxRef && this.clientState.pendingPayments?.has(responsePayload.clientTxRef)) {
+            pendingRequest = this.clientState.pendingPayments.get(responsePayload.clientTxRef)!;
+            keyToDelete = responsePayload.clientTxRef;
+          } else if (this.clientState.pendingPayments && this.clientState.pendingPayments.size === 1) {
+            // Fallback: no clientTxRef in header – resolve the only pending one
+            const [[onlyKey, onlyPending]] = this.clientState.pendingPayments.entries();
+            pendingRequest = onlyPending;
+            keyToDelete = onlyKey;
+          }
+
+          if (pendingRequest && typeof keyToDelete === 'string') {
           
           // Clear the timeout to prevent memory leak
-          clearTimeout(pendingRequest.timeoutId);
+            clearTimeout(pendingRequest.timeoutId);
           
           // Calculate USD cost with fallback to 0
           let costUsd: bigint = BigInt(0);
           try {
-            const assetPrice = await this.payerClient.getAssetPrice(pendingRequest.assetId);
+              const assetPrice = await this.payerClient.getAssetPrice(pendingRequest.assetId);
             //TODO: Overflow check
-            costUsd = responsePayload.amountDebited * assetPrice;
+            costUsd = responsePayload.cost * assetPrice;
           } catch (error) {
             this.log('Failed to calculate USD cost, using 0:', error);
             // Keep costUsd as 0 if price lookup fails
           }
+         
+           // Early local validation using shared util (allowSameAccumulated=true for admin/claims or zero-cost endpoints)
+           const prev = pendingRequest.sendedSubRav?.subRav;
+           if (prev) {
+             try {
+               assertSubRavProgression(prev, responsePayload.subRav, /* allowSameAccumulated */ true);
+             } catch (e) {
+               pendingRequest.reject(new Error('Invalid SubRAV progression: ' + (e as Error).message + ', response: ' + serializeJson(responsePayload) + ' prev: ' + serializeJson(prev) + ' requestContext: ' + serializeJson(pendingRequest.requestContext)));
+               return;
+             }
+           }
           
+          // Cache the unsigned SubRAV for the next request to ensure nonce progresses
+          await this.cachePendingSubRAV(responsePayload.subRav);
+
           // Create PaymentInfo from response
           const paymentInfo: PaymentInfo = {
-            clientTxRef: responsePayload.clientTxRef,
+              clientTxRef: responsePayload.clientTxRef || keyToDelete!,
             serviceTxRef: responsePayload.serviceTxRef,
-            cost: responsePayload.amountDebited,
+            cost: responsePayload.cost,
             costUsd,
             nonce: responsePayload.subRav.nonce,
-            channelId: pendingRequest.channelId,
-            assetId: pendingRequest.assetId,
+              channelId: pendingRequest.channelId,
+              assetId: pendingRequest.assetId,
             timestamp: new Date().toISOString()
           };
           
           // Resolve the payment promise and remove from pending payments
-          pendingRequest.resolve(paymentInfo);
-          this.clientState.pendingPayments.delete(responsePayload.clientTxRef);
+            pendingRequest!.resolve(paymentInfo);
+            this.clientState.pendingPayments?.delete(keyToDelete);
           
-          this.log('Resolved payment for clientTxRef:', responsePayload.clientTxRef, 'cost:', paymentInfo.cost.toString(), 'costUsd:', paymentInfo.costUsd.toString());
+            this.log('Resolved payment for clientTxRef:', paymentInfo.clientTxRef, 'cost:', paymentInfo.cost.toString(), 'costUsd:', paymentInfo.costUsd.toString());
+            return;
+          }
         }
         
-        if (responsePayload.subRav) {
-          // Cache the unsigned SubRAV for the next request
-          this.clientState.pendingSubRAV = responsePayload.subRav;
-          this.log('Cached new unsigned SubRAV:', responsePayload.subRav.nonce);
-          await this.persistClientState();
+        if (responsePayload.subRav && responsePayload.cost !== undefined) {
+          // If not yet cached above (no matching pending), cache now
+          await this.cachePendingSubRAV(responsePayload.subRav);
         }
         
         if (responsePayload.serviceTxRef) {
@@ -1046,5 +1075,79 @@ export class PaymentChannelHttpClient {
     if (this.options.debug) {
       console.log('[PaymentChannelHttpClient]', ...args);
     }
+  }
+
+  /**
+   * Build and sign a SubRAV for the current request without changing behavior.
+   * - If there is a pendingSubRAV, sign it and clear the pending cache.
+   * - Otherwise, create a legacy handshake SubRAV (nonce=0, amount=0) and sign it.
+   */
+  private async buildSignedSubRavIfNeeded(): Promise<SignedSubRAV> {
+    if (!this.clientState.channelId) {
+      throw new Error('Channel not initialized');
+    }
+
+    if (this.clientState.pendingSubRAV) {
+      const pendingSubRAV = this.clientState.pendingSubRAV;
+      // Clear after taking to keep existing semantics
+      this.clientState.pendingSubRAV = undefined;
+
+      const signed = await this.payerClient.signSubRAV(pendingSubRAV, {
+        maxAmount: this.options.maxAmount
+      });
+      this.log('Signed pending SubRAV:', pendingSubRAV.nonce, pendingSubRAV.accumulatedAmount);
+      return signed;
+    }
+
+    // Legacy handshake path preserved (no behavior change)
+    const channelInfo = await this.payerClient.getChannelInfo(this.clientState.channelId);
+    const signer = this.options.signer;
+    const keyIds = await signer.listKeyIds();
+    const vmIdFragment = keyIds[0]?.split('#')[1];
+    if (!vmIdFragment) {
+      throw new Error('No VM ID fragment found');
+    }
+    const chainId = await this.payerClient.getChainId();
+    const handshakeSubRAV: SubRAV = {
+      version: 1,
+      chainId: chainId,
+      channelId: this.clientState.channelId,
+      channelEpoch: channelInfo.epoch,
+      vmIdFragment,
+      accumulatedAmount: BigInt(0),
+      nonce: BigInt(0)
+    };
+    const signed = await this.payerClient.signSubRAV(handshakeSubRAV);
+    this.log('Created handshake SubRAV:', handshakeSubRAV.nonce);
+    return signed;
+  }
+
+  /**
+   * Cache pending SubRAV and persist state (helper to avoid duplication)
+   */
+  private async cachePendingSubRAV(subRav: SubRAV): Promise<void> {
+    this.clientState.pendingSubRAV = subRav;
+    this.log('Cached new unsigned SubRAV:', subRav.nonce);
+    await this.persistClientState();
+  }
+
+  /**
+   * Encode payment header using HttpPaymentCodec (thin wrapper, no behavior change)
+   */
+  private encodePaymentHeader(signedSubRAV: SignedSubRAV, clientTxRef?: string): string {
+    const codec = new HttpPaymentCodec();
+    return codec.encodePayload({
+      signedSubRav: signedSubRAV,
+      maxAmount: this.options.maxAmount || BigInt(0),
+      clientTxRef: clientTxRef || crypto.randomUUID(),
+      version: 1
+    });
+  }
+
+  /**
+   * Parse payment header using HttpPaymentCodec (thin wrapper, no behavior change)
+   */
+  private parsePaymentHeader(headerValue: string) {
+    return HttpPaymentCodec.parseResponseHeader(headerValue);
   }
 }
