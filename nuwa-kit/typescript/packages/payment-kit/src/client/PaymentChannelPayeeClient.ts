@@ -161,6 +161,23 @@ export class PaymentChannelPayeeClient {
   }
 
   /**
+   * Get sub-channel state by (channelId, vmIdFragment)
+   * Convenience wrapper to reconstruct payer keyId from chain metadata
+   */
+  async getSubChannelStateByFragment(channelId: string, vmIdFragment: string): Promise<SubChannelState> {
+    const info = await this.getChannelInfoCached(channelId);
+    const keyId = this.reconstructKeyId(info.payerDid, vmIdFragment);
+    return this.channelRepo.getSubChannelState(channelId, keyId);
+  }
+
+  /**
+   * Get the payee DID from this client's signer
+   */
+  async getPayeeDid(): Promise<string> {
+    return await this.signer.getDid();
+  }
+
+  /**
    * Get the pending SubRAV repository used by this client
    */
   getPendingSubRAVRepository(): PendingSubRAVRepository {
@@ -618,29 +635,7 @@ export class PaymentChannelPayeeClient {
 
   // -------- Enhanced Methods for PaymentProcessor --------
 
-  /**
-   * Verify handshake request (specialized method for nonce=0, amount=0)
-   */
-  async verifyHandshake(signedSubRAV: SignedSubRAV): Promise<VerificationResult> {
-    // Verify this is actually a handshake
-    if (!PaymentUtils.isHandshake(signedSubRAV.subRav)) {
-      return {
-        isValid: false,
-        error: `Not a handshake SubRAV: nonce=${signedSubRAV.subRav.nonce}, amount=${signedSubRAV.subRav.accumulatedAmount}`
-      };
-    }
-
-    // Use standard verification but optimized for handshake case
-    const result = await this.verifySubRAV(signedSubRAV);
-    
-    if (result.isValid) {
-      console.log(`✅ Handshake verified for channel ${signedSubRAV.subRav.channelId}`);
-    } else {
-      console.log(`❌ Handshake verification failed: ${result.error}`);
-    }
-
-    return result;
-  }
+  
 
   /**
    * Confirm signed proposal from pending store
@@ -654,6 +649,7 @@ export class PaymentChannelPayeeClient {
       // Check if this SubRAV matches one we previously sent
       const pendingSubRAV = await pendingStore.find(
         signedSubRAV.subRav.channelId,
+        signedSubRAV.subRav.vmIdFragment,
         signedSubRAV.subRav.nonce
       );
       
@@ -677,7 +673,11 @@ export class PaymentChannelPayeeClient {
       
       if (result.isValid) {
         // Remove from pending list on successful verification
-        await pendingStore.remove(signedSubRAV.subRav.channelId, signedSubRAV.subRav.nonce);
+        await pendingStore.remove(
+          signedSubRAV.subRav.channelId,
+          signedSubRAV.subRav.vmIdFragment,
+          signedSubRAV.subRav.nonce
+        );
         console.log(`✅ Confirmed signed proposal for channel ${signedSubRAV.subRav.channelId}, nonce ${signedSubRAV.subRav.nonce}`);
       } else {
         console.log(`❌ Signed proposal verification failed: ${result.error}`);

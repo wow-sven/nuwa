@@ -74,6 +74,8 @@ export interface HttpBillingMiddlewareConfig {
  */
 export enum HttpPaymentErrorCode {
   PAYMENT_REQUIRED = 'PAYMENT_REQUIRED',      // 402
+  SUBRAV_CONFLICT = 'SUBRAV_CONFLICT',        // 409
+  MISSING_CHANNEL_CONTEXT = 'MISSING_CHANNEL_CONTEXT', // 409
   INVALID_PAYMENT = 'INVALID_PAYMENT',        // 400
   UNKNOWN_SUBRAV = 'UNKNOWN_SUBRAV',          // 400
   TAMPERED_SUBRAV = 'TAMPERED_SUBRAV',        // 400
@@ -81,7 +83,10 @@ export enum HttpPaymentErrorCode {
   INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',  // 402
   CHANNEL_CLOSED = 'CHANNEL_CLOSED',          // 400
   EPOCH_MISMATCH = 'EPOCH_MISMATCH',          // 400
-  MAX_AMOUNT_EXCEEDED = 'MAX_AMOUNT_EXCEEDED' // 400
+  MAX_AMOUNT_EXCEEDED = 'MAX_AMOUNT_EXCEEDED', // 400
+  CLIENT_TX_REF_MISSING = 'CLIENT_TX_REF_MISSING', // 400
+  RATE_NOT_AVAILABLE = 'RATE_NOT_AVAILABLE',    // 500
+  BILLING_CONFIG_ERROR = 'BILLING_CONFIG_ERROR' // 500
 }
 
 /**
@@ -108,6 +113,7 @@ export class HttpBillingMiddleware {
       defaultAssetId: config.defaultAssetId,
       rateProvider: config.rateProvider,
       pendingSubRAVStore: config.pendingSubRAVStore,
+      ravRepository: config.payeeClient.getRAVRepository(),
       claimScheduler: config.claimScheduler,
       debug: config.debug
     });
@@ -169,6 +175,12 @@ export class HttpBillingMiddleware {
       
       // Use the processor's synchronous settle method
       const settledCtx = this.processor.settle(ctx, usage);
+      
+      // Check if this is a free route that should not generate headers
+      if (ctx.meta.billingRule && !ctx.meta.billingRule.paymentRequired) {
+        this.log('📝 Free route - skipping payment header generation');
+        return true; // Successfully handled, no header needed
+      }
       
       if (!settledCtx.state?.headerValue) {
         this.log('⚠️ No header value generated during settlement');
@@ -261,6 +273,8 @@ export class HttpBillingMiddleware {
         maxAmount: paymentData?.maxAmount,
         signedSubRav: paymentData?.signedSubRav,
         clientTxRef: paymentData?.clientTxRef,
+        // DIDAuth (ExpressPaymentKit attaches didInfo onto req)
+        didInfo: (req as any).didInfo,
         
         // HTTP-specific metadata for billing rules
         method: req.method,
@@ -285,15 +299,22 @@ export class HttpBillingMiddleware {
       case HttpPaymentErrorCode.INSUFFICIENT_FUNDS:
         return 402; // Payment Required
       
+      case HttpPaymentErrorCode.SUBRAV_CONFLICT:
+      case HttpPaymentErrorCode.MISSING_CHANNEL_CONTEXT:
+        return 409; // Conflict
+      
       case HttpPaymentErrorCode.INVALID_PAYMENT:
       case HttpPaymentErrorCode.UNKNOWN_SUBRAV:
       case HttpPaymentErrorCode.TAMPERED_SUBRAV:
       case HttpPaymentErrorCode.CHANNEL_CLOSED:
       case HttpPaymentErrorCode.EPOCH_MISMATCH:
       case HttpPaymentErrorCode.MAX_AMOUNT_EXCEEDED:
+      case HttpPaymentErrorCode.CLIENT_TX_REF_MISSING:
         return 400; // Bad Request
       
       case HttpPaymentErrorCode.PAYMENT_ERROR:
+      case HttpPaymentErrorCode.RATE_NOT_AVAILABLE:
+      case HttpPaymentErrorCode.BILLING_CONFIG_ERROR:
       default:
         return 500; // Internal Server Error
     }
@@ -339,15 +360,15 @@ export class HttpBillingMiddleware {
   /**
    * Find pending SubRAV proposal
    */
-  async findPendingProposal(channelId: string, nonce: bigint): Promise<any> {
-    return await this.processor.findPendingProposal(channelId, nonce);
+  async findPendingProposal(channelId: string, vmIdFragment: string, nonce: bigint): Promise<any> {
+    return await this.processor.findPendingProposal(channelId, vmIdFragment, nonce);
   }
 
   /**
    * Find the latest pending SubRAV proposal for a channel
    */
-  async findLatestPendingProposal(channelId: string): Promise<any> {
-    return await this.processor.findLatestPendingProposal(channelId);
+  async findLatestPendingProposal(channelId: string, vmIdFragment: string): Promise<any> {
+    return await this.processor.findLatestPendingProposal(channelId, vmIdFragment);
   }
 
   /**
