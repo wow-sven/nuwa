@@ -1,12 +1,17 @@
-"use client";
+"use client";;
 import Hero from "@/components/hero-home";
-import PageIllustration from "@/components/page-illustration";
+import { Inter } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+});
 
 export default function HomePage() {
   return (
-    <div className="w-full mx-auto px-4">
+    <div className={`w-full ${inter.variable} font-inter`}>
       <Hero />
-      <PageIllustration />
     </div>
   );
 }

@@ -6,7 +6,12 @@ module.exports = {
         "./content/**/*.{mdx}"
     ],
     theme: {
-        extend: {},
+        extend: {
+            fontFamily: {
+                'inter': ['var(--font-inter)', 'Inter', 'sans-serif'],
+                'custom': ['var(--font-inter)', 'Inter', 'sans-serif'],
+            },
+        },
     },
     plugins: [],
 }
