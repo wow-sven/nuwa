@@ -18,7 +18,7 @@ const ChatModalButton = () => {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="default" size="sm">
+        <Button variant="primary">
           <MessageCircleIcon className="w-4 h-4" />
           <span className="text-sm">Ask Nuwa Guide</span>
         </Button>

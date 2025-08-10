@@ -7,10 +7,10 @@ import type {
 import {
   assistantThreadMessage,
   handleNewAssistantMessage,
-} from "@/lib/handle-messages";
+} from "./handle-messages";
 import { waitUntil } from "@vercel/functions";
-import { handleNewAppMention } from "@/lib/handle-app-mention";
-import { getBotId, verifyRequest } from "@/lib/slack-utils";
+import { handleNewAppMention } from "./handle-app-mention";
+import { getBotId, verifyRequest } from "./slack-utils";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();

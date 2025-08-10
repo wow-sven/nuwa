@@ -1,6 +1,6 @@
 # @docs Documentation Site
 
-This project is the documentation and blog site for Nuwa, built with the [Nextra](https://nextra.site/) framework. Blog and documentation content are fetched from Notion, and several scripts are provided to generate AI-friendly content, such as embeddings and plain text files for downstream applications.
+This project is the documentation site for Nuwa, built with the [Nextra](https://nextra.site/) framework. Documentation content is fetched from Notion, and several scripts are provided to generate AI-friendly content, such as embeddings and plain text files for downstream applications.
 
 ## Tech Stack
 
