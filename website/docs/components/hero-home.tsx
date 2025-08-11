@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "../components/ui/button";
 import { CategoryCard } from "../components/category-card";
 import { BookOpenIcon, CodeIcon, ServerIcon } from "lucide-react";
@@ -41,12 +43,14 @@ export default function HeroHome() {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Button variant="secondary" className="font-semibold">
+              {/* <Button variant="secondary" className="font-semibold">
                 Concepts
               </Button>
-              <span className="text-gray-500 dark:text-gray-400">or</span>
-              <Button variant="primary" className="font-semibold">
-                Build a Cap
+              <span className="text-gray-500 dark:text-gray-400">or</span> */}
+              <Button onClick={() => {
+                window.location.href = "/quick-start";
+              }} variant="primary" className="font-semibold">
+                Launch a Cap
               </Button>
             </div>
           </div>

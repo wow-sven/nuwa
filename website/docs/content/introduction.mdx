@@ -72,14 +72,14 @@ flowchart LR
 
 import { Cards } from "nextra/components";
 
-## Agent Capability Protocol (ACP)
+## Fundemental Concepts
 
-ACP defines the standards on how to build a Cap package.
-
-Learn more:
+Learn more about the concepts behind Nuwa AI.
 
 import { MdExtension, MdBuild } from "react-icons/md";
 import { FaMoneyBillWave, FaRobot } from "react-icons/fa";
+import { FaBrain, FaIdCard, FaWallet } from "react-icons/fa6";
+import { MdOutlineSdStorage } from "react-icons/md";
 
 <Cards num={2}>
   <Cards.Card icon={<MdExtension />} title="Cap" href="/docs/cap" />
@@ -94,19 +94,7 @@ import { FaMoneyBillWave, FaRobot } from "react-icons/fa";
     title="A2A Compatibility"
     href="/docs/a2a-compatibility"
   />
-</Cards>
-
-## Nuwa Client
-
-Nuwa Client provides a reference implmentation on accessing caps. In addition it has built-in memory management, cryptographic based identity management and wallet management.
-
-Learn more:
-
-import { FaBrain, FaIdCard, FaWallet } from "react-icons/fa6";
-import { MdOutlineSdStorage } from "react-icons/md";
-
-<Cards num={2}>
-  <Cards.Card icon={<FaIdCard />} title="Identity" href="/docs/identity" />
+    <Cards.Card icon={<FaIdCard />} title="Identity" href="/docs/identity" />
   <Cards.Card icon={<FaWallet />} title="Wallet" href="/docs/wallet" />
   <Cards.Card
     icon={<MdOutlineSdStorage />}

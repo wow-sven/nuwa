@@ -17,13 +17,13 @@ const roboto = Roboto({
 });
 
 export const metadata = {
-  metadataBase: new URL("https://nuwa.dev"),
+  metadataBase: new URL("https://docs.nuwa.dev"),
   title: {
-    default: "Nuwa AI - Agent-Centric Future",
+    default: "Nuwa AI - Documentation",
     template: "%s - Nuwa AI",
   },
   description:
-    "Nuwa AI: Build the Agent-Centric Future with Agent Capability Protocol (ACP).",
+    "Nuwa AI official documentation website.",
   keywords: [
     "Nuwa",
     "Agent",
@@ -42,14 +42,14 @@ export const metadata = {
   openGraph: {
     siteName: "Nuwa",
     locale: "en_US",
-    title: "Nuwa AI - Agent-Centric Future",
+    title: "Nuwa AI - Documentation",
     description:
-      "Nuwa AI: Build the Agent-Centric Future with Agent Capability Protocol (ACP).",
+      "Nuwa AI official documentation website.",
     type: "website",
-    url: "https://nuwa.dev",
+    url: "https://docs.nuwa.dev",
     images: [
       {
-        url: "https://nuwa.dev/og-image.png",
+        url: "https://docs.nuwa.dev/og-image.png",
         alt: "Nuwa Protocol Open Graph Image",
         type: "image/png",
         width: 1200,
@@ -65,10 +65,10 @@ export const metadata = {
     card: "summary_large_image",
     site: "@NuwaDev",
     creator: "@NuwaDev",
-    title: "Nuwa AI - Agent-Centric Future",
+    title: "Nuwa AI - Documentation",
     description:
-      "Nuwa AI: Build the Agent-Centric Future with Agent Capability Protocol (ACP).",
-    images: ["https://nuwa.dev/og-image.png"],
+      "Nuwa AI official documentation website.",
+    images: ["https://docs.nuwa.dev/og-image.png"],
   },
 };
 

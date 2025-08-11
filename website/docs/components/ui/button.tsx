@@ -30,7 +30,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const motionProps = {
       className: cn(baseClasses, variants[variant], className),
       whilehover: { scale: variant === 'primary' ? 1.05 : 1.02 },
-      whileTap: { scale: 0.98 }
+      whiletap: { scale: 0.98 }
     };
 
     if (asChild) {
