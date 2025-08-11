@@ -12,8 +12,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const baseClasses = "inline-flex items-center justify-center font-medium transition-all duration-300 rounded-lg px-6 py-3";
 
     const variants = {
-      primary: "bg-violet-500 text-white hover:bg-violet-700 shadow-lg hover:shadow-xl hover:scale-105",
-      secondary: "bg-gray-50 text-black border-gray-300 shadow-lg hover:shadow-xl hover:text-gray-900 hover:bg-gray-100"
+      primary: "bg-violet-500 dark:bg-violet-600 text-white hover:bg-violet-700 dark:hover:bg-violet-500 shadow-lg hover:shadow-xl hover:scale-105",
+      secondary: "bg-gray-50 dark:bg-zinc-700 text-black dark:text-white border-gray-300 dark:border-zinc-600 shadow-lg hover:shadow-xl hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-zinc-600"
     };
 
     const {

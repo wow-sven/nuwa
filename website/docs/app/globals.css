@@ -88,7 +88,7 @@
   padding-bottom: 4rem !important;
 }
 
-/* 美化滚动条 */
+/* Only for Chrome, Safari and Opera */
 ::-webkit-scrollbar {
   width: 8px;
   background: #e5e7eb;
@@ -99,7 +99,7 @@
   border-radius: 4px;
 }
 
-/* 消息淡入动画 */
+/* Fade in animation */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -112,4 +112,21 @@
 }
 .animate-fadeInUp {
   animation: fadeInUp 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.nextra-sidebar-footer {
+  background: #e5e7eb;
+}
+
+.dark .nextra-sidebar-footer {
+  background: #232526;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar {
+  background: #232526;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
 }

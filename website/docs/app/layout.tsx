@@ -1,6 +1,6 @@
 /* eslint-env node */
-import "@/globals.css";
 import "nextra-theme-docs/style.css";
+import "@/globals.css";
 import { Layout, Navbar } from "nextra-theme-docs";
 import { Head } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
@@ -8,6 +8,7 @@ import NavLogo from "@/components/nav-logo";
 import Footer from "@/components/footer";
 import { Roboto } from "next/font/google";
 import ChatModalButton from "@/components/chat-modal-button";
+import Background from "@/components/background";
 
 const roboto = Roboto({
   subsets: ["latin"],
@@ -93,7 +94,9 @@ export default async function RootLayout({ children }) {
           sidebar={{ defaultMenuCollapseLevel: 1 }}
           pageMap={pageMap}
         >
-          {children}
+          <Background>
+            {children}
+          </Background>
         </Layout>
       </body>
     </html>
