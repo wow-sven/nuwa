@@ -11,7 +11,7 @@ export async function generateMetadata(props) {
   return {
     ...metadata,
     openGraph: {
-      title: metadata.title,
+
       description: metadata.description,
       url: `https://nuwa.dev/docs/${params.mdxPath?.join("/") || ""}`,
       type: "article",
@@ -35,7 +35,7 @@ export default async function Page(props) {
   return (
     <div className="w-full mx-auto px-4">
       <Wrapper toc={toc} metadata={metadata}>
-        {metadata?.title && (
+        {metadata?.title && params.mdxPath && (
           <>
             <h1 className="text-4xl text-black font-bold mt-4 dark:text-white">
               {metadata.title}

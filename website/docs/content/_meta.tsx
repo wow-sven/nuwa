@@ -1,6 +1,24 @@
+const empty = (
+  <div>
+    asdas
+  </div>
+);
+
 export default {
+  index: {
+    display: "hidden",
+    title: "asda",
+    theme: {
+      layout: "full",
+      toc: false,
+      sidebar: true,
+      breadcrumb: false,
+      timestamp: false,
+      pagination: false,
+    }
+  },
   separator1: { type: "separator", title: "Introduction" },
-  index: "Overview",
+  overview: "Overview",
   usecases: "Use Cases",
   architecture: "Architecture",
   separator2: { type: "separator", title: "Agent Capability Protocol" },

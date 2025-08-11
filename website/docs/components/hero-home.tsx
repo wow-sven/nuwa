@@ -1,8 +1,7 @@
-import { motion } from "framer-motion";
-import Image from "next/image";
-import { Button } from "./ui/button";
-import { CategoryCard } from "./category-card";
+import { Button } from "../components/ui/button";
+import { CategoryCard } from "../components/category-card";
 import { BookOpenIcon, CodeIcon, ServerIcon } from "lucide-react";
+import Image from "next/image";
 
 export default function HeroHome() {
   return (
@@ -26,12 +25,7 @@ export default function HeroHome() {
         <section className="pt-20 pb-16 px-8 lg:px-16 xl:px-24">
           <div className="max-w-4xl mx-auto text-center">
             {/* New Badge */}
-            <motion.div
-              className="mb-6 inline-flex"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.6 }}
-            >
+            <div className="mb-6 inline-flex">
               <div className="mb-1.5 rounded-full bg-zinc-600">
                 <a
                   href="https://test-app.nuwa.dev/"
@@ -47,35 +41,20 @@ export default function HeroHome() {
                   </span>
                 </a>
               </div>
-            </motion.div>
+            </div>
 
             {/* Main Title */}
-            <motion.h1
-              className="mb-6 text-5xl lg:text-6xl font-bold text-gray-900"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
-            >
+            <h1 className="mb-6 text-5xl lg:text-6xl font-bold text-gray-900">
               Nuwa AI Documentation
-            </motion.h1>
+            </h1>
 
             {/* Description */}
-            <motion.p
-              className="mb-8 text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.8 }}
-            >
+            <p className="mb-8 text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
               Comprehensive Nuwa AI documentation covering fundamental concepts, protocol designs and Cap development.
-            </motion.p>
+            </p>
 
             {/* CTA Buttons */}
-            <motion.div
-              className="flex flex-col sm:flex-row gap-4 justify-center items-center"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.8 }}
-            >
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Button variant="secondary" className="font-semibold">
                 Concepts
               </Button>
@@ -83,28 +62,23 @@ export default function HeroHome() {
               <Button variant="primary" className="font-semibold">
                 Build a Cap
               </Button>
-            </motion.div>
+            </div>
           </div>
         </section>
 
         {/* Explore by Categories Section */}
         <section className="px-8 lg:px-16 xl:px-24 pb-20">
           <div className="max-w-6xl mx-auto">
-            <motion.h2
-              className="text-3xl font-bold text-gray-900 mb-12"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 0.6 }}
-            >
+            <h2 className="text-3xl font-bold text-gray-900 mb-12">
               Explore by categories
-            </motion.h2>
+            </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
 
               <CategoryCard
                 title="Concepts"
                 href="/concepts"
-                description="Learn Nuwa's core concepts, protocol designs and Cap development."
+                description="Learn Nuwa's core concepts and features."
                 icon={<BookOpenIcon className="w-6 h-6 text-blue-600" />}
                 delay={0.9}
               />
