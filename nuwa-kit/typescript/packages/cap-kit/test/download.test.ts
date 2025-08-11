@@ -10,18 +10,10 @@ describe("CapKit", () => {
   })
 
   it("download cap by id", async () => {
-    const cid = await capKit.registerCap(
-      "test_cap",
-      "test_cap",
-      {}
-    );
-
-    await new Promise(resolve => setTimeout(resolve, 35000));
+    const caps = await capKit.queryWithName()
 
     const result = await capKit.downloadCap(
-      cid
+      caps.data?.items[0].cid || ''
     )
-
-    console.log(result)
   }, 150000);
 });

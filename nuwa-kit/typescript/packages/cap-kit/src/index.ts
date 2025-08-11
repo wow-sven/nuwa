@@ -2,6 +2,7 @@ import { RoochClient, Transaction, Args } from "@roochnetwork/rooch-sdk";
 import { type SignerInterface, DidAccountSigner } from "@nuwa-ai/identity-kit";
 import * as yaml from 'js-yaml';
 import { buildClient } from "./client";
+import {Cap, Page, Result, ResultCap, ResultCapMetadataSchema} from "./type";
 
 export class CapKit {
   protected roochClient: RoochClient;
@@ -57,9 +58,10 @@ export class CapKit {
 
   async queryWithName(
     name?: string,
+    tags?: string[],
     page?: number,
     size?: number,
-  ) {
+  ): Promise<Result<Page<ResultCap>>> {
     const client = await buildClient(this.mcpUrl, this.signer);
 
     try {
@@ -74,6 +76,7 @@ export class CapKit {
       // Upload file to IPFS
       const result = await queryWithName.execute({
         name: name,
+        tags: tags,
         page: page,
         pageSize: size
       }, {
@@ -86,18 +89,29 @@ export class CapKit {
       }
 
       const queryResult = JSON.parse((result.content as any)[0].text);
+      if (queryResult.code === 404) {
+        return {
+          code: 200,
+          data: {
+            totalItems: 0,
+            page: page || 0,
+            pageSize: size || 50,
+            items: [] as ResultCap[]
+          }
+        } as Result<Page<ResultCap>>;
+      }
       
       if (queryResult.code !== 200) {
         throw new Error(`query failed: ${queryResult.error || 'Unknown error'}`);
       }
 
-      return queryResult;
+      return queryResult as Result<Page<ResultCap>>;
     } finally {
       await client.close();
     }
   }
 
-  async downloadCap(cid: string, format?: 'base64' | 'utf8') {
+  async downloadCap(cid: string, format?: 'base64' | 'utf8'): Promise<Cap> {
     const client = await buildClient(this.mcpUrl, this.signer);
 
     try {
@@ -128,53 +142,34 @@ export class CapKit {
         throw new Error(`Download failed: ${downloadResult.error || 'Unknown error'}`);
       }
 
-      return downloadResult;
+      const sss = yaml.load(downloadResult.data.fileData)
+      return yaml.load(downloadResult.data.fileData) as Cap;
     } finally {
       await client.close();
     }
   }
 
-  async registerCap(
-    name: string,
-    description: string,
-    options: any,
-  ) {
+  async registerCap(cap: Cap) {
 
     // len > 6 && len < 20, only contain a-z, A-Z, 0-9, _
-    if (!/^[a-zA-Z0-9_]{6,20}$/.test(name)) {
+    if (!/^[a-zA-Z0-9_]{6,20}$/.test(cap.idName)) {
       throw new Error("Name must be between 6 and 20 characters and only contain a-z, A-Z, 0-9, _");
     }
 
     // 1. Create ACP (Agent Capability Package) file
-    const acpContent = await this.createACPFile({name, description, options});
+    const acpContent = yaml.dump(cap);
     
     // 2. Upload ACP file to IPFS using nuwa-cap-store MCP
-    const cid = await this.uploadToIPFS(name, acpContent, this.signer);
+    const cid = await this.uploadToIPFS(cap.id, acpContent, this.signer);
 
     // 3. Call Move contract to register the capability
-    const result = await this.registerOnChain(name, cid, this.signer);
+    const result = await this.registerOnChain(cap.idName, cid, this.signer);
 
     if (result.execution_info.status.type !== 'executed') {
       throw new Error("unknown error");
     }
 
     return cid;
-  }
-
-  private async createACPFile(option: {
-    name: string;
-    description: string;
-    options: any;
-  }): Promise<string> {
-    const did = (await this.signer.listKeyIds())[0];
-    const acp = {
-      id: `${did}:${option.name}`,
-      name: option.name,
-      description: option.description,
-      ...option.options,
-    };
-
-    return yaml.dump(acp);
   }
 
   private async uploadToIPFS(name: string, content: string, signer: SignerInterface): Promise<string> {
@@ -192,7 +187,7 @@ export class CapKit {
 
       // Convert content to base64
       const fileData = Buffer.from(content, 'utf8').toString('base64');
-      const fileName = `${name}-${Date.now()}.cap.yaml`;
+      const fileName = `${name}.cap.yaml`;
 
       // Upload file to IPFS
       const result = await uploadTool.execute({ 
@@ -221,7 +216,6 @@ export class CapKit {
   }
 
   private async registerOnChain(name: string, cid: string, signer: SignerInterface) {
-
     const chainSigner = await DidAccountSigner.create(signer);
     const transaction = new Transaction();
     transaction.callFunction({

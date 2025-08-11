@@ -1,12 +1,17 @@
 export type Target = 'local' | 'dev' | 'test' | 'main';
 
-export interface Cap {
-  name: string;
-  id: string;
-}
-
 export interface Result {
   code: number;
   error?: string;
   data?: any;
 }
+
+export interface CapMetadataSchema {
+  displayName: string,
+  description: string,
+  tags: string[],
+  submittedAt: number,
+  homepage: string,
+  repository: string,
+  thumbnail: string,
+};

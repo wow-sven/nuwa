@@ -10,7 +10,7 @@ import { DIDAuth, VDRRegistry, initRoochVDR } from "@nuwa-ai/identity-kit";
 
 import {IPFS_NODE, IPFS_NODE_PORT, IPFS_NODE_URL, TARGET} from "./constant.js";
 import { setupRoochEventListener } from './event-handle.js';
-import { queryCIDFromSupabase } from "./supabase.js";
+import { queryFromSupabase } from "./supabase.js";
 import type { Result } from "./type.js";
 
 // Load environment variables
@@ -107,7 +107,7 @@ ipfsService.addTool({
   async execute(args) {
     try {
       const { cid } = args;
-      const result = await queryCIDFromSupabase(null, cid);
+      const result = await queryFromSupabase(null, cid);
 
       if (!result.success) {
         return {
@@ -116,6 +116,18 @@ ipfsService.addTool({
             text: JSON.stringify({
               code: 404,
               error: result.error || 'No matching records found',
+            } as Result)
+          }]
+        };
+      }
+
+      if (!result.items || result.items.length === 0) {
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              code: 404,
+              error: 'No matching records found',
             } as Result)
           }]
         };
@@ -153,7 +165,8 @@ ipfsService.addTool({
   name: "queryWithName",
   description: "Query with name",
   parameters: z.object({
-    name: z.string().optional().describe("Resource name (optional)"),
+    name: z.string().optional().describe("cap name or display name (optional)"),
+    tags: z.array(z.string()).optional().describe("cap tags (optional)"),
     page: z.number().optional().default(0).describe("Page number starting from 0"),
     pageSize: z.number().optional().default(50).describe("Number of records per page")
   }),
@@ -163,8 +176,8 @@ ipfsService.addTool({
   },
   async execute(args) {
     try {
-      const { name, page, pageSize } = args;
-      const result = await queryCIDFromSupabase(name, null, page, pageSize);
+      const { name, tags, page, pageSize } = args;
+      const result = await queryFromSupabase(name, null, tags, page, pageSize);
 
       if (!result.success) {
         return {
@@ -189,11 +202,7 @@ ipfsService.addTool({
               page,
               pageSize,
               totalPages: Math.ceil(result.totalItems / pageSize),
-              items: result.items.map(item => ({
-                name: item.name,
-                id: item.id,
-                cid: item.cid,
-              }))
+              items: result.items
             }
           })
         }]
