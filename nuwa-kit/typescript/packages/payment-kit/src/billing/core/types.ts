@@ -7,6 +7,10 @@
 
 import type { ChannelInfo, SignedSubRAV, SubRAV, SubChannelState } from '../../core/types';
 import type { RateResult } from '../rate/types';
+import type { PaymentError as CentralPaymentError } from '../../errors/codes';
+
+// Re-export centralized PaymentError type for BillingContext usage
+export type PaymentError = CentralPaymentError;
 
 export interface BillingContext {
   /** Service identifier (e.g. "llm-gateway", "mcp-server") */
@@ -61,10 +65,7 @@ export interface BillingContext {
     nonce?: bigint;
 
     // Protocol-level error (used to short-circuit response with error header)
-    error?: {
-      code: string;
-      message?: string;
-    };
+    error?: PaymentError;
 
     // Step D: Persistence
     persisted?: boolean;
