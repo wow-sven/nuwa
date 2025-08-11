@@ -13,8 +13,18 @@ import { SqlPendingSubRAVRepository, type SqlPendingSubRAVRepositoryOptions } fr
 import { SubRAVUtils } from '../../../core/SubRav';
 import type { ChannelInfo, SubChannelState, SignedSubRAV, SubRAV } from '../../../core/types';
 
+// Prefer SUPABASE_DB_URL if provided
+const SUPABASE_DB_URL = process.env.SUPABASE_DB_URL;
+
 // Test configuration
-const TEST_DB_CONFIG = {
+const TEST_DB_CONFIG: any = SUPABASE_DB_URL ? {
+  connectionString: SUPABASE_DB_URL,
+  ssl: { rejectUnauthorized: false },
+  max: 3,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 30000,
+  statement_timeout: 60000,
+} : {
   host: process.env.TEST_DB_HOST || 'localhost',
   port: parseInt(process.env.TEST_DB_PORT || '5432'),
   database: process.env.TEST_DB_NAME || 'nuwa_test',
@@ -23,7 +33,8 @@ const TEST_DB_CONFIG = {
   max: 3, // Increase connection pool size
   idleTimeoutMillis: 30000,
   // Supabase specific settings
-  ssl: process.env.TEST_DB_HOST?.includes('supabase.com') ? {
+  // Enable SSL for Supabase hosts
+  ssl: process.env.TEST_DB_HOST?.includes('supabase') ? {
     rejectUnauthorized: false
   } : false,
   // Connection timeout
@@ -43,14 +54,15 @@ function isPostgreSQLAvailable(): boolean {
   }
 
   // Check if required environment variables are set
-  const hasRequiredEnv = process.env.TEST_DB_NAME || 
+  const hasRequiredEnv = !!(process.env.SUPABASE_DB_URL ||
+                        process.env.TEST_DB_NAME || 
                         process.env.TEST_DB_HOST || 
                         process.env.TEST_DB_USER || 
-                        process.env.TEST_DB_PASSWORD;
+                        process.env.TEST_DB_PASSWORD);
 
   if (!hasRequiredEnv) {
     console.log('Skipping SQL tests - no PostgreSQL environment variables configured');
-    console.log('Set TEST_DB_NAME, TEST_DB_HOST, TEST_DB_USER, or TEST_DB_PASSWORD to enable');
+    console.log('Set SUPABASE_DB_URL, or TEST_DB_NAME/TEST_DB_HOST/TEST_DB_USER/TEST_DB_PASSWORD to enable');
     return false;
   }
 
@@ -75,6 +87,25 @@ describe('SQL Storage Repositories', () => {
   // Increase timeout for database operations
   jest.setTimeout(30000);
 
+  async function resetSchema(prefix: string = 'test_') {
+    if (!pool) return;
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(`DROP TABLE IF EXISTS ${prefix}pending_sub_ravs CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS ${prefix}ravs CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS ${prefix}claims CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS ${prefix}sub_channel_states CASCADE`);
+      await client.query(`DROP TABLE IF EXISTS ${prefix}channels CASCADE`);
+      await client.query('COMMIT');
+    } catch (e) {
+      await client.query('ROLLBACK');
+      throw e;
+    } finally {
+      client.release();
+    }
+  }
+
   beforeAll(async () => {
     // Skip tests if PostgreSQL is not available
     if (!isPostgreSQLAvailable()) {
@@ -82,13 +113,15 @@ describe('SQL Storage Repositories', () => {
     }
 
     try {
-      pool = new Pool(TEST_DB_CONFIG);
+      pool = new Pool(TEST_DB_CONFIG as any);
       
       // Test connection
       const client = await pool.connect();
       client.release();
 
-      // Create repositories with auto-migration enabled
+      // Reset schema and create repositories with auto-migration enabled
+      await resetSchema('test_');
+
       const repoOptions: SqlRAVRepositoryOptions = {
         pool,
         tablePrefix: 'test_',
@@ -96,6 +129,7 @@ describe('SQL Storage Repositories', () => {
         allowUnsafeAutoMigrateInProd: true, // Allow for testing
       };
 
+      // Create new instances each time to ensure initialize() runs
       ravRepo = new SqlRAVRepository(repoOptions);
       channelRepo = new SqlChannelRepository(repoOptions as SqlChannelRepositoryOptions);
       pendingRepo = new SqlPendingSubRAVRepository(repoOptions as SqlPendingSubRAVRepositoryOptions);
@@ -116,25 +150,23 @@ describe('SQL Storage Repositories', () => {
   });
 
   beforeEach(async () => {
-    if (!pool || !ravRepo) return;
-    
-    // Clean up test data before each test
-    try {
-      const client = await pool.connect();
-      // Use a single transaction for cleanup
-      await client.query('BEGIN');
-      await client.query('DELETE FROM test_ravs');
-      await client.query('DELETE FROM test_claims');
-      await client.query('DELETE FROM test_channels');
-      await client.query('DELETE FROM test_sub_channel_states');
-      await client.query('DELETE FROM test_pending_sub_ravs');
-      await client.query('COMMIT');
-      client.release();
-    } catch (error) {
-      // Ignore cleanup errors
-      console.warn('Cleanup error:', error);
-    }
-  }, 10000); // 10 second timeout for cleanup
+    if (!pool) return;
+    // Drop and recreate schema for each test to avoid schema drift issues
+    await resetSchema('test_');
+
+    const repoOptions: SqlRAVRepositoryOptions = {
+      pool,
+      tablePrefix: 'test_',
+      autoMigrate: true,
+      allowUnsafeAutoMigrateInProd: true,
+    };
+
+    ravRepo = new SqlRAVRepository(repoOptions);
+    channelRepo = new SqlChannelRepository(repoOptions as SqlChannelRepositoryOptions);
+    pendingRepo = new SqlPendingSubRAVRepository(repoOptions as SqlPendingSubRAVRepositoryOptions);
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }, 20000);
 
   describe('SqlRAVRepository', () => {
     let testSignedSubRAV: SignedSubRAV;
@@ -335,14 +367,14 @@ describe('SQL Storage Repositories', () => {
 
       // Update state
           await channelRepo.updateSubChannelState(testChannel.channelId, vmIdFragment, {
-        nonce: BigInt(5),
-        accumulatedAmount: BigInt(5000000),
-      });
+        lastConfirmedNonce: BigInt(5),
+        lastClaimedAmount: BigInt(5000000),
+      } as any);
 
       // Verify update
           state = await channelRepo.getSubChannelState(testChannel.channelId, vmIdFragment);
-          expect(state!.nonce).toBe(BigInt(5));
-          expect(state!.accumulatedAmount).toBe(BigInt(5000000));
+          expect((state as any)!.lastConfirmedNonce).toBe(BigInt(5));
+          expect((state as any)!.lastClaimedAmount).toBe(BigInt(5000000));
     }, 60000); // 60 second timeout for this specific test
 
     it('should list channels with pagination', async () => {

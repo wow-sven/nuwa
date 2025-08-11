@@ -15,7 +15,6 @@ import type {
 import type { IPaymentChannelContract, ClaimResult } from '../contracts/IPaymentChannelContract';
 import type { SignerInterface, DIDResolver } from '@nuwa-ai/identity-kit';
 import type { ChannelRepository, RAVRepository, PendingSubRAVRepository } from '../storage';
-import { createChannelRepoAuto, createRAVRepoAuto, createPendingSubRAVRepoAuto } from '../storage';
 import { SubRAVUtils } from '../core/SubRav';
 import { PaymentUtils } from '../core/PaymentUtils';
 import { PaymentHubClient } from './PaymentHubClient';
@@ -24,23 +23,16 @@ import { PaymentHubClient } from './PaymentHubClient';
  * Storage options for PaymentChannelPayeeClient
  */
 export interface PayeeStorageOptions {
-  /** Storage backend type */
-  backend?: 'memory' | 'indexeddb' | 'sql';
-  /** Custom repository implementations */
-  customChannelRepo?: ChannelRepository;
-  customRAVRepo?: RAVRepository;
-  customPendingSubRAVRepo?: PendingSubRAVRepository;
-  /** PostgreSQL connection pool for SQL backend */
-  pool?: any;
-  /** Table name prefix for SQL backends */
-  tablePrefix?: string;
+  channelRepo: ChannelRepository;
+  ravRepo: RAVRepository;
+  pendingSubRAVRepo: PendingSubRAVRepository;
 }
 
 export interface PaymentChannelPayeeClientOptions {
   contract: IPaymentChannelContract;
   signer: SignerInterface;
   didResolver: DIDResolver; // Required for signature verification
-  storageOptions?: PayeeStorageOptions;
+  storageOptions: PayeeStorageOptions;
 }
 
 export interface VerificationResult {
@@ -103,33 +95,9 @@ export class PaymentChannelPayeeClient {
     this.defaultAssetId = "0x3::gas_coin::RGas";
     
     // Initialize repositories
-    if (options.storageOptions?.customChannelRepo) {
-      this.channelRepo = options.storageOptions.customChannelRepo;
-    } else {
-      this.channelRepo = createChannelRepoAuto({
-        pool: options.storageOptions?.pool,
-        tablePrefix: options.storageOptions?.tablePrefix,
-      });
-    }
-    
-    if (options.storageOptions?.customRAVRepo) {
-      this.ravRepo = options.storageOptions.customRAVRepo;
-    } else {
-      this.ravRepo = createRAVRepoAuto({
-        pool: options.storageOptions?.pool,
-        tablePrefix: options.storageOptions?.tablePrefix,
-      });
-    }
-    
-    if (options.storageOptions?.customPendingSubRAVRepo) {
-      this.pendingSubRAVRepo = options.storageOptions.customPendingSubRAVRepo;
-    } else {
-      this.pendingSubRAVRepo = createPendingSubRAVRepoAuto({
-        pool: options.storageOptions?.pool,
-        tablePrefix: options.storageOptions?.tablePrefix,
-      });
-    }
-    
+    this.channelRepo = options.storageOptions.channelRepo;
+    this.ravRepo = options.storageOptions.ravRepo;
+    this.pendingSubRAVRepo = options.storageOptions.pendingSubRAVRepo;
   }
 
   // -------- Public accessors for internal components --------
@@ -181,8 +149,8 @@ export class PaymentChannelPayeeClient {
         channelId,
         epoch: channelInfo.epoch,
         vmIdFragment: subInfo.vmIdFragment,
-        accumulatedAmount: subInfo.lastClaimedAmount,
-        nonce: subInfo.lastConfirmedNonce,
+        lastClaimedAmount: subInfo.lastClaimedAmount,
+        lastConfirmedNonce: subInfo.lastConfirmedNonce,
         lastUpdated: Date.now(),
       };
 
@@ -207,55 +175,7 @@ export class PaymentChannelPayeeClient {
    */
   getPendingSubRAVRepository(): PendingSubRAVRepository {
     return this.pendingSubRAVRepo;
-  }
-
-  // -------- SubRAV Generation (for API services) --------
-
-  /**
-   * Generate an unsigned SubRAV for a consumption charge
-   * This is used by API services (like LLM Gateway) to create payment requests
-   * after calculating the actual consumption cost
-   */
-  async generateSubRAV(params: GenerateSubRAVParams): Promise<SubRAV> {
-    const { channelId, payerKeyId, amount } = params;
-
-    // Get channel info to validate (using cache to ensure local storage is updated)
-    const channelInfo = await this.getChannelInfoCached(channelId);
-    
-    // Get current sub-channel state or compute baseline in-memory if first time
-    const vmIdFragment = this.extractVmIdFragment(payerKeyId);
-    const subChannelState = (await this.channelRepo.getSubChannelState(channelId, vmIdFragment)) ?? {
-      channelId,
-      epoch: channelInfo.epoch,
-      accumulatedAmount: BigInt(0),
-      nonce: BigInt(0),
-      lastUpdated: Date.now(),
-    };
-
-    // Validate that epoch matches
-    if (subChannelState.epoch !== channelInfo.epoch) {
-      throw new Error(`Epoch mismatch: local ${subChannelState.epoch}, chain ${channelInfo.epoch}`);
-    }
-
-    // Calculate new values
-    const newNonce = subChannelState.nonce + BigInt(1);
-    const newAccumulatedAmount = subChannelState.accumulatedAmount + amount;
-
-    // vmIdFragment already extracted above
-
-    const chainId = await this.getChainId();
-
-    const subRAV: SubRAV = SubRAVUtils.create({
-      chainId: chainId,
-      channelId: channelId,
-      channelEpoch: channelInfo.epoch,
-      vmIdFragment: vmIdFragment,
-      accumulatedAmount: newAccumulatedAmount,
-      nonce: newNonce,
-    });
-    
-    return subRAV;
-  }
+  } 
 
   // -------- Claims Management --------
 
