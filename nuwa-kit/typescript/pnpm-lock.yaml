@@ -137,6 +137,9 @@ importers:
       multiformats:
         specifier: ^9.9.0
         version: 9.9.0
+      zod:
+        specifier: ^3.25.67
+        version: 3.25.67
     devDependencies:
       '@jest/globals':
         specifier: ^29.7.0

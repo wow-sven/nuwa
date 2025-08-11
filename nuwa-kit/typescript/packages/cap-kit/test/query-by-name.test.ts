@@ -10,16 +10,21 @@ describe("CapKit", () => {
   })
 
   it("should query cap by name", async () => {
-    const cid = await capKit.registerCap(
-      "test_cap",
-      "test_cap",
-      {}
-    );
+    // const cid = await capKit.registerCap(
+    //   "test_cap",
+    //   "test_cap",
+    //   {}
+    // );
 
-    await new Promise(resolve => setTimeout(resolve, 35000));
+    // await new Promise(resolve => setTimeout(resolve, 35000));
+    const all = await capKit.queryWithName()
 
     const result = await capKit.queryWithName('test')
 
+    const resut1 = await capKit.queryWithName(undefined, ['Test'])
+
+    console.log(all)
     console.log(result)
+    console.log(resut1)
   }, 150000);
 });

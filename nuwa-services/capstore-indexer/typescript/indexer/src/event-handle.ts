@@ -2,10 +2,9 @@ import axios from "axios";
 import yaml from "js-yaml";
 import {getLastCursor, getLastUpdateCursor, saveCursor, saveUpdateCursor, storeToSupabase} from './supabase.js';
 import { RoochClient } from '@roochnetwork/rooch-sdk';
-import type { Cap } from "./type.js";
 import { IPFS_GATEWAY, PACKAGE_ID, ROOCH_NODE_URL } from "./constant.js";
 
-export async function fetchAndParseYaml(cid: string): Promise<Cap> {
+export async function fetchAndParseYaml(cid: string): Promise<any> {
   try {
     // Check if this is a local IPFS API endpoint
     // const isLocalApi = IPFS_GATEWAY.includes(':5001');
@@ -24,16 +23,13 @@ export async function fetchAndParseYaml(cid: string): Promise<Cap> {
     }
 
     const content = response.data;
-    const parsedData = yaml.load(content) as Partial<Cap>;
+    const parsedData = yaml.load(content);
 
-    if (!parsedData?.name || !parsedData?.id) {
-      throw new Error('Invalid YAML structure: Missing required fields');
-    }
+    // if (!parsedData?.name || !parsedData?.id) {
+    //   throw new Error('Invalid YAML structure: Missing required fields');
+    // }
 
-    return {
-      name: parsedData.name,
-      id: parsedData.id,
-    };
+    return parsedData
   } catch (error) {
     throw new Error(`Failed to fetch or parse YAML: ${(error as Error).message}`);
   }
@@ -53,7 +49,6 @@ export async function processRoochRegisterEvent() {
 
     for (const event of events.data) {
       try {
-        
         const data = (event.decoded_event_data as any)?.value as any;
         if (typeof data.cid !== 'string') {
             throw new Error('Event data does not contain a valid CID string');

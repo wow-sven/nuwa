@@ -3,7 +3,8 @@ import { CapKit } from "../src";
 
 const localContractAddress = "0xeb1deb6f1190f86cd4e05a82cfa5775a8a5929da49fac3ab8f5bf23e9181e625";
 const testContractAddress = "0xdc2a3eba923548660bb642b9df42936941a03e2d8bab223ae6dda6318716e742";
-const testMcpUrl = "https://test-cap.nuwa.dev/mcp";
+// const testMcpUrl = "https://test-cap.nuwa.dev/mcp";
+const testMcpUrl = "http://localhost:3000/mcp";
 const localMcpUrl = "http://localhost:3000/mcp";
 const DEFAULT_FAUCET_URL = 'https://test-faucet.rooch.network';
 
@@ -25,7 +26,7 @@ async function claimTestnetGas(
   return data.gas || 5_000_000_000; // default fallback
 }
 
-export const setupEnv = async (target: 'test' | 'local' = 'test') => {
+export const setupEnv = async (target: 'test' | 'local' = 'local') => {
   const roochUrl = process.env.ROOCH_NODE_URL || target === 'test' ? 'https://test-seed.rooch.network' : 'http://localhost:6767';
   const mcpUrl = process.env.MCP_URL || target === 'test' ? testMcpUrl : localMcpUrl;
   const contractAddress = process.env.CONTRACT_ADDRESS || target === 'test' ? testContractAddress : localContractAddress;
@@ -39,6 +40,8 @@ export const setupEnv = async (target: 'test' | 'local' = 'test') => {
     customScopes: [`${contractAddress}::*::*`],
     secretKey: 'roochsecretkey1qylp6ehfqx4c0zw6w7jpdwxm7q3e739d9fkxq0ym6xjtt2v0lxgpvvhcqg6'
   });
+
+
 
   if (target === 'test') {
     await claimTestnetGas(did.split(':')[2]);
