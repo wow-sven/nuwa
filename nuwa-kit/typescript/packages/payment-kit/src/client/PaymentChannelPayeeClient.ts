@@ -16,7 +16,7 @@ import type { IPaymentChannelContract, ClaimResult } from '../contracts/IPayment
 import type { SignerInterface, DIDResolver } from '@nuwa-ai/identity-kit';
 import type { ChannelRepository, RAVRepository, PendingSubRAVRepository } from '../storage';
 import { createChannelRepoAuto, createRAVRepoAuto, createPendingSubRAVRepoAuto } from '../storage';
-import { SubRAVManager, SubRAVUtils } from '../core/SubRav';
+import { SubRAVUtils } from '../core/SubRav';
 import { PaymentUtils } from '../core/PaymentUtils';
 import { PaymentHubClient } from './PaymentHubClient';
 
@@ -57,7 +57,6 @@ export interface VerificationResult {
 
 export interface ClaimOptions {
   signedSubRAV: SignedSubRAV;
-  validateBeforeClaim?: boolean;
 }
 
 export interface GenerateSubRAVParams {
@@ -94,7 +93,6 @@ export class PaymentChannelPayeeClient {
   private channelRepo: ChannelRepository;
   private ravRepo: RAVRepository;
   private pendingSubRAVRepo: PendingSubRAVRepository;
-  private ravManager: SubRAVManager;
   private chainIdCache?: bigint;
   private defaultAssetId: string;
 
@@ -132,7 +130,6 @@ export class PaymentChannelPayeeClient {
       });
     }
     
-    this.ravManager = new SubRAVManager();
   }
 
   // -------- Public accessors for internal components --------
@@ -143,6 +140,10 @@ export class PaymentChannelPayeeClient {
    */
   getRAVRepository(): RAVRepository {
     return this.ravRepo;
+  }
+
+  getDidResolver(): DIDResolver {
+    return this.didResolver;
   }
 
   /**
@@ -179,6 +180,7 @@ export class PaymentChannelPayeeClient {
       const derived: SubChannelState = {
         channelId,
         epoch: channelInfo.epoch,
+        vmIdFragment: subInfo.vmIdFragment,
         accumulatedAmount: subInfo.lastClaimedAmount,
         nonce: subInfo.lastConfirmedNonce,
         lastUpdated: Date.now(),
@@ -255,165 +257,13 @@ export class PaymentChannelPayeeClient {
     return subRAV;
   }
 
-  /**
-   * Process a signed SubRAV received from a payer
-   * This confirms the previously generated SubRAV and updates final state
-   */
-  async processSignedSubRAV(signedSubRAV: SignedSubRAV): Promise<void> {
-    // Verify the signed SubRAV
-    const verification = await this.verifySubRAV(signedSubRAV);
-    if (!verification.isValid) {
-      throw new Error(`Invalid signed SubRAV: ${verification.error}`);
-    }
-    // Persist the signed SubRAV to RAVStore for ClaimScheduler and persistence
-    await this.ravRepo.save(signedSubRAV);
-  }
-
-  // -------- SubRAV Verification --------
-
-  /**
-   * Verify a SubRAV received from a payer
-   * This performs comprehensive validation including signature verification
-   */
-  async verifySubRAV(signedSubRAV: SignedSubRAV): Promise<VerificationResult> {
-    const result: VerificationResult = {
-      isValid: false,
-      details: {
-        signatureValid: false,
-        channelExists: false,
-        epochMatches: false,
-        nonceProgression: false,
-        amountValid: false,
-      },
-    };
-
-    try {
-      // 1. Check if channel exists and get current state first
-      let channelInfo: ChannelInfo;
-      try {
-        channelInfo = await this.getChannelInfoCached(signedSubRAV.subRav.channelId);
-        result.details!.channelExists = true;
-      } catch (error) {
-        result.error = `Channel ${signedSubRAV.subRav.channelId} not found`;
-        return result;
-      }
-
-      // 2. Verify signature using DID from channel info
-      try {
-        // Use payerDid from channel info to verify signature
-        const signatureValid = await this.ravManager.verifyWithResolver(
-          signedSubRAV, 
-          channelInfo.payerDid, 
-          this.didResolver
-        );
-        result.details!.signatureValid = signatureValid;
-        
-        if (!signatureValid) {
-          result.error = 'Invalid SubRAV signature';
-          return result;
-        }
-      } catch (error) {
-        result.error = `Signature verification failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
-        return result;
-      }
-
-      // 3. Verify channel epoch matches
-      const epochMatches = channelInfo.epoch === signedSubRAV.subRav.channelEpoch;
-      result.details!.epochMatches = epochMatches;
-      
-      if (!epochMatches) {
-        result.error = `Epoch mismatch: expected ${channelInfo.epoch}, got ${signedSubRAV.subRav.channelEpoch}`;
-        return result;
-      }
-
-      // 4. Verify nonce progression (if we have previous state)
-      const vmIdFragmentPrev = signedSubRAV.subRav.vmIdFragment;
-      const prevState = await this.channelRepo.getSubChannelState(signedSubRAV.subRav.channelId, vmIdFragmentPrev);
-
-      if (prevState) {
-        // Allow same nonce if it's the exact same SubRAV (same amount and other fields)
-        const isSameSubRAV = signedSubRAV.subRav.nonce === prevState.nonce && 
-                             signedSubRAV.subRav.accumulatedAmount === prevState.accumulatedAmount &&
-                             signedSubRAV.subRav.channelEpoch === prevState.epoch;
-
-        // Allow handshake reset: nonce 0 with amount 0 is always valid as a reset
-        const isHandshakeReset = signedSubRAV.subRav.nonce === BigInt(0) && 
-                                 signedSubRAV.subRav.accumulatedAmount === BigInt(0);
-
-        const nonceProgression = signedSubRAV.subRav.nonce > prevState.nonce || isSameSubRAV || isHandshakeReset;
-        result.details!.nonceProgression = nonceProgression;
-        
-        if (!nonceProgression) {
-          result.error = `Invalid nonce progression: expected > ${prevState.nonce}, got ${signedSubRAV.subRav.nonce}`;
-          return result;
-        }
-
-        // Verify amount is not decreasing (unless it's the same SubRAV or handshake reset)
-        const amountValid = signedSubRAV.subRav.accumulatedAmount >= prevState.accumulatedAmount || isHandshakeReset;
-        result.details!.amountValid = amountValid;
-        
-        if (!amountValid) {
-          result.error = `Amount cannot decrease: expected >= ${prevState.accumulatedAmount}, got ${signedSubRAV.subRav.accumulatedAmount}`;
-          return result;
-        }
-      } else {
-        // No previous state found - this is the first SubRAV for this sub-channel
-        // Allow nonce 0 (handshake) or nonce 1 (first payment)
-        const isHandshake = signedSubRAV.subRav.nonce === BigInt(0) && signedSubRAV.subRav.accumulatedAmount === BigInt(0);
-        const isFirstPayment = signedSubRAV.subRav.nonce === BigInt(1) && signedSubRAV.subRav.accumulatedAmount > BigInt(0);
-        
-        result.details!.nonceProgression = isHandshake || isFirstPayment;
-        result.details!.amountValid = isHandshake || signedSubRAV.subRav.accumulatedAmount > BigInt(0);
-        
-        if (!result.details!.nonceProgression) {
-          result.error = `First SubRAV must have nonce 0 (handshake) or nonce 1 (first payment), got ${signedSubRAV.subRav.nonce}`;
-          return result;
-        }
-        
-        if (!result.details!.amountValid) {
-          result.error = `First payment SubRAV must have positive amount, got ${signedSubRAV.subRav.accumulatedAmount}`;
-          return result;
-        }
-      }
-
-      // All validations passed
-      result.isValid = true;
-      return result;
-
-    } catch (error) {
-      result.error = `Verification failed: ${error instanceof Error ? error.message : String(error)}`;
-      return result;
-    }
-  }
-
-  /**
-   * Store a verified SubRAV for later claiming
-   * This updates the local state tracking for the sub-channel
-   */
-  async storeVerifiedSubRAV(signedSubRAV: SignedSubRAV): Promise<void> {
-    const verification = await this.verifySubRAV(signedSubRAV);
-    if (!verification.isValid) {
-      throw new Error(`Cannot store invalid SubRAV: ${verification.error}`);
-    }
-
-    // Do not update local sub-channel state here; only sync from on-chain data
-  }
-
   // -------- Claims Management --------
 
   /**
    * Claim payment from a channel using a signed SubRAV
    */
   async claimFromChannel(options: ClaimOptions): Promise<ClaimResult> {
-    const { signedSubRAV, validateBeforeClaim = true } = options;
-
-    // Optional pre-claim validation
-    if (validateBeforeClaim) {
-      const verification = await this.verifySubRAV(signedSubRAV);
-      if (!verification.isValid) {
-        throw new Error(`Cannot claim with invalid SubRAV: ${verification.error}`);
-      }
-    }
+    const { signedSubRAV } = options;
 
     // Submit claim to blockchain
     const claimParams = {
@@ -422,10 +272,6 @@ export class PaymentChannelPayeeClient {
     };
 
     const result = await this.contract.claimFromChannel(claimParams);
-
-    // Update local state after successful claim
-    await this.storeVerifiedSubRAV(signedSubRAV);
-
     return result;
   }
 
@@ -438,10 +284,7 @@ export class PaymentChannelPayeeClient {
     
     for (const signedSubRAV of signedSubRAVs) {
       try {
-        const result = await this.claimFromChannel({ 
-          signedSubRAV, 
-          validateBeforeClaim: true 
-        });
+        const result = await this.claimFromChannel({ signedSubRAV });
         results.push(result);
       } catch (error) {
         // Continue with other claims even if one fails
@@ -594,13 +437,6 @@ export class PaymentChannelPayeeClient {
   }
 
   /**
-   * Reconstruct keyId from payerDid and vmIdFragment
-   */
-  private reconstructKeyId(payerDid: string, vmIdFragment: string): string {
-    return `${payerDid}#${vmIdFragment}`;
-  }
-
-  /**
    * Get cached chain ID or fetch from contract
    */
   private async getChainId(): Promise<bigint> {
@@ -608,146 +444,6 @@ export class PaymentChannelPayeeClient {
       this.chainIdCache = await this.contract.getChainId();
     }
     return this.chainIdCache;
-  }
-
-  // -------- Enhanced Methods for PaymentProcessor --------
-
-  
-
-  /**
-   * Confirm signed proposal from pending store
-   * Integrates pending store validation with signature verification
-   */
-  async confirmSignedProposal(
-    signedSubRAV: SignedSubRAV,
-    pendingStore: PendingSubRAVRepository
-  ): Promise<VerificationResult> {
-    try {
-      // Check if this SubRAV matches one we previously sent
-      const pendingSubRAV = await pendingStore.find(
-        signedSubRAV.subRav.channelId,
-        signedSubRAV.subRav.vmIdFragment,
-        signedSubRAV.subRav.nonce
-      );
-      
-      if (!pendingSubRAV) {
-        return {
-          isValid: false,
-          error: `SubRAV not found in pending list: ${signedSubRAV.subRav.channelId}:${signedSubRAV.subRav.nonce}`
-        };
-      }
-
-      // Verify that the signed SubRAV matches our pending unsigned SubRAV
-      if (!PaymentUtils.subRAVsMatch(pendingSubRAV, signedSubRAV.subRav)) {
-        return {
-          isValid: false,
-          error: `Signed SubRAV does not match pending SubRAV: ${signedSubRAV.subRav.channelId}:${signedSubRAV.subRav.nonce}`
-        };
-      }
-
-      // Use standard verification for signature and other checks
-      const result = await this.verifySubRAV(signedSubRAV);
-      
-      if (result.isValid) {
-        // Remove from pending list on successful verification
-        await pendingStore.remove(
-          signedSubRAV.subRav.channelId,
-          signedSubRAV.subRav.vmIdFragment,
-          signedSubRAV.subRav.nonce
-        );
-        console.log(`✅ Confirmed signed proposal for channel ${signedSubRAV.subRav.channelId}, nonce ${signedSubRAV.subRav.nonce}`);
-      } else {
-        console.log(`❌ Signed proposal verification failed: ${result.error}`);
-      }
-
-      return result;
-    } catch (error) {
-      return {
-        isValid: false,
-        error: `Proposal confirmation failed: ${error}`
-      };
-    }
-  }
-
-  /**
-   * Generate proposal with enhanced parameters
-   * High-level method that automatically handles payer key ID construction
-   */
-  async generateProposal(params: {
-    channelId: string;
-    vmIdFragment: string;
-    amount: bigint;
-    description?: string;
-  }): Promise<SubRAV> {
-    // Get channel info to construct proper payer key ID
-    const channelInfo = await this.getChannelInfoCached(params.channelId);
-    const payerKeyId = `${channelInfo.payerDid}#${params.vmIdFragment}`;
-
-    return await this.generateSubRAV({
-      channelId: params.channelId,
-      payerKeyId,
-      amount: params.amount,
-    });
-  }
-
-  /**
-   * Batch verify multiple SubRAVs efficiently
-   */
-  async batchVerifySubRAVs(signedSubRAVs: SignedSubRAV[]): Promise<VerificationResult[]> {
-    const results: VerificationResult[] = [];
-    
-    // Group by channel for efficient channel info fetching
-    const channelGroups = new Map<string, SignedSubRAV[]>();
-    for (const subRAV of signedSubRAVs) {
-      const channelId = subRAV.subRav.channelId;
-      if (!channelGroups.has(channelId)) {
-        channelGroups.set(channelId, []);
-      }
-      channelGroups.get(channelId)!.push(subRAV);
-    }
-
-    // Verify each group
-    for (const [channelId, subRAVs] of channelGroups) {
-      try {
-        // Pre-fetch channel info once per channel
-        await this.getChannelInfoCached(channelId);
-        
-        // Verify each SubRAV in the group
-        for (const subRAV of subRAVs) {
-          const result = await this.verifySubRAV(subRAV);
-          results.push(result);
-        }
-      } catch (error) {
-        // If channel info fetch fails, mark all SubRAVs in this channel as invalid
-        for (const _ of subRAVs) {
-          results.push({
-            isValid: false,
-            error: `Channel verification failed: ${error}`
-          });
-        }
-      }
-    }
-
-    return results;
-  }
-
-  /**
-   * Get verification statistics for monitoring
-   */
-  getVerificationStats(): {
-    totalVerifications: number;
-    successfulVerifications: number;
-    failedVerifications: number;
-    commonErrors: Record<string, number>;
-  } {
-    // In production, you'd track these metrics
-    // For now, return placeholder stats
-    return {
-      totalVerifications: 0,
-      successfulVerifications: 0,
-      failedVerifications: 0,
-      commonErrors: {}
-    };
   }
 
   /**
@@ -760,14 +456,6 @@ export class PaymentChannelPayeeClient {
       signer: this.signer,
       defaultAssetId: this.defaultAssetId,
     });
-  }
-
-  /**
-   * Pre-validate SubRAV structure before signature verification
-   * Useful for quick validation without expensive signature operations
-   */
-  validateSubRAVStructure(subRAV: SubRAV): { isValid: boolean; error?: string } {
-    return PaymentUtils.validateSubRAV(subRAV);
   }
 
   /**

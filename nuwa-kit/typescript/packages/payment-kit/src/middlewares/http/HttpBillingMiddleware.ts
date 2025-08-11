@@ -24,6 +24,8 @@ import type { RateProvider } from '../../billing/rate/types';
 import { findRule } from '../../billing/core/rule-matcher';
 import type { PendingSubRAVRepository } from '../../storage/interfaces/PendingSubRAVRepository';
 import type { ClaimScheduler } from '../../core/ClaimScheduler';
+import type { RAVRepository } from '../../storage/interfaces/RAVRepository';
+import { DIDResolver } from '@nuwa-ai/identity-kit';
 
 // Generic HTTP interfaces (framework-agnostic)
 export interface GenericHttpRequest {
@@ -64,7 +66,11 @@ export interface HttpBillingMiddlewareConfig {
   /** Debug logging */
   debug?: boolean;
   /** Store for pending unsigned SubRAV proposals */
-  pendingSubRAVStore?: PendingSubRAVRepository;
+  pendingSubRAVStore: PendingSubRAVRepository;
+  /** Repository for persisted SignedSubRAVs to retrieve latest baseline */
+  ravRepository: RAVRepository;
+  /** DID resolver for signature verification */
+  didResolver: DIDResolver;
   /** Optional claim scheduler for automated claiming */
   claimScheduler?: ClaimScheduler;
 }
@@ -113,8 +119,9 @@ export class HttpBillingMiddleware {
       defaultAssetId: config.defaultAssetId,
       rateProvider: config.rateProvider,
       pendingSubRAVStore: config.pendingSubRAVStore,
-      ravRepository: config.payeeClient.getRAVRepository(),
+      ravRepository: config.ravRepository,
       claimScheduler: config.claimScheduler,
+      didResolver: config.didResolver,
       debug: config.debug
     });
 
@@ -262,7 +269,6 @@ export class HttpBillingMiddleware {
   private buildBillingContext(req: GenericHttpRequest, paymentData?: PaymentHeaderPayload, billingRule?: BillingRule): BillingContext {
     return {
       serviceId: this.config.serviceId,
-      assetId: this.config.defaultAssetId,
       meta: {
         operation: `${req.method.toLowerCase()}:${req.path}`,
         
@@ -272,7 +278,7 @@ export class HttpBillingMiddleware {
         // Payment data from HTTP headers
         maxAmount: paymentData?.maxAmount,
         signedSubRav: paymentData?.signedSubRav,
-        clientTxRef: paymentData?.clientTxRef,
+        clientTxRef: paymentData?.clientTxRef || crypto.randomUUID(),
         // DIDAuth (ExpressPaymentKit attaches didInfo onto req)
         didInfo: (req as any).didInfo,
         
