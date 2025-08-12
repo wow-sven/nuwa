@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /search?q=
+Disallow: /admin/
+
+Sitemap: https://nuwa.dev/sitemap.xml 
