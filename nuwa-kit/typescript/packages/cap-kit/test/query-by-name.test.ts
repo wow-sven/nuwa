@@ -21,7 +21,7 @@ describe("CapKit", () => {
 
     const result = await capKit.queryWithName('test')
 
-    const resut1 = await capKit.queryWithName(undefined, ['Test'])
+    const resut1 = await capKit.queryWithName(undefined, ['Coding'])
 
     console.log(all)
     console.log(result)

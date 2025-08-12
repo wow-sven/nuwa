@@ -9,7 +9,7 @@ export async function fetchAndParseYaml(cid: string): Promise<any> {
     // Check if this is a local IPFS API endpoint
     // const isLocalApi = IPFS_GATEWAY.includes(':5001');
     const url = `${IPFS_GATEWAY}/api/v0/cat?arg=${cid}`
-      // : `${IPFS_GATEWAY}/ipfs/${cid}`;
+    // : `${IPFS_GATEWAY}/ipfs/${cid}`;
     
     const requestMethod = 'post' // : 'get';
     const response = await axios[requestMethod](url, { 
@@ -44,7 +44,12 @@ export async function processRoochRegisterEvent() {
         event_type: `${PACKAGE_ID}::acp_registry::RegisterEvent`,
       },
       cursor: lastCursor || undefined,
-      limit: '1',
+      limit: '3',
+      queryOption: {
+        decode: true,
+        showDisplay: true,
+        descending: false
+      }
     });
 
     for (const event of events.data) {
@@ -63,12 +68,12 @@ export async function processRoochRegisterEvent() {
       } catch (innerError) {
         console.error(`Error processing event: ${(innerError as Error).message}`);
       }
-    }
 
-    if (events.next_cursor) {
-      await saveCursor(events.next_cursor);
-    } else {
-      console.log('No new cursor to save');
+      if (events.next_cursor) {
+        await saveCursor(events.next_cursor);
+      } else {
+        console.log('No new cursor to save');
+      }
     }
 
     return events;
@@ -122,7 +127,7 @@ export async function processRoochUpdateEvent() {
   }
 }
 
-export function setupRoochEventListener(interval = 30000) {
+export function setupRoochEventListener(interval = 5000) {
   setInterval(async () => {
     try {
       console.log("Checking Rooch for new Events...");

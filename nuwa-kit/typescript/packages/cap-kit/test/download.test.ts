@@ -15,5 +15,7 @@ describe("CapKit", () => {
     const result = await capKit.downloadCap(
       caps.data?.items[0].cid || ''
     )
+
+    console.log(result)
   }, 150000);
 });
