@@ -299,9 +299,16 @@ export class PaymentProcessor {
 
       // Unified synchronous calculation for both pre-flight and post-flight
       if (rule) {
-        this.log('📊 Processing billing rule:', rule.id, 'paymentRequired:', rule.paymentRequired);
+        this.log(
+          '📊 Processing billing rule:',
+          rule.id,
+          'paymentRequired:',
+          rule.paymentRequired,
+          'units:',
+          units
+        );
         const usageUnits =
-          Number.isFinite(units) && (units as number) > 0 ? Math.floor(units as number) : 1;
+          Number.isFinite(units) && (units as number) >= 0 ? Math.floor(units as number) : 0;
 
         const strategy = getStrategy(rule);
         const usdCost = strategy.evaluate(pctx, usageUnits);
@@ -383,6 +390,7 @@ export class PaymentProcessor {
             chainId: pctx.state?.chainId!,
             clientTxRef: pctx.meta.clientTxRef,
             cost: finalCost,
+            costUsd: usdCost,
           });
           this.log('🔧 Generated SubRAV:', {
             nonce: unsignedSubRAV.nonce,
@@ -505,6 +513,7 @@ export class PaymentProcessor {
     chainId: bigint;
     clientTxRef: string;
     cost: bigint;
+    costUsd: bigint;
   }): {
     unsignedSubRAV: SubRAV;
     serviceTxRef: string;
@@ -529,6 +538,7 @@ export class PaymentProcessor {
     const responsePayload = {
       subRav: next,
       cost: params.cost,
+      costUsd: params.costUsd,
       clientTxRef: params.clientTxRef,
       serviceTxRef,
       version: 1,
