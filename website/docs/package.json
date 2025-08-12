@@ -3,7 +3,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "prebuild": "tsx ./scripts/fetch_nips.ts && tsx ./scripts/generate_knowledgebase.ts",
+    "prebuild": "tsx ./scripts/generate_knowledgebase.ts",
     "build": "next build",
     "dev": "next --turbopack",
     "postbuild": "pagefind --site .next/server/app --output-path public/_pagefind",
