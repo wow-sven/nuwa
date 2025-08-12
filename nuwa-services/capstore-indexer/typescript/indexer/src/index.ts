@@ -2,7 +2,7 @@ import { Readable } from 'node:stream';
 
 import { config } from 'dotenv';
 import { FastMCP } from "fastmcp";
-import { create } from 'ipfs-http-client';
+import {create, IPFSHTTPClient} from 'ipfs-http-client';
 import { CID } from 'multiformats/cid';
 import { z } from "zod";
 
@@ -30,7 +30,7 @@ let ipfsClient: any;
       });
     } else {
       // Create IPFS HTTP client
-      ipfsClient = create({
+      ipfsClient = await create({
         host: IPFS_NODE,
         port: parseInt(IPFS_NODE_PORT),
         protocol: 'http'
@@ -74,7 +74,7 @@ const authenticateRequest = async (request: any) => {
   }
 
   // Verify DID authentication
-  const verify = await DIDAuth.v1.verifyAuthHeader(header, VDRRegistry.getInstance());
+  const verify = await DIDAuth.v1.verifyAuthHeader(header, registry);
   if (!verify.ok) {
     const msg = (verify as { error: string }).error;
     throw new Response(`Invalid DIDAuth: ${msg}`, { status: 403 });
@@ -346,14 +346,16 @@ ipfsService.addTool({
       let totalSize = 0;
 
       try {
-        for await (const chunk of ipfsClient.cat(cid)) {
+        for await (const chunk of ipfsClient.cat(cid, {
+          timeout: 15 * 1000
+        })) {
           chunks.push(chunk);
           totalSize += chunk.length;
         }
       } catch (catError) {
         // Handle IPFS-specific errors
         const errorMessage = catError instanceof Error ? catError.message : String(catError);
-        if (errorMessage.includes('not found') || errorMessage.includes('no link named')) {
+        if (errorMessage.includes('not found') || errorMessage.includes('no link named') || errorMessage.includes('deadline')) {
           return {
             content: [{
               type: "text",

@@ -33,6 +33,8 @@ export async function getLastCursor(): Promise<IndexerEventIDView | null> {
       .from(CAP_SYNC_TABLE_NAME)
       .select('cursor')
       .eq('event_type', `${PACKAGE_ID}::acp_registry::RegisterEvent`)
+      .order('last_updated', { ascending: false })
+      .limit(1)
       .single();
 
     if (error || !data || !data.cursor) {
@@ -73,6 +75,8 @@ export async function getLastUpdateCursor(): Promise<IndexerEventIDView | null> 
       .from(CAP_SYNC_TABLE_NAME)
       .select('cursor')
       .eq('event_type', `${PACKAGE_ID}::acp_registry::UpdateEvent`)
+      .order('last_updated', { ascending: false })
+      .limit(1)
       .single();
 
     if (error || !data || !data.cursor) {
@@ -101,7 +105,7 @@ export async function saveUpdateCursor(cursor: IndexerEventIDView | null) {
       );
 
     if (error) throw error;
-    console.log(`Cursor saved: ${cursorStr}`);
+    console.log(`Update Cursor saved: ${cursorStr}`);
   } catch (e) {
     console.error('Error saving cursor:', e);
   }
