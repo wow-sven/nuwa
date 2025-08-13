@@ -96,7 +96,6 @@ dist/
 public/_pagefind/
 
 # NIPS
-content/nips/nip-*
 .vercel
 
 # Knowledgebase

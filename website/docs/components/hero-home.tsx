@@ -1,57 +1,107 @@
-import Link from "next/link";
-import { motion } from "framer-motion";
+"use client";
+
+import { BookOpenIcon, CodeIcon, ServerIcon } from "lucide-react";
+import { CategoryCard } from "../components/category-card";
+import { Button } from "../components/ui/button";
 
 export default function HeroHome() {
   return (
-    <section className="relative flex flex-col items-center justify-center min-h-[calc(100vh-230px)] mx-auto px-4 py-16 text-center">
-      {/* Coming Soon Badge */}
-      <motion.div
-        className="mb-6 flex justify-center"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05, duration: 0.5 }}
-      >
-        <span className="inline-block rounded-full bg-purple-50 px-5 py-1 text-sm text-purple-600 font-semibold tracking-wide shadow-sm">
-          COMING SOON
-        </span>
-      </motion.div>
-      {/* Title */}
-      <motion.h1
-        className="mb-4 text-3xl sm:text-4xl md:text-6xl font-bold leading-snug sm:leading-tight text-slate-900 dark:text-white"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1, duration: 0.7 }}
-      >
-        <>The Economic Layer for AI Agents</>
-      </motion.h1>
-      <motion.p
-        className="mb-8 text-base sm:text-lg text-gray-700 dark:text-gray-300 max-w-2xl mx-auto"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.7 }}
-      >
-        <>
-          Nuwa AI is soon launching the first super AI assistant for you based
-          on the{" "}
-          <span className="font-bold">
-            <a href="/docs">Agent Capability Protocol (ACP)</a>
-          </span>
-          , enabling frictionless AI agent interactions.
-        </>
-      </motion.p>
-      <motion.div
-        className="mb-10"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.7 }}
-      >
-        <Link
-          className="btn px-6 py-3 rounded-lg bg-purple-600 text-white shadow-lg hover:bg-purple-700 transition-all text-lg font-semibold"
-          href="/docs"
-        >
-          Learn More
-        </Link>
-      </motion.div>
-    </section>
+    <div className="relative min-h-screen">
+      {/* Content */}
+      <div className="relative z-10">
+        {/* Hero Section */}
+        <section className="pt-8 pb-16 px-8 lg:px-16 xl:px-24">
+          <div className="max-w-4xl mx-auto text-center">
+            {/* New Badge */}
+            <div className="mb-6 inline-flex">
+              <div className="mb-1.5 rounded-full bg-zinc-600 dark:bg-zinc-400">
+                <a
+                  href="https://test-app.nuwa.dev/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex origin-top-left items-center rounded-full border border-zinc-900 dark:border-zinc-100 bg-white dark:bg-zinc-800 p-0.5 text-sm transition-transform hover:-rotate-2"
+                >
+                  <span className="rounded-full bg-violet-500 px-2 py-0.5 font-medium text-white">
+                    New
+                  </span>
+                  <span className="ml-1.5 mr-1.5 inline-block text-zinc-900 dark:text-zinc-100">
+                    Nuwa Beta Live!
+                  </span>
+                </a>
+              </div>
+            </div>
+
+            {/* Main Title */}
+            <h1 className="mb-6 text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white">
+              Nuwa AI Documentation
+            </h1>
+
+            {/* Description */}
+            <p className="mb-8 text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto">
+              Comprehensive Nuwa AI documentation covering fundamental concepts,
+              protocol designs and Cap development.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              {/* <Button variant="secondary" className="font-semibold">
+                Concepts
+              </Button>
+              <span className="text-gray-500 dark:text-gray-400">or</span> */}
+              <Button
+                onClick={() => {
+                  window.location.href = "/quick-start";
+                }}
+                variant="primary"
+                className="font-semibold"
+              >
+                Launch a Cap
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Explore by Categories Section */}
+        <section className="px-8 lg:px-16 xl:px-24 pb-20">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-12">
+              Explore by categories
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <CategoryCard
+                title="Concepts"
+                href="/introduction"
+                description="Learn Nuwa's core concepts and features."
+                icon={
+                  <BookOpenIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                }
+                delay={0.9}
+              />
+
+              <CategoryCard
+                title="Cap Development"
+                href="/quick-start"
+                description="Learn how to build and launch your own Nuwa Cap."
+                icon={
+                  <CodeIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                }
+                delay={1.0}
+              />
+
+              <CategoryCard
+                title="Protocol"
+                href="/nips/overview"
+                description="Explore Nuwa's protocol designs and how to use them."
+                icon={
+                  <ServerIcon className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                }
+                delay={1.1}
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }

@@ -1,28 +1,28 @@
 /* eslint-env node */
-import "@/globals.css";
 import "nextra-theme-docs/style.css";
-import { Layout, Navbar } from "nextra-theme-docs";
+import "@/globals.css";
+import { Inter } from "next/font/google";
 import { Head } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
-import NavLogo from "@/components/nav-logo";
-import Footer from "@/components/footer";
-import { Roboto } from "next/font/google";
+import { Layout, Navbar } from "nextra-theme-docs";
+import Background from "@/components/background";
 import ChatModalButton from "@/components/chat-modal-button";
+import Footer from "@/components/footer";
+import NavLogo from "@/components/nav-logo";
 
-const roboto = Roboto({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-roboto",
-  weight: ["400", "600", "800"],
+  variable: "--font-inter",
+  weight: ["400", "500", "700"],
 });
 
 export const metadata = {
-  metadataBase: new URL("https://nuwa.dev"),
+  metadataBase: new URL("https://docs.nuwa.dev"),
   title: {
-    default: "Nuwa AI - Agent-Centric Future",
+    default: "Nuwa AI - Documentation",
     template: "%s - Nuwa AI",
   },
-  description:
-    "Nuwa AI: Build the Agent-Centric Future with Agent Capability Protocol (ACP).",
+  description: "Nuwa AI official documentation website.",
   keywords: [
     "Nuwa",
     "Agent",
@@ -41,14 +41,13 @@ export const metadata = {
   openGraph: {
     siteName: "Nuwa",
     locale: "en_US",
-    title: "Nuwa AI - Agent-Centric Future",
-    description:
-      "Nuwa AI: Build the Agent-Centric Future with Agent Capability Protocol (ACP).",
+    title: "Nuwa AI - Documentation",
+    description: "Nuwa AI official documentation website.",
     type: "website",
-    url: "https://nuwa.dev",
+    url: "https://docs.nuwa.dev",
     images: [
       {
-        url: "https://nuwa.dev/og-image.png",
+        url: "https://docs.nuwa.dev/og-image.png",
         alt: "Nuwa Protocol Open Graph Image",
         type: "image/png",
         width: 1200,
@@ -64,10 +63,9 @@ export const metadata = {
     card: "summary_large_image",
     site: "@NuwaDev",
     creator: "@NuwaDev",
-    title: "Nuwa AI - Agent-Centric Future",
-    description:
-      "Nuwa AI: Build the Agent-Centric Future with Agent Capability Protocol (ACP).",
-    images: ["https://nuwa.dev/og-image.png"],
+    title: "Nuwa AI - Documentation",
+    description: "Nuwa AI official documentation website.",
+    images: ["https://docs.nuwa.dev/og-image.png"],
   },
 };
 
@@ -84,7 +82,7 @@ export default async function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="Nuwa AI" />
         <link rel="manifest" href="/site.webmanifest" />
       </Head>
-      <body className={roboto.className}>
+      <body className={inter.className}>
         <Layout
           navbar={navbar}
           footer={<Footer />}
@@ -93,7 +91,7 @@ export default async function RootLayout({ children }) {
           sidebar={{ defaultMenuCollapseLevel: 1 }}
           pageMap={pageMap}
         >
-          {children}
+          <Background>{children}</Background>
         </Layout>
       </body>
     </html>

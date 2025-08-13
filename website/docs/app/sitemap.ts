@@ -1,7 +1,6 @@
 import fs from "fs";
 import path from "path";
 import { MetadataRoute } from "next";
-import { getBlogPostsFromNotion } from "@/lib/notion";
 
 const BASE_URL = "https://nuwa.dev";
 
@@ -35,12 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 1,
     },
-    {
-      url: `${BASE_URL}/blog`,
-      lastModified: new Date(),
-      changeFrequency: "weekly" as const,
-      priority: 1,
-    },
   ];
 
   const nips = getAllNipSlugs().map((slug) => ({
@@ -57,15 +50,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  const blogPosts = await getBlogPostsFromNotion(
-    process.env.NOTION_BLOG_DATABASE_ID!
-  );
-  const blogs = blogPosts.map((post) => ({
-    url: `${BASE_URL}/blog/${post.slug}`,
-    lastModified: post.lastEditAt ? new Date(post.lastEditAt) : new Date(),
-    changeFrequency: "weekly" as const,
-    priority: 0.8,
-  }));
-
-  return [...defaultPages, ...nips, ...docs, ...blogs];
+  return [...defaultPages, ...nips, ...docs];
 }

@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { SendIcon } from "lucide-react";
 import { AssistantStream } from "openai/lib/AssistantStream";
-import Markdown from "react-markdown";
 // @ts-expect-error - no types for this yet
-import { AssistantStreamEvent } from "openai/resources/beta/assistants/assistants";
-import { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
+import type { AssistantStreamEvent } from "openai/resources/beta/assistants/assistants";
+import type { RequiredActionFunctionToolCall } from "openai/resources/beta/threads/runs/runs";
+import { useEffect, useRef, useState } from "react";
+import Markdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SendIcon } from "lucide-react";
+
 type MessageProps = {
   role: "user" | "assistant" | "code";
   text: string;
@@ -24,7 +25,7 @@ const UserMessage = ({ text }: { text: string }) => {
 
 const AssistantMessage = ({ text }: { text: string }) => {
   // 去除【4:0†source】或[4:0†source]等标记
-  const cleanedText = text.replace(/[【\[]\d+:\d+†[^\]】]+[】\]]/g, "");
+  const cleanedText = text.replace(/[【[]\d+:\d+†[^\]】]+[】\]]/g, "");
   return (
     <div className="self-start max-w-[70%] bg-gradient-to-br from-[#f3f4f6] to-[#e5e7eb] dark:from-[#232526] dark:to-[#18181b] my-2 px-4 py-2 rounded-lg break-words shadow-md border border-[#e5e7eb] dark:border-[#27272a] animate-fadeInUp">
       <Markdown
@@ -72,7 +73,7 @@ const Message = ({ role, text }: MessageProps) => {
 
 type ChatProps = {
   functionCallHandler?: (
-    toolCall: RequiredActionFunctionToolCall
+    toolCall: RequiredActionFunctionToolCall,
   ) => Promise<string>;
 };
 
@@ -114,7 +115,7 @@ const Chat = ({
         body: JSON.stringify({
           content: text,
         }),
-      }
+      },
     );
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
@@ -132,7 +133,7 @@ const Chat = ({
           runId: runId,
           toolCallOutputs: toolCallOutputs,
         }),
-      }
+      },
     );
     const stream = AssistantStream.fromReadableStream(response.body);
     handleReadableStream(stream);
@@ -188,7 +189,7 @@ const Chat = ({
 
   // handleRequiresAction - handle function call
   const handleRequiresAction = async (
-    event: AssistantStreamEvent.ThreadRunRequiresAction
+    event: AssistantStreamEvent.ThreadRunRequiresAction,
   ) => {
     const runId = event.data.id;
     const toolCalls = event.data.required_action.submit_tool_outputs.tool_calls;
@@ -197,7 +198,7 @@ const Chat = ({
       toolCalls.map(async (toolCall) => {
         const result = await functionCallHandler(toolCall);
         return { output: result, tool_call_id: toolCall.id };
-      })
+      }),
     );
     setInputDisabled(true);
     submitActionResult(runId, toolCallOutputs);
@@ -259,7 +260,7 @@ const Chat = ({
         if (annotation.type === "file_path") {
           updatedLastMessage.text = updatedLastMessage.text.replaceAll(
             annotation.text,
-            `/api/files/${annotation.file_path.file_id}`
+            `/api/files/${annotation.file_path.file_id}`,
           );
         }
       });
