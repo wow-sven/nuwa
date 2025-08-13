@@ -3,11 +3,8 @@
 // Supports SSE (text/event-stream) and NDJSON (application/x-ndjson).
 
 export interface InBandPaymentPayload {
-  subRav: any;
-  cost: string | number | bigint;
-  costUsd?: string | number | bigint;
-  clientTxRef?: string;
-  serviceTxRef?: string;
+  // unified payload now carries only encoded header value
+  headerValue: string;
 }
 
 export function wrapAndFilterInBandFrames(
@@ -28,9 +25,17 @@ export function wrapAndFilterInBandFrames(
   const isSSE = ct.includes('text/event-stream');
   const isNDJSON = ct.includes('application/x-ndjson');
 
+  // After payment frame is handled, proactively close the filtered stream to avoid hanging
+  const afterPayment = (controller: ReadableStreamDefaultController<Uint8Array>) => {
+    try {
+      controller.close();
+      try { reader.cancel(); } catch {}
+    } catch {}
+  };
+
   const parser: InBandParser = isSSE
-    ? new SseInbandParser(textEncoder, onPayment, log)
-    : new NdjsonInbandParser(textEncoder, onPayment, log);
+    ? new SseInbandParser(textEncoder, onPayment, log, afterPayment)
+    : new NdjsonInbandParser(textEncoder, onPayment, log, afterPayment);
 
   const filtered = new ReadableStream<Uint8Array>({
     async pull(controller) {
@@ -86,7 +91,8 @@ class SseInbandParser implements InBandParser {
   constructor(
     private encoder: TextEncoder,
     private onPayment: (payload: InBandPaymentPayload) => void | Promise<void>,
-    private log: (...args: any[]) => void
+    private log: (...args: any[]) => void,
+    private onAfterPayment: (controller: ReadableStreamDefaultController<Uint8Array>) => void
   ) {}
 
   async process(
@@ -99,18 +105,16 @@ class SseInbandParser implements InBandParser {
     for (const line of lines) {
       this.pendingEvent.push(line);
       if (line === '') {
-        const isPayment =
-          this.pendingEvent.some(l => l.trim() === 'event: nuwa-payment') ||
-          this.pendingEvent.some(l => {
-            const m = l.match(/^data:\s*(.+)$/);
-            if (!m) return false;
-            try {
-              const o = JSON.parse(m[1]);
-              return !!(o?.nuwa_payment || o?.__nuwa_payment__);
-            } catch {
-              return false;
-            }
-          });
+        const isPayment = this.pendingEvent.some(l => {
+          const m = l.match(/^data:\s*(.+)$/);
+          if (!m) return false;
+          try {
+            const o = JSON.parse(m[1]);
+            return !!(o?.nuwa_payment_header || o?.__nuwa_payment_header__);
+          } catch {
+            return false;
+          }
+        });
         if (!isPayment) {
           for (const out of this.pendingEvent) controller.enqueue(this.encoder.encode(out + '\n'));
         } else {
@@ -118,8 +122,11 @@ class SseInbandParser implements InBandParser {
             const dataLine = this.pendingEvent.find(l => l.startsWith('data: '));
             if (dataLine) {
               const payload = JSON.parse(dataLine.slice(6));
-              const p = payload?.nuwa_payment || payload?.__nuwa_payment__;
-              await safeHandlePayment(p, this.onPayment, this.log);
+              const headerValue = payload?.nuwa_payment_header || payload?.__nuwa_payment_header__;
+              if (typeof headerValue === 'string') {
+                await safeHandlePayment({ headerValue }, this.onPayment, this.log);
+                this.onAfterPayment(controller);
+              }
             }
           } catch {}
         }
@@ -131,18 +138,16 @@ class SseInbandParser implements InBandParser {
   async flush(controller: ReadableStreamDefaultController<Uint8Array>): Promise<void> {
     if (!this.buffer) return;
     this.pendingEvent.push(this.buffer);
-    const isPayment =
-      this.pendingEvent.some(l => l.trim() === 'event: nuwa-payment') ||
-      this.pendingEvent.some(l => {
-        const m = l.match(/^data:\s*(.+)$/);
-        if (!m) return false;
-        try {
-          const o = JSON.parse(m[1]);
-          return !!(o?.nuwa_payment || o?.__nuwa_payment__);
-        } catch {
-          return false;
-        }
-      });
+    const isPayment = this.pendingEvent.some(l => {
+      const m = l.match(/^data:\s*(.+)$/);
+      if (!m) return false;
+      try {
+        const o = JSON.parse(m[1]);
+        return !!(o?.nuwa_payment_header || o?.__nuwa_payment_header__);
+      } catch {
+        return false;
+      }
+    });
     if (!isPayment) {
       for (const out of this.pendingEvent) controller.enqueue(this.encoder.encode(out + '\n'));
     } else {
@@ -150,8 +155,11 @@ class SseInbandParser implements InBandParser {
         const dataLine = this.pendingEvent.find(l => l.startsWith('data: '));
         if (dataLine) {
           const payload = JSON.parse(dataLine.slice(6));
-          const p = payload?.nuwa_payment || payload?.__nuwa_payment__;
-          await safeHandlePayment(p, this.onPayment, this.log);
+          const headerValue = payload?.nuwa_payment_header || payload?.__nuwa_payment_header__;
+          if (typeof headerValue === 'string') {
+            await safeHandlePayment({ headerValue }, this.onPayment, this.log);
+            this.onAfterPayment(controller);
+          }
         }
       } catch {}
     }
@@ -165,7 +173,8 @@ class NdjsonInbandParser implements InBandParser {
   constructor(
     private encoder: TextEncoder,
     private onPayment: (payload: InBandPaymentPayload) => void | Promise<void>,
-    private log: (...args: any[]) => void
+    private log: (...args: any[]) => void,
+    private onAfterPayment: (controller: ReadableStreamDefaultController<Uint8Array>) => void
   ) {}
 
   async process(
@@ -181,10 +190,11 @@ class NdjsonInbandParser implements InBandParser {
       let drop = false;
       try {
         const obj = JSON.parse(t);
-        const p = obj?.__nuwa_payment__ || obj?.nuwa_payment;
-        if (p && p.subRav && p.cost !== undefined) {
+        const headerValue = obj?.__nuwa_payment_header__ || obj?.nuwa_payment_header;
+        if (typeof headerValue === 'string') {
           drop = true;
-          await safeHandlePayment(p, this.onPayment, this.log);
+          await safeHandlePayment({ headerValue }, this.onPayment, this.log);
+          this.onAfterPayment(controller);
         }
       } catch {}
       if (!drop) controller.enqueue(this.encoder.encode(line + '\n'));
@@ -197,10 +207,11 @@ class NdjsonInbandParser implements InBandParser {
     let drop = false;
     try {
       const obj = JSON.parse(t);
-      const p = obj?.__nuwa_payment__ || obj?.nuwa_payment;
-      if (p && p.subRav && p.cost !== undefined) {
+      const headerValue = obj?.__nuwa_payment_header__ || obj?.nuwa_payment_header;
+      if (typeof headerValue === 'string') {
         drop = true;
-        await safeHandlePayment(p, this.onPayment, this.log);
+        await safeHandlePayment({ headerValue }, this.onPayment, this.log);
+        this.onAfterPayment(controller);
       }
     } catch {}
     if (!drop) controller.enqueue(this.encoder.encode(this.buffer + '\n'));
@@ -214,7 +225,7 @@ async function safeHandlePayment(
   log: (...args: any[]) => void
 ): Promise<void> {
   try {
-    if (p && p.subRav && p.cost !== undefined) {
+    if (p && typeof p.headerValue === 'string') {
       await onPayment(p as InBandPaymentPayload);
     }
   } catch (e) {
