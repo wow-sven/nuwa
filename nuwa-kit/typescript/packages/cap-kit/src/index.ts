@@ -2,7 +2,9 @@ import { RoochClient, Transaction, Args } from "@roochnetwork/rooch-sdk";
 import { type SignerInterface, DidAccountSigner } from "@nuwa-ai/identity-kit";
 import * as yaml from 'js-yaml';
 import { buildClient } from "./client";
-import {Cap, Page, Result, ResultCap, ResultCapMetadataSchema} from "./type";
+import {Cap, CapThumbnail, CapThumbnailSchema, Page, Result, ResultCap, ResultCapMetadataSchema} from "./type";
+
+export * from './type'
 
 export class CapKit {
   protected roochClient: RoochClient;
@@ -104,8 +106,34 @@ export class CapKit {
       if (queryResult.code !== 200) {
         throw new Error(`query failed: ${queryResult.error || 'Unknown error'}`);
       }
+      // Transform the raw response data to ResultCap format
+      const transformedItems = queryResult.data.items.map((item: any) => {
+        const thumbnailType = JSON.parse(item.thumbnail)
+        return {
+          id: `${item.id}:${item.name}`,
+          cid: item.cid,
+          name: item.name,
+          version: item.version,
+          displayName: item.display_name,
+          description: item.description,
+          tags: item.tags,
+          submittedAt: item.submitted_at,
+          homepage: item.homepage,
+          repository: item.repository,
+          thumbnail: thumbnailType
+        }
+      });
 
-      return queryResult as Result<Page<ResultCap>>;
+      return {
+        code: queryResult.code,
+        data: {
+          totalItems: queryResult.data.total_items,
+          page: queryResult.data.page,
+          pageSize: queryResult.data.page_size,
+          items: transformedItems
+        }
+      } as Result<Page<ResultCap>>;
+      
     } finally {
       await client.close();
     }
@@ -142,7 +170,7 @@ export class CapKit {
         throw new Error(`Download failed: ${downloadResult.error || 'Unknown error'}`);
       }
 
-      const sss = yaml.load(downloadResult.data.fileData)
+      const sss = yaml.load(downloadResult.fileData)
       return yaml.load(downloadResult.data.fileData) as Cap;
     } finally {
       await client.close();
