@@ -172,6 +172,20 @@ export class HttpBillingMiddleware {
     }
   }
 
+  /** Save settlement payload for later polling by client (streaming scenarios) */
+  saveSettlement(ctx: BillingContext): void {
+    const state = ctx.state || {};
+    const payload = {
+      subRav: state.unsignedSubRav,
+      cost: state.cost,
+      // costUsd is not persisted in state; optional
+      clientTxRef: ctx.meta.clientTxRef,
+      serviceTxRef: state.serviceTxRef,
+      version: 1,
+    };
+    if (!payload.clientTxRef) return;
+  }
+
   /**
    * Persist billing results (Step D) - async persistence only
    */
