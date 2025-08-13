@@ -13,20 +13,6 @@ export interface Page<T> {
   items: T[]
 }
 
-export const ResultCapMetadataSchema = z.object({
-  id: z.string(),
-  cid: z.string(),
-  name: z.string(),
-  version: z.string(),
-  displayName: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-  submittedAt: z.number(),
-  homepage: z.string().optional(),
-  repository: z.string().optional(),
-  thumbnail: z.string().optional(),
-});
-
 // Zod schemas as single source of truth
 export const CapMcpServerConfigSchema = z.object({
   url: z.string(),
@@ -40,7 +26,7 @@ export const CapModelSchema = z.object({
   providerName: z.string(),
   providerSlug: z.string(),
   description: z.string(),
-  context_length: z.number(),
+  contextLength: z.number(),
   pricing: z.object({
     input_per_million_tokens: z.number(),
     output_per_million_tokens: z.number(),
@@ -90,6 +76,20 @@ export const CapMetadataSchema = z.object({
 export const CapSchema = CapIDSchema.extend({
   core: CapCoreSchema,
   metadata: CapMetadataSchema,
+});
+
+export const ResultCapMetadataSchema = z.object({
+  id: z.string(),
+  cid: z.string(),
+  name: z.string(),
+  version: z.string(),
+  displayName: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  submittedAt: z.number(),
+  homepage: z.string().optional(),
+  repository: z.string().optional(),
+  thumbnail: CapThumbnailSchema,
 });
 
 // Inferred TypeScript types from Zod schemas
