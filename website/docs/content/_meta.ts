@@ -11,6 +11,7 @@ export default {
 			pagination: false,
 		},
 	},
+
 	separator1: { type: "separator", title: "Getting Started" },
 	overview: {
 		title: "Overview",
@@ -22,6 +23,7 @@ export default {
 	},
 	introduction: "Introduction",
 	"quick-start": "Quick Start",
+	roadmap: "Roadmap",
 	separator2: { type: "separator", title: "Concepts" },
 	cap: "Cap",
 	payment: "Payment",

@@ -1,19 +1,19 @@
 /* eslint-env node */
 import "nextra-theme-docs/style.css";
 import "@/globals.css";
-import { Layout, Navbar } from "nextra-theme-docs";
+import { Inter } from "next/font/google";
 import { Head } from "nextra/components";
 import { getPageMap } from "nextra/page-map";
-import NavLogo from "@/components/nav-logo";
-import Footer from "@/components/footer";
-import { Roboto } from "next/font/google";
-import ChatModalButton from "@/components/chat-modal-button";
+import { Layout, Navbar } from "nextra-theme-docs";
 import Background from "@/components/background";
+import ChatModalButton from "@/components/chat-modal-button";
+import Footer from "@/components/footer";
+import NavLogo from "@/components/nav-logo";
 
-const roboto = Roboto({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-roboto",
-  weight: ["400", "600", "800"],
+  variable: "--font-inter",
+  weight: ["400", "500", "700"],
 });
 
 export const metadata = {
@@ -22,8 +22,7 @@ export const metadata = {
     default: "Nuwa AI - Documentation",
     template: "%s - Nuwa AI",
   },
-  description:
-    "Nuwa AI official documentation website.",
+  description: "Nuwa AI official documentation website.",
   keywords: [
     "Nuwa",
     "Agent",
@@ -43,8 +42,7 @@ export const metadata = {
     siteName: "Nuwa",
     locale: "en_US",
     title: "Nuwa AI - Documentation",
-    description:
-      "Nuwa AI official documentation website.",
+    description: "Nuwa AI official documentation website.",
     type: "website",
     url: "https://docs.nuwa.dev",
     images: [
@@ -66,8 +64,7 @@ export const metadata = {
     site: "@NuwaDev",
     creator: "@NuwaDev",
     title: "Nuwa AI - Documentation",
-    description:
-      "Nuwa AI official documentation website.",
+    description: "Nuwa AI official documentation website.",
     images: ["https://docs.nuwa.dev/og-image.png"],
   },
 };
@@ -85,7 +82,7 @@ export default async function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-title" content="Nuwa AI" />
         <link rel="manifest" href="/site.webmanifest" />
       </Head>
-      <body className={roboto.className}>
+      <body className={inter.className}>
         <Layout
           navbar={navbar}
           footer={<Footer />}
@@ -94,9 +91,7 @@ export default async function RootLayout({ children }) {
           sidebar={{ defaultMenuCollapseLevel: 1 }}
           pageMap={pageMap}
         >
-          <Background>
-            {children}
-          </Background>
+          <Background>{children}</Background>
         </Layout>
       </body>
     </html>

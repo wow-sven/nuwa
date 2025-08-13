@@ -1,8 +1,8 @@
 "use client";
 
-import { Button } from "../components/ui/button";
-import { CategoryCard } from "../components/category-card";
 import { BookOpenIcon, CodeIcon, ServerIcon } from "lucide-react";
+import { CategoryCard } from "../components/category-card";
+import { Button } from "../components/ui/button";
 
 export default function HeroHome() {
   return (
@@ -18,7 +18,7 @@ export default function HeroHome() {
                 <a
                   href="https://test-app.nuwa.dev/"
                   target="_blank"
-                  rel="nofollow"
+                  rel="noopener noreferrer"
                   className="flex origin-top-left items-center rounded-full border border-zinc-900 dark:border-zinc-100 bg-white dark:bg-zinc-800 p-0.5 text-sm transition-transform hover:-rotate-2"
                 >
                   <span className="rounded-full bg-violet-500 px-2 py-0.5 font-medium text-white">
@@ -38,7 +38,8 @@ export default function HeroHome() {
 
             {/* Description */}
             <p className="mb-8 text-lg text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto">
-              Comprehensive Nuwa AI documentation covering fundamental concepts, protocol designs and Cap development.
+              Comprehensive Nuwa AI documentation covering fundamental concepts,
+              protocol designs and Cap development.
             </p>
 
             {/* CTA Buttons */}
@@ -47,9 +48,13 @@ export default function HeroHome() {
                 Concepts
               </Button>
               <span className="text-gray-500 dark:text-gray-400">or</span> */}
-              <Button onClick={() => {
-                window.location.href = "/quick-start";
-              }} variant="primary" className="font-semibold">
+              <Button
+                onClick={() => {
+                  window.location.href = "/quick-start";
+                }}
+                variant="primary"
+                className="font-semibold"
+              >
                 Launch a Cap
               </Button>
             </div>
@@ -66,25 +71,31 @@ export default function HeroHome() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <CategoryCard
                 title="Concepts"
-                href="/concepts"
+                href="/introduction"
                 description="Learn Nuwa's core concepts and features."
-                icon={<BookOpenIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />}
+                icon={
+                  <BookOpenIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                }
                 delay={0.9}
               />
 
               <CategoryCard
                 title="Cap Development"
-                href="/cap-development"
+                href="/quick-start"
                 description="Learn how to build and launch your own Nuwa Cap."
-                icon={<CodeIcon className="w-6 h-6 text-green-600 dark:text-green-400" />}
+                icon={
+                  <CodeIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                }
                 delay={1.0}
               />
 
               <CategoryCard
                 title="Protocol"
-                href="/protocol"
+                href="/nips/overview"
                 description="Explore Nuwa's protocol designs and how to use them."
-                icon={<ServerIcon className="w-6 h-6 text-orange-600 dark:text-orange-400" />}
+                icon={
+                  <ServerIcon className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+                }
                 delay={1.1}
               />
             </div>
