@@ -10,11 +10,6 @@ describe("CapKit", () => {
   })
 
   it("should query cap by name", async () => {
-    // const cid = await capKit.registerCap(
-    //   "test_cap",
-    //   "test_cap",
-    //   {}
-    // );
 
     // await new Promise(resolve => setTimeout(resolve, 35000));
     const all = await capKit.queryWithName()

@@ -109,8 +109,15 @@ export class CapKit {
       // Transform the raw response data to ResultCap format
       const transformedItems = queryResult.data.items.map((item: any) => {
         const thumbnailType = JSON.parse(item.thumbnail)
+        let id = item.id
+        const ids = item.id.split(':') as string[]
+        if (ids.length > 1 && ids[1] === item.name) {
+          id = item.id
+        } else {
+          id = `${item.id}:${item.name}`
+        }
         return {
-          id: `${item.id}:${item.name}`,
+          id: id,
           cid: item.cid,
           name: item.name,
           version: item.version,

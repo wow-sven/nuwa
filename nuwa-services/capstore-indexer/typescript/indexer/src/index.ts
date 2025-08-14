@@ -2,14 +2,14 @@ import { Readable } from 'node:stream';
 
 import { config } from 'dotenv';
 import { FastMCP } from "fastmcp";
-import {create, IPFSHTTPClient} from 'ipfs-http-client';
+import { create } from 'ipfs-http-client';
 import { CID } from 'multiformats/cid';
 import { z } from "zod";
 
 import { DIDAuth, VDRRegistry, initRoochVDR } from "@nuwa-ai/identity-kit";
 
 import {IPFS_NODE, IPFS_NODE_PORT, IPFS_NODE_URL, TARGET} from "./constant.js";
-import { setupRoochEventListener } from './event-handle.js';
+import {setupRoochEventListener, syncCap} from './event-handle.js';
 import { queryFromSupabase } from "./supabase.js";
 import type { Result } from "./type.js";
 
@@ -109,7 +109,7 @@ ipfsService.addTool({
       const { cid } = args;
       const result = await queryFromSupabase(null, cid);
 
-      if (!result.success) {
+      if (!result.success || !result.items || result.items.length === 0) {
         return {
           content: [{
             type: "text",
@@ -122,6 +122,8 @@ ipfsService.addTool({
       }
 
       if (!result.items || result.items.length === 0) {
+        await syncCap(cid)
+
         return {
           content: [{
             type: "text",
@@ -241,7 +243,7 @@ ipfsService.addTool({
             type: "text",
             text: JSON.stringify({
               code: 401,
-              error: "Authentication required" 
+              error: "Authentication required"
             })
           }]
         };
@@ -319,7 +321,7 @@ ipfsService.addTool({
             type: "text",
             text: JSON.stringify({
               code: 401,
-              error: "Authentication required" 
+              error: "Authentication required"
             } as Result)
           }]
         };

@@ -8,10 +8,20 @@ config();
 const CAP_SYNC_TABLE_NAME = "cap_sync_state";
 const CAP_TABLE_NAME = "cap_data"
 
+/**
+ * Serializes an IndexerEventIDView cursor to a JSON string
+ * @param cursor - The cursor object to serialize
+ * @returns JSON string representation of the cursor or null
+ */
 function serializeCursor(cursor: IndexerEventIDView | null): string | null {
   return cursor ? JSON.stringify(cursor) : null;
 }
 
+/**
+ * Deserializes a JSON string back to an IndexerEventIDView cursor
+ * @param cursorStr - JSON string representation of the cursor
+ * @returns Parsed cursor object or null if invalid
+ */
 function deserializeCursor(cursorStr: string | null): IndexerEventIDView | null {
   if (!cursorStr) return null;
   try {
@@ -27,14 +37,16 @@ function deserializeCursor(cursorStr: string | null): IndexerEventIDView | null 
   }
 }
 
+/**
+ * Retrieves the last processed cursor for RegisterEvent synchronization
+ * @returns Promise<IndexerEventIDView | null> - The last cursor or null if not found
+ */
 export async function getLastCursor(): Promise<IndexerEventIDView | null> {
   try {
     const { data, error } = await supabase
       .from(CAP_SYNC_TABLE_NAME)
       .select('cursor')
       .eq('event_type', `${PACKAGE_ID}::acp_registry::RegisterEvent`)
-      .order('last_updated', { ascending: false })
-      .limit(1)
       .single();
 
     if (error || !data || !data.cursor) {
@@ -48,6 +60,10 @@ export async function getLastCursor(): Promise<IndexerEventIDView | null> {
   }
 }
 
+/**
+ * Saves the current cursor position for RegisterEvent synchronization
+ * @param cursor - The cursor position to save
+ */
 export async function saveCursor(cursor: IndexerEventIDView | null) {
   try {
     const cursorStr = serializeCursor(cursor);
@@ -69,14 +85,16 @@ export async function saveCursor(cursor: IndexerEventIDView | null) {
   }
 }
 
+/**
+ * Retrieves the last processed cursor for UpdateEvent synchronization
+ * @returns Promise<IndexerEventIDView | null> - The last update cursor or null if not found
+ */
 export async function getLastUpdateCursor(): Promise<IndexerEventIDView | null> {
   try {
     const { data, error } = await supabase
       .from(CAP_SYNC_TABLE_NAME)
       .select('cursor')
       .eq('event_type', `${PACKAGE_ID}::acp_registry::UpdateEvent`)
-      .order('last_updated', { ascending: false })
-      .limit(1)
       .single();
 
     if (error || !data || !data.cursor) {
@@ -90,6 +108,10 @@ export async function getLastUpdateCursor(): Promise<IndexerEventIDView | null> 
   }
 }
 
+/**
+ * Saves the current cursor position for UpdateEvent synchronization
+ * @param cursor - The cursor position to save for update events
+ */
 export async function saveUpdateCursor(cursor: IndexerEventIDView | null) {
   try {
     const cursorStr = serializeCursor(cursor);
@@ -113,54 +135,85 @@ export async function saveUpdateCursor(cursor: IndexerEventIDView | null) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/**
+ * Stores CAP data to Supabase database with version checking to prevent downgrades
+ * @param data - The parsed YAML data containing CAP information
+ * @param cid - Content Identifier for the CAP data on IPFS
+ * @param car_uri - Unique CAP URI identifier
+ * @param version - Version number of the CAP
+ * @throws Error if database operations fail
+ */
 export async function storeToSupabase(
   data: any,
   cid: string,
-  car_uri: string,
   version: number,
 ): Promise<void> {
-  const { data: existingData, error: queryError } = await supabase
-    .from(CAP_TABLE_NAME)
-    .select("version")
-    .eq("car_uri", car_uri)
-    .maybeSingle();
+  try {
+    const id = data.id
+    // Query existing record
+    const { data: existingData, error: queryError } = await supabase
+      .from(CAP_TABLE_NAME)
+      .select("version, cid")
+      .eq("id", id)
+      .maybeSingle();
 
-  if (queryError) {
-    throw new Error(`Supabase query failed: ${queryError.message}`);
-  }
+    if (queryError) {
+      throw new Error(`Supabase query failed: ${queryError.message}`);
+    }
 
-  if (existingData && version <= existingData.version) {
-    console.log(
-      `Skipping update for ${car_uri}. ` +
-        `Current version ${existingData.version} >= provided version ${version}`
+    // If record exists and version doesn't need updating
+    if (existingData && version <= existingData.version) {
+      console.log(
+        `✅ Skipping update for ${id}. ` +
+          `Current version ${existingData.version} >= provided version ${version}, ` +
+          `CID: ${existingData.cid}`
+      );
+      return;
+    }
+
+    // Execute upsert operation
+    const { error } = await supabase.from(CAP_TABLE_NAME).upsert(
+      {
+        name: data.idName,
+        id: id,
+        cid: cid,
+        display_name: data.metadata.displayName,
+        description: data.metadata.description,
+        submitted_at: data.metadata.submittedAt,
+        homepage: data.metadata.homepage,
+        repository: data.metadata.repository,
+        thumbnail: data.metadata.thumbnail,
+        tags: data.metadata.tags,
+        version: version,
+        timestamp: new Date().toISOString(),
+      },
+      { onConflict: "id" }
     );
-    return;
-  }
 
-  const { error } = await supabase.from(CAP_TABLE_NAME).upsert(
-    {
-      car_uri: car_uri,
-      name: data.idName,
-      id: data.id,
-      cid: cid,
-      display_name: data.metadata.displayName,
-      description: data.metadata.description,
-      submitted_at: data.metadata.submittedAt,
-      homepage: data.metadata.homepage,
-      repository: data.metadata.repository,
-      thumbnail: data.metadata.thumbnail,
-      tags: data.metadata.tags,
-      version: version,
-      timestamp: new Date().toISOString(),
-    },
-    { onConflict: "car_uri" }
-  );
+    if (error) {
+      throw new Error(`Supabase operation failed: ${error.message}`);
+    }
 
-  if (error) {
-    throw new Error(`Supabase operation failed: ${error.message}`);
+    if (existingData) {
+      console.log(`✅ Updated ${id} from version ${existingData.version} to ${version}, CID: ${cid}`);
+    } else {
+      console.log(`✅ Inserted new record for ${id}, version ${version}, CID: ${cid}`);
+    }
+  } catch (error) {
+    console.error(`❌ Failed to store ${data.id} to Supabase:`, (error as Error).message);
+    throw error; // Re-throw error for upper-level handling
   }
 }
 
+/**
+ * Queries CAP data from Supabase database with filtering and pagination
+ * @param name - Optional name filter (partial match)
+ * @param cid - Optional CID filter (partial match)
+ * @param tags - Optional array of tags to filter by
+ * @param page - Page number starting from 0
+ * @param pageSize - Number of items per page (max 50)
+ * @returns Promise with query results including pagination information
+ */
 export async function queryFromSupabase(
   name?: string | null,
   cid?: string | null,
@@ -245,7 +298,10 @@ export async function queryFromSupabase(
   }
 }
 
-// Get all unique tags from the database
+/**
+ * Retrieves all unique tags from the CAP database
+ * @returns Promise with array of unique tags
+ */
 export async function getAllTags(): Promise<{
   success: boolean;
   tags?: string[];
@@ -285,7 +341,13 @@ export async function getAllTags(): Promise<{
   }
 }
 
-// Query by exact tag match (all provided tags must be present)
+/**
+ * Queries CAP data by exact tag match (all provided tags must be present)
+ * @param tags - Array of tags that must all be present in the CAP
+ * @param page - Page number starting from 0
+ * @param pageSize - Number of items per page (max 50)
+ * @returns Promise with query results for CAPs containing all specified tags
+ */
 export async function queryByExactTags(
   tags: string[],
   page: number = 0,
