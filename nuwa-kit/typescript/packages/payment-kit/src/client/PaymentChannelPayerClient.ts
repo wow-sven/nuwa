@@ -5,7 +5,7 @@
  * from the Payer perspective, using the IPaymentChannelContract abstraction.
  */
 
-import type { AssetInfo, SubChannelState, ChannelInfo, SignedSubRAV, SubRAV } from '../core/types';
+import type { AssetInfo, SubChannelInfo, ChannelInfo, SignedSubRAV, SubRAV } from '../core/types';
 import type {
   IPaymentChannelContract,
   OpenChannelResult,
@@ -320,6 +320,10 @@ export class PaymentChannelPayerClient {
     return this.activeChannelId;
   }
 
+  getContract(): IPaymentChannelContract {
+    return this.contract;
+  }
+
   // -------- Asset Information --------
 
   /**
@@ -346,7 +350,7 @@ export class PaymentChannelPayerClient {
   /**
    * Get on-chain sub-channel info (state) for the specified vmIdFragment
    */
-  async getSubChannelInfo(channelId: string, vmIdFragment: string): Promise<SubChannelState> {
+  async getSubChannelInfo(channelId: string, vmIdFragment: string): Promise<SubChannelInfo> {
     return this.contract.getSubChannel({ channelId, vmIdFragment });
   }
 

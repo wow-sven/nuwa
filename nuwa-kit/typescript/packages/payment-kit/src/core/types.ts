@@ -59,11 +59,6 @@ export interface ChannelInfo {
   // separately by querying the payment hub and individual sub-channels as needed
 }
 
-// Backward-compatibility alias: use SubChannelInfo as the canonical type
-// Import type for alias without creating runtime dependency
-import type { SubChannelInfo as _SubChannelInfo } from '../contracts/IPaymentChannelContract';
-export type SubChannelState = _SubChannelInfo;
-
 /**
  * Transaction result from blockchain operations
  */
@@ -148,6 +143,8 @@ export interface PaymentInfo {
   nonce: bigint;
   /** Channel identifier */
   channelId: string;
+  /** Sub-channel verification method fragment (from SubRAV) */
+  vmIdFragment: string;
   /** Asset identifier */
   assetId: string;
   /** Timestamp when payment was resolved (ISO8601) */

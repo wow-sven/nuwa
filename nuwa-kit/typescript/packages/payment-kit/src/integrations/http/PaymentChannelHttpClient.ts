@@ -8,7 +8,13 @@ import type {
   PendingPaymentRequest,
   PaymentRequestHandle,
 } from './types';
-import type { SubRAV, SignedSubRAV, PaymentInfo, PaymentResult } from '../../core/types';
+import type {
+  SubRAV,
+  SignedSubRAV,
+  PaymentInfo,
+  PaymentResult,
+  SubChannelInfo,
+} from '../../core/types';
 import type { ApiResponse } from '../../types/api';
 import type {
   DiscoveryResponse,
@@ -28,6 +34,7 @@ import {
   extractHost,
   createDefaultChannelRepo,
   MemoryHostChannelMappingStore,
+  createDefaultTransactionStore,
 } from './internal/LocalStore';
 import { parseJsonResponse, serializeJson } from '../../utils/json';
 import {
@@ -41,10 +48,13 @@ import {
 import type { z } from 'zod';
 import { PaymentHubClient } from '../../client/PaymentHubClient';
 import { DebugLogger } from '@nuwa-ai/identity-kit';
-import { MemoryChannelRepository, type ChannelRepository } from '../../storage';
+import { MemoryChannelRepository, TransactionStore, type ChannelRepository } from '../../storage';
 import { PaymentErrorCode } from '../../errors/codes';
 import { wrapAndFilterInBandFrames } from './internal/StreamPaymentFilter';
 import { isStreamLikeResponse } from './internal/utils';
+import { createNamespacedMappingStore } from './internal/LocalStore';
+import { RateProvider } from '../../billing/rate/types';
+import { ContractRateProvider } from '../../billing/rate/contract';
 
 /**
  * HTTP Client State enum for internal state management
@@ -72,6 +82,7 @@ export class PaymentChannelHttpClient {
   private fetchImpl: FetchLike;
   private mappingStore: HostChannelMappingStore;
   private channelRepo: ChannelRepository;
+  private transactionStore: TransactionStore;
   private host: string;
   private state: ClientState = ClientState.INIT;
   private clientState: HttpClientState;
@@ -84,13 +95,18 @@ export class PaymentChannelHttpClient {
   private subRavMutex: Promise<void> = Promise.resolve();
   // Configurable timeout for pending payment resolution
   private requestTimeoutMs: number;
+  private rateProvider: RateProvider;
 
   constructor(options: HttpPayerOptions) {
     this.options = options;
     this.fetchImpl = options.fetchImpl || (globalThis as any).fetch?.bind(globalThis);
-    this.mappingStore = options.mappingStore || createDefaultMappingStore();
+    const baseMapping = options.mappingStore || createDefaultMappingStore();
+    this.mappingStore = createNamespacedMappingStore(baseMapping, {
+      getPayerDid: async () => this.options.payerDid || (await this.options.signer.getDid()),
+    });
     this.host = extractHost(options.baseUrl);
     this.channelRepo = options.channelRepo || createDefaultChannelRepo();
+    this.transactionStore = options.transactionStore || createDefaultTransactionStore();
 
     if (!this.fetchImpl) {
       throw new Error('fetch implementation not available. Please provide fetchImpl option.');
@@ -105,6 +121,8 @@ export class PaymentChannelHttpClient {
         channelRepo: this.channelRepo,
       },
     });
+
+    this.rateProvider = new ContractRateProvider(this.payerClient.getContract());
 
     this.clientState = {
       pendingPayments: new Map(),
@@ -132,16 +150,45 @@ export class PaymentChannelHttpClient {
   }
 
   /**
-   * Send an HTTP request with payment channel integration
-   * Returns response with payment information
+   * Primary API – returns a handle with separate response and payment promises.
+   * Callers can choose to await `response`, `payment`, or `done` depending on needs.
    */
   async requestWithPayment(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     path: string,
     init?: RequestInit
+  ): Promise<PaymentRequestHandle<Response>> {
+    return this.createRequestHandle(method, path, init);
+  }
+
+  /**
+   * Convenience: return only the HTTP response (non-blocking for payment).
+   */
+  async request(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+    path: string,
+    init?: RequestInit
+  ): Promise<Response> {
+    const handle = await this.createRequestHandle(method, path, init);
+    return handle.response;
+  }
+
+  /**
+   * Convenience: wait for response and payment (recommended for non-streaming endpoints).
+   */
+  async requestAndWaitForPayment(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+    path: string,
+    init?: RequestInit
   ): Promise<PaymentResult<Response>> {
     const handle = await this.createRequestHandle(method, path, init);
-    const { data, payment } = await handle.done;
+    const data = await handle.response;
+    let payment: PaymentInfo | undefined = undefined;
+    try {
+      payment = await handle.payment;
+    } catch {
+      // swallow payment wait errors here; callers still have the response
+    }
     return { data, payment };
   }
 
@@ -149,11 +196,12 @@ export class PaymentChannelHttpClient {
    * Create a handle containing both response and payment promises, correlated by clientTxRef.
    * Advanced callers can use this for fine-grained tracking or cancellation without changing the existing API.
    */
-  async createRequestHandle(
+  private async createRequestHandle(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     path: string,
     init?: RequestInit
   ): Promise<PaymentRequestHandle<Response>> {
+    await this.ensureKeyFragment();
     // First perform discovery if not done yet
     if (!this.cachedDiscoveryInfo) {
       await this.performDiscovery();
@@ -182,6 +230,7 @@ export class PaymentChannelHttpClient {
       url: fullUrl,
       headers,
       body: init?.body,
+      clientTxRef,
     };
 
     // Create payment promise for this request
@@ -189,6 +238,40 @@ export class PaymentChannelHttpClient {
 
     // Execute request (defer await to keep both promises available to caller)
     const responsePromise = this.executeRequest(requestContext, init);
+
+    // Transaction logging: create pending record
+    try {
+      if (this.options.transactionLog?.enabled !== false) {
+        const store = this.transactionStore;
+        if (store) {
+          const urlObj = new URL(fullUrl);
+          const sanitize = this.options.transactionLog?.sanitizeRequest;
+          const sanitized = sanitize ? sanitize(headers, init?.body) : undefined;
+          const headersSummary = sanitized?.headersSummary ?? {
+            'content-type': headers['Content-Type'] || headers['content-type'] || '',
+          };
+          const requestBodyHash = sanitized?.requestBodyHash;
+          await store.create({
+            clientTxRef,
+            timestamp: Date.now(),
+            protocol: 'http',
+            method,
+            urlOrTarget: fullUrl,
+            operation: `${method}:${urlObj.pathname}`,
+            headersSummary,
+            requestBodyHash,
+            stream: false, // will be updated if streaming detected later
+            channelId: this.clientState.channelId,
+            vmIdFragment: sentedSubRav?.subRav?.vmIdFragment,
+            //TODO get assetId from the channel
+            assetId: this.options.defaultAssetId || '0x3::gas_coin::RGas',
+            status: 'pending',
+          });
+        }
+      }
+    } catch (e) {
+      this.log('[txlog.create.error]', e);
+    }
 
     this.log(
       '[request.start]',
@@ -201,10 +284,12 @@ export class PaymentChannelHttpClient {
     );
 
     // Couple: when response promise rejects, clear the pending payment to avoid dangling
-    responsePromise.catch(() => {
+    responsePromise.catch(err => {
+      this.log('[response.error]', err);
       this.clientState.pendingPayments?.delete(clientTxRef);
     });
 
+    const startTs = Date.now();
     const done = Promise.all([responsePromise, paymentPromise]).then(([data, payment]) => ({
       data,
       payment,
@@ -224,6 +309,18 @@ export class PaymentChannelHttpClient {
       abort = () => controller.abort('aborted by PaymentRequestHandle');
     }
 
+    // Update transaction on response headers arrival
+    responsePromise
+      .then(res => {
+        const durationMs = Date.now() - startTs;
+        this.transactionStore?.update(clientTxRef, {
+          statusCode: res.status,
+          durationMs,
+        });
+        return res;
+      })
+      .catch(err => this.log('[txlog.update.error]', err));
+
     return {
       clientTxRef,
       response: responsePromise,
@@ -237,7 +334,7 @@ export class PaymentChannelHttpClient {
    * Convenience methods for common HTTP verbs with payment info
    */
   async get<T = any>(path: string, init?: RequestInit): Promise<PaymentResult<T>> {
-    const result = await this.requestWithPayment('GET', path, init);
+    const result = await this.requestAndWaitForPayment('GET', path, init);
     const data = await this.parseJsonAuto<T>(result.data);
     return { data, payment: result.payment };
   }
@@ -251,7 +348,7 @@ export class PaymentChannelHttpClient {
         ...init?.headers,
       },
     };
-    const result = await this.requestWithPayment('POST', path, requestInit);
+    const result = await this.requestAndWaitForPayment('POST', path, requestInit);
     const data = await this.parseJsonAuto<T>(result.data);
     return { data, payment: result.payment };
   }
@@ -265,7 +362,7 @@ export class PaymentChannelHttpClient {
         ...init?.headers,
       },
     };
-    const result = await this.requestWithPayment('PUT', path, requestInit);
+    const result = await this.requestAndWaitForPayment('PUT', path, requestInit);
     const data = await this.parseJsonAuto<T>(result.data);
     return { data, payment: result.payment };
   }
@@ -279,13 +376,13 @@ export class PaymentChannelHttpClient {
         ...init?.headers,
       },
     };
-    const result = await this.requestWithPayment('PATCH', path, requestInit);
+    const result = await this.requestAndWaitForPayment('PATCH', path, requestInit);
     const data = await this.parseJsonAuto<T>(result.data);
     return { data, payment: result.payment };
   }
 
   async delete<T = any>(path: string, init?: RequestInit): Promise<PaymentResult<T>> {
-    const result = await this.requestWithPayment('DELETE', path, init);
+    const result = await this.requestAndWaitForPayment('DELETE', path, init);
     const data = await this.parseJsonAuto<T>(result.data);
     return { data, payment: result.payment };
   }
@@ -318,6 +415,99 @@ export class PaymentChannelHttpClient {
 
   getHubClient(): PaymentHubClient {
     return this.payerClient.getHubClient();
+  }
+
+  /**
+   * Compute unsettled amount for the current sub-channel (bound to this client).
+   * Logic: use the latest authorized SubRAV (pending/proposed) accumulatedAmount
+   * minus on-chain sub-channel lastClaimedAmount. If no pending SubRAV available,
+   * falls back to on-chain state (unsettled = 0).
+   */
+  async getUnsettledAmountForSubChannel(): Promise<{
+    channelId: string;
+    vmIdFragment: string;
+    authorizedAccumulated: bigint;
+    lastClaimed: bigint;
+    unsettled: bigint;
+    unsettledUsd: bigint;
+    subChannelInfo: SubChannelInfo;
+    latestSubRavNonce?: bigint;
+  }> {
+    await this.ensureChannelReady();
+    await this.ensureKeyFragment();
+
+    const channelInfo = this.clientState.channelInfo;
+    const vmIdFragment = this.clientState.vmIdFragment;
+
+    if (!channelInfo || !vmIdFragment) {
+      throw new Error('Channel or vmIdFragment not initialized');
+    }
+    const assetId = channelInfo!.assetId;
+
+    // Fetch on-chain sub-channel state
+    let subChannelInfo = this.clientState.subChannelInfo;
+    if (!subChannelInfo) {
+      subChannelInfo = await this.payerClient.getSubChannelInfo(
+        channelInfo.channelId,
+        vmIdFragment
+      );
+      this.clientState.subChannelInfo = subChannelInfo;
+    }
+    const lastClaimed = subChannelInfo.lastClaimedAmount;
+
+    // Determine latest authorized accumulated value
+    let authorizedAccumulated: bigint | undefined = undefined;
+    let latestSubRavNonce: bigint | undefined = undefined;
+
+    const pending = this.clientState.pendingSubRAV;
+    if (
+      pending &&
+      pending.channelId === channelInfo.channelId &&
+      pending.vmIdFragment === vmIdFragment
+    ) {
+      authorizedAccumulated = pending.accumulatedAmount;
+      latestSubRavNonce = pending.nonce;
+    } else {
+      // Try to recover from service to get the latest proposal
+      try {
+        const recovery = await this.recoverFromService();
+        if (
+          recovery.pendingSubRav &&
+          recovery.pendingSubRav.channelId === channelInfo.channelId &&
+          recovery.pendingSubRav.vmIdFragment === vmIdFragment
+        ) {
+          authorizedAccumulated = recovery.pendingSubRav.accumulatedAmount;
+          latestSubRavNonce = recovery.pendingSubRav.nonce;
+        }
+      } catch (e) {
+        this.log('[unsettled.recover.error]', e);
+      }
+      //TODO we should also get the latest signed sub-rav from the service
+    }
+
+    if (authorizedAccumulated === undefined) {
+      // No local/recovered proposal; treat as fully settled
+      authorizedAccumulated = lastClaimed;
+    }
+
+    const diff = authorizedAccumulated - lastClaimed;
+    const unsettled = diff > 0n ? diff : 0n;
+    const unsettledUsd = (await this.rateProvider.getPricePicoUSD(assetId)) * unsettled;
+
+    return {
+      channelId: channelInfo.channelId,
+      vmIdFragment,
+      authorizedAccumulated,
+      lastClaimed,
+      unsettled,
+      unsettledUsd,
+      subChannelInfo,
+      latestSubRavNonce,
+    };
+  }
+
+  getTransactionStore(): TransactionStore {
+    return this.transactionStore;
   }
 
   /**
@@ -509,11 +699,8 @@ export class PaymentChannelHttpClient {
 
         // Ensure sub-channel is authorized (server may include subChannel)
         if (this.clientState.channelId) {
-          let vmIdFragment = recoveryData.subChannel?.vmIdFragment;
-          if (!vmIdFragment && this.options.keyId) {
-            const parts = this.options.keyId.split('#');
-            vmIdFragment = parts.length > 1 ? parts[1] : '';
-          }
+          let vmIdFragment =
+            recoveryData.subChannel?.vmIdFragment || this.clientState.vmIdFragment || '';
           if (vmIdFragment && !recoveryData.subChannel) {
             try {
               this.log('🔧 Sub-channel missing in recovery, authorizing:', vmIdFragment);
@@ -587,6 +774,7 @@ export class PaymentChannelHttpClient {
           const channelInfo = await this.payerClient.getChannelInfo(recoveryData.channel.channelId);
           //if (channelInfo.status === 'active') {
           this.clientState.channelId = recoveryData.channel.channelId;
+          this.clientState.channelInfo = channelInfo;
           this.clientState.pendingSubRAV = recoveryData.pendingSubRav || undefined;
 
           // Ensure sub-channel is authorized; if server returned subChannel it's authorized
@@ -609,6 +797,12 @@ export class PaymentChannelHttpClient {
                 this.log('Sub-channel authorized for fragment:', vmIdFragment);
                 // Ensure visibility on-chain before proceeding to first paid request
                 await this.waitForSubChannelAuthorization(this.clientState.channelId, vmIdFragment);
+                try {
+                  this.clientState.subChannelInfo = await this.payerClient.getSubChannelInfo(
+                    this.clientState.channelId,
+                    vmIdFragment
+                  );
+                } catch {}
               } catch (e) {
                 this.log('AuthorizeSubChannel failed:', e);
                 throw e;
@@ -665,6 +859,16 @@ export class PaymentChannelHttpClient {
       });
 
       this.clientState.channelId = channelInfo.channelId;
+      try {
+        this.clientState.channelInfo = await this.payerClient.getChannelInfo(channelInfo.channelId);
+        const vm = this.clientState.vmIdFragment;
+        if (vm) {
+          this.clientState.subChannelInfo = await this.payerClient.getSubChannelInfo(
+            channelInfo.channelId,
+            vm
+          );
+        }
+      } catch {}
 
       // Store the mapping (legacy compatibility)
       await this.mappingStore.set(this.host, channelInfo.channelId);
@@ -707,6 +911,30 @@ export class PaymentChannelHttpClient {
 
     // Generate new UUID if not provided
     return crypto.randomUUID();
+  }
+
+  /**
+   * Lazily resolve keyId and vmIdFragment from options or signer.listKeyIds()
+   */
+  private async ensureKeyFragment(): Promise<void> {
+    if (this.clientState.keyId && this.clientState.vmIdFragment) return;
+    let keyId = this.options.keyId;
+    if (!keyId) {
+      if (this.options.signer && typeof this.options.signer.listKeyIds === 'function') {
+        try {
+          const ids: string[] = await this.options.signer.listKeyIds();
+          keyId = Array.isArray(ids) && ids.length > 0 ? ids[0] : undefined;
+        } catch {}
+      }
+    }
+    if (keyId) {
+      this.clientState.keyId = keyId;
+      const parts = keyId.split('#');
+      this.clientState.vmIdFragment = parts.length > 1 ? parts[1] : undefined;
+    }
+    if (!this.clientState.keyId || !this.clientState.vmIdFragment) {
+      throw new Error('No keyId found');
+    }
   }
 
   /**
@@ -757,6 +985,29 @@ export class PaymentChannelHttpClient {
         !!sentedSubRav
       );
     });
+  }
+
+  /**
+   * Extend timeout for a specific pending payment (used for streaming responses)
+   */
+  private extendPendingTimeout(clientTxRef: string, newTimeoutMs: number): void {
+    const pending = this.clientState.pendingPayments?.get(clientTxRef);
+    if (!pending) return;
+    clearTimeout(pending.timeoutId);
+    pending.timeoutId = setTimeout(() => {
+      if (this.clientState.pendingPayments?.has(clientTxRef)) {
+        this.clientState.pendingPayments.delete(clientTxRef);
+        this.log(
+          '[payment.timeout.stream]',
+          'clientTxRef=',
+          clientTxRef,
+          'url=',
+          pending.requestContext.url
+        );
+        pending.reject(new Error('Payment resolution timeout'));
+      }
+    }, newTimeoutMs);
+    this.log('[payment.timeout.extend.one]', 'clientTxRef=', clientTxRef, 'ms=', newTimeoutMs);
   }
 
   private resolveByRef(clientTxRef: string, info: PaymentInfo | undefined): boolean {
@@ -951,6 +1202,20 @@ export class PaymentChannelHttpClient {
           },
           (...args: any[]) => this.log(...args)
         );
+        // Mark as streaming in transaction log
+        try {
+          if (
+            this.options.transactionLog?.enabled !== false &&
+            this.transactionStore &&
+            context.clientTxRef
+          ) {
+            await this.transactionStore.update(context.clientTxRef, { stream: true });
+          }
+        } catch {}
+        // Extend pending timeout for streaming if configured
+        if (context.clientTxRef && typeof this.options.timeoutMsStream === 'number') {
+          this.extendPendingTimeout(context.clientTxRef, this.options.timeoutMsStream);
+        }
         return filtered;
       }
 
@@ -1141,11 +1406,30 @@ export class PaymentChannelHttpClient {
       costUsd: proto.costUsd ?? BigInt(0),
       nonce: proto.subRav.nonce,
       channelId: pendingRequest.channelId,
+      vmIdFragment: proto.subRav.vmIdFragment,
       assetId: pendingRequest.assetId,
       timestamp: new Date().toISOString(),
     };
 
     this.resolveByRef(keyToDelete!, paymentInfo);
+    // Transaction logging: finalize payment snapshot and vmIdFragment
+    try {
+      if (this.options.transactionLog?.enabled !== false && this.transactionStore) {
+        await this.transactionStore.update(paymentInfo.clientTxRef, {
+          payment: {
+            cost: paymentInfo.cost,
+            costUsd: paymentInfo.costUsd,
+            nonce: paymentInfo.nonce,
+            serviceTxRef: paymentInfo.serviceTxRef,
+            paidAt: paymentInfo.timestamp,
+          },
+          vmIdFragment: paymentInfo.vmIdFragment,
+          status: 'paid',
+        });
+      }
+    } catch (e) {
+      this.log('[txlog.finalize.error]', e);
+    }
     this.log(
       'Resolved payment for clientTxRef:',
       paymentInfo.clientTxRef,
