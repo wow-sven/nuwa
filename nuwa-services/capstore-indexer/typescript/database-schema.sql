@@ -5,7 +5,6 @@ CREATE TABLE cap_sync_state (
 );
 
 CREATE TABLE cap_data (
-  car_uri TEXT NOT NULL,
   name TEXT NOT NULL,
   id TEXT NOT NULL,
   cid TEXT NOT NULL,

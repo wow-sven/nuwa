@@ -10,5 +10,8 @@ describe("CapKit", () => {
   })
 
   it("should query cap by id", async () => {
+    const result = await capKit.queryCapWithCID('QmdirjyLVKQUo2xYsTSkWAfoPmnwdp8wn4W7Z8SW4V4LEy')
+
+    console.log(result)
   }, 150000);
 });
