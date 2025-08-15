@@ -125,7 +125,7 @@ export async function processRoochUpdateEvent() {
   try {
     const client = new RoochClient({url: ROOCH_NODE_URL});
     const lastCursor = await getLastUpdateCursor();
-    console.log('update-', lastCursor)
+    console.log('prepare update-', lastCursor)
     const events = await client.queryEvents({
       filter: {
         event_type: `${PACKAGE_ID}::acp_registry::UpdateEvent`,
