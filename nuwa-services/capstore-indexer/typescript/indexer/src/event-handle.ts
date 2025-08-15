@@ -83,9 +83,14 @@ export async function processRoochRegisterEvent() {
       const id = data.cap_uri;
       
       console.log(`Processing event with CID: ${cid}, CAP ID: ${id}`);
-      
-      const yamlData = await fetchAndParseYaml(cid);
-      await storeToSupabase(yamlData, cid, 0);
+
+      try {
+        const yamlData = await fetchAndParseYaml(cid);
+        await storeToSupabase(yamlData, cid, 0);
+      } catch (e) {
+        processedEvents.push(cid);
+        console.log(`dirty data ${cid} `, e.message)
+      }
       
       processedEvents.push(cid);
       console.log(`Successfully processed CID: ${cid}`);
@@ -146,8 +151,13 @@ export async function processRoochUpdateEvent() {
       
       console.log(`Processing update event with CID: ${cid}, CAP ID: ${data.cap_uri}, Version: ${version}`);
       
-      const yamlData = await fetchAndParseYaml(cid);
-      await storeToSupabase(yamlData, cid, version + 1);
+      try {
+        const yamlData = await fetchAndParseYaml(cid);
+        await storeToSupabase(yamlData, cid, version);
+      } catch (e) {
+        processedEvents.push(cid);
+        console.log(`dirty data ${cid} `, e.message)
+      }
       
       processedEvents.push(cid);
       console.log(`Successfully processed update CID: ${cid}`);
