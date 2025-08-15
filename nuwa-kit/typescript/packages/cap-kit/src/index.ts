@@ -109,15 +109,8 @@ export class CapKit {
       // Transform the raw response data to ResultCap format
       const transformedItems = queryResult.data.items.map((item: any) => {
         const thumbnailType = JSON.parse(item.thumbnail)
-        let id = item.id
-        const ids = item.id.split(':') as string[]
-        if (ids.length > 1 && ids[1] === item.name) {
-          id = item.id
-        } else {
-          id = `${item.id}:${item.name}`
-        }
         return {
-          id: id,
+          id: item.id,
           cid: item.cid,
           name: item.name,
           version: item.version,
@@ -177,7 +170,6 @@ export class CapKit {
         throw new Error(`Download failed: ${downloadResult.error || 'Unknown error'}`);
       }
 
-      const sss = yaml.load(downloadResult.fileData)
       return yaml.load(downloadResult.data.fileData) as Cap;
     } finally {
       await client.close();
