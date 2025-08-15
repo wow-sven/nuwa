@@ -70,6 +70,11 @@ export class PasskeyService {
     return AuthStore.getCurrentUserDid();
   }
 
+  /** Reset session registration flag - useful for cleanup after errors */
+  public resetSessionRegistrationFlag(): void {
+    passkeyAlreadyRegisteredThisSession = false;
+  }
+
   /** Main entry: ensure local Passkey exists and return userDid */
   public async ensureUser(): Promise<string> {
     const existing = this.getUserDid();
@@ -82,7 +87,13 @@ export class PasskeyService {
     }
 
     passkeyAlreadyRegisteredThisSession = true;
-    return this.register();
+    try {
+      return await this.register();
+    } catch (error) {
+      // Reset the session flag if registration fails so user can retry
+      passkeyAlreadyRegisteredThisSession = false;
+      throw error;
+    }
   }
 
   /** Create new Passkey → userDid */
