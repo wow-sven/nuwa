@@ -11,7 +11,6 @@ describe("CapKit", () => {
 
   it("should query cap by name", async () => {
 
-    // await new Promise(resolve => setTimeout(resolve, 35000));
     const all = await capKit.queryWithName()
 
     const result = await capKit.queryWithName('test')
