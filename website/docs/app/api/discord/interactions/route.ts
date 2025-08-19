@@ -129,16 +129,6 @@ export const maxDuration = 60;
  * @see https://discord.com/developers/docs/interactions/receiving-and-responding#receiving-an-interaction
  */
 export async function POST(request: Request) {
-	console.log("Discord interaction received");
-	console.log("Environment check:", {
-		hasDiscordKey: !!DISCORD_APP_PUBLIC_KEY,
-		hasHubKey: !!HUB_PRIVATE_KEY,
-		hasHubDid: !!HUB_DID,
-		hubAddress: hubAddress,
-		runtime: "nodejs",
-		maxDuration: 60
-	});
-	
 	const verifyResult = await verifyInteractionRequest(
 		request,
 		DISCORD_APP_PUBLIC_KEY,
@@ -183,12 +173,7 @@ export async function POST(request: Request) {
 						}
 
 						// Start async process (claim + transfer)
-						console.log("Starting async process for:", did);
-						processInteractionAsync(did, interaction).catch(error => {
-							console.error("Async process failed:", error);
-						}).then(() => {
-							console.log("Async process completed for:", did);
-						});
+						processInteractionAsync(did, interaction);
 
 						// Return immediate response
 						const responseMessage = `🎉 Processing the request for \`${did}\`...`;
@@ -253,20 +238,14 @@ export async function PATCH() {
 }
 
 async function processInteractionAsync(userDid: string, interaction: any) {
-	console.log("processInteractionAsync started for:", userDid);
-	
 	// 构建 webhook URL
 	const applicationId = interaction.application_id;
 	const interactionToken = interaction.token;
 	const webhookUrl = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`;
-	
-	console.log("Webhook URL constructed:", webhookUrl);
 
 	try {
-		console.log("Starting claim process...");
 		// 1. Claim gas from faucet to hub address
 		const claimedAmount = await claimTestnetGas(hubAddress);
-		console.log("Claim successful, amount:", claimedAmount);
 		const rgasAmount = Math.floor(claimedAmount / 100000000);
 
 		// 2. Calculate transfer amount (50% of claimed)
@@ -274,18 +253,15 @@ async function processInteractionAsync(userDid: string, interaction: any) {
 		const transferRgasAmount = Math.floor(transferAmount / 100000000);
 		const transferUsdAmount = transferRgasAmount / 100;
 
-		console.log("Starting transfer process...");
 		// 3. Transfer from hub account to user
 		const result = await transferFromHub(userDid, transferAmount);
-		console.log("Transfer result:", result);
 
 		if (result) {
-			console.log("Sending success webhook...");
 			// 发送成功响应，@用户
 			const userId = interaction.member?.user?.id || interaction.user?.id;
 			const mention = userId ? `<@${userId}>` : userDid;
 
-			const webhookResponse = await fetch(webhookUrl, {
+			await fetch(webhookUrl, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -301,13 +277,11 @@ async function processInteractionAsync(userDid: string, interaction: any) {
 					],
 				}),
 			});
-			console.log("Success webhook sent, status:", webhookResponse.status);
 		} else {
-			console.log("Sending failure webhook...");
 			const userId = interaction.member?.user?.id || interaction.user?.id;
 			const mention = userId ? `<@${userId}>` : userDid;
 
-			const webhookResponse = await fetch(webhookUrl, {
+			await fetch(webhookUrl, {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -323,15 +297,13 @@ async function processInteractionAsync(userDid: string, interaction: any) {
 					],
 				}),
 			});
-			console.log("Failure webhook sent, status:", webhookResponse.status);
 		}
 	} catch (error) {
 		console.error("Process interaction error:", error);
-		console.log("Sending error webhook...");
 		const userId = interaction.member?.user?.id || interaction.user?.id;
 		const mention = userId ? `<@${userId}>` : userDid;
 
-		const webhookResponse = await fetch(webhookUrl, {
+		await fetch(webhookUrl, {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
@@ -346,8 +318,7 @@ async function processInteractionAsync(userDid: string, interaction: any) {
 						color: 0xff0000,
 					},
 				],
-							}),
-			});
-			console.log("Error webhook sent, status:", webhookResponse.status);
-		}
+			}),
+		});
+	}
 }
