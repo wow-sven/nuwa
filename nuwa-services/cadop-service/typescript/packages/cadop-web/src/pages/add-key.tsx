@@ -4,7 +4,7 @@ import {
   type OperationalKeyInfo,
   type VerificationRelationship,
 } from '@nuwa-ai/identity-kit';
-import { AlertTriangle, ArrowLeft, Key, RotateCcw, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, ChevronDown, ChevronUp, Key, ShieldCheck } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -33,7 +33,7 @@ export function AddKeyPage() {
   const [payload, setPayload] = useState<AddKeyRequestPayloadV1 | null>(null);
   const [selectedAgentDid, setSelectedAgentDid] = useState<string | null>(null);
   const [processing, setProcessing] = useState<boolean>(false);
-  const [manualSelectMode, setManualSelectMode] = useState<boolean>(false);
+  const [showKeyDetails, setShowKeyDetails] = useState<boolean>(false);
 
   // Parse payload parameter
   useEffect(() => {
@@ -100,12 +100,10 @@ export function AddKeyPage() {
 
   const handleAgentSelect = (did: string) => {
     setSelectedAgentDid(did);
-    setManualSelectMode(false);
   };
 
   const handleChangeAgent = () => {
     setSelectedAgentDid(null);
-    setManualSelectMode(true);
   };
 
   const handleConfirm = async () => {
@@ -225,62 +223,27 @@ export function AddKeyPage() {
         </FixedCardActions>
       }
     >
-      {/* High Risk Badge */}
-      {hasHighRiskPermission && (
-        <div className="mb-4 flex justify-center">
-          <Tag variant="danger" className="flex items-center gap-1">
-            <AlertTriangle className="h-3 w-3" /> High Risk Permission
-          </Tag>
-        </div>
-      )}
-
       {(error || didServiceError) && (
         <Alert variant="destructive" className="mb-6">
           <AlertTitle>{t('common.error')}</AlertTitle>
-          <AlertDescription>{error || didServiceError}</AlertDescription>
+          <AlertDescription>{`${error || didServiceError || 'Something went wrong'}. Please try with another DID.`}</AlertDescription>
         </Alert>
       )}
 
       <div className="space-y-6">
-        {/* Key Details Section */}
-        <div className="space-y-4">
-          <h3 className="text-base font-medium text-gray-900">Key Details</h3>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Key Type</span>
-              <span className="text-gray-900 font-medium">{payload.verificationMethod.type}</span>
-            </div>
-
-            <div className="flex justify-between">
-              <span className="text-gray-500">Key ID</span>
-              <span className="text-gray-900">
-                {payload.verificationMethod.idFragment || 'Auto-generated'}
-              </span>
-            </div>
-
-            <div>
-              <div className="text-gray-500 mb-2">Permissions</div>
-              <div className="flex flex-wrap gap-1">
-                {payload.verificationRelationships.map(rel => (
-                  <Tag
-                    key={rel}
-                    variant={rel === 'capabilityDelegation' ? 'danger' : 'default'}
-                    className="flex items-center gap-1 text-xs"
-                  >
-                    {rel === 'capabilityDelegation' && <AlertTriangle className="h-3 w-3" />}
-                    <span>{rel}</span>
-                  </Tag>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-gray-500 mb-1">Redirect URI</div>
-              <div className="text-xs text-gray-900 break-all bg-gray-50 p-2 rounded">
-                {payload.redirectUri}
-              </div>
-            </div>
+        {/* High Risk Badge */}
+        {hasHighRiskPermission && (
+          <div className="flex justify-center">
+            <Tag variant="danger" className="flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" /> High Risk Permission
+            </Tag>
           </div>
+        )}
+
+        {/* Agent Selection - Primary Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900">Select DID</h3>
+          <AgentSelector onSelect={handleAgentSelect} autoSelectFirst={true} />
         </div>
 
         {/* High Risk Warning */}
@@ -295,29 +258,60 @@ export function AddKeyPage() {
           </Alert>
         )}
 
-        {/* Agent Selection */}
-        {!selectedAgentDid ? (
-          <div className="space-y-3">
-            <h4 className="text-base font-medium text-gray-900">Select Agent DID</h4>
-            <AgentSelector onSelect={handleAgentSelect} autoSelectFirst={!manualSelectMode} />
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-base font-medium text-gray-900">Selected Agent</h4>
-              <button
-                type="button"
-                onClick={handleChangeAgent}
-                className="text-sm text-primary-600 hover:text-primary-700 hover:underline inline-flex items-center gap-1"
-              >
-                <RotateCcw className="h-3 w-3" /> Change
-              </button>
+        {/* Collapsible Key Details Section */}
+        <div className="space-y-3 pb-10">
+          <button
+            type="button"
+            onClick={() => setShowKeyDetails(!showKeyDetails)}
+            className="flex items-center justify-between w-full text-left text-base font-medium text-gray-900 hover:text-gray-700"
+          >
+            <span>Request Details</span>
+            {showKeyDetails ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
+
+          {showKeyDetails && (
+            <div className="space-y-3 text-sm bg-gray-50 rounded border p-4">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Key Type</span>
+                <span className="text-gray-900 font-medium">{payload.verificationMethod.type}</span>
+              </div>
+
+              <div className="flex justify-between">
+                <span className="text-gray-500">Key ID</span>
+                <span className="text-gray-900">
+                  {payload.verificationMethod.idFragment || 'Auto-generated'}
+                </span>
+              </div>
+
+              <div>
+                <div className="text-gray-500 mb-2">Permissions</div>
+                <div className="flex flex-wrap gap-1">
+                  {payload.verificationRelationships.map(rel => (
+                    <Tag
+                      key={rel}
+                      variant={rel === 'capabilityDelegation' ? 'danger' : 'default'}
+                      className="flex items-center gap-1 text-xs"
+                    >
+                      {rel === 'capabilityDelegation' && <AlertTriangle className="h-3 w-3" />}
+                      <span>{rel}</span>
+                    </Tag>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-gray-500 mb-1">Redirect URI</div>
+                <div className="text-xs text-gray-900 break-all bg-white p-2 rounded border">
+                  {payload.redirectUri}
+                </div>
+              </div>
             </div>
-            <div className="text-sm text-gray-600 break-all bg-gray-50 p-3 rounded">
-              {selectedAgentDid}
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </FixedCardLayout>
   );

@@ -1,6 +1,6 @@
-import { CheckCircle, Coins } from 'lucide-react';
-import type React from 'react';
-import { useCallback, useEffect, useState } from 'react';
+import { CheckCircle, Coins } from "lucide-react";
+import type React from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   AlertDescription,
@@ -8,9 +8,9 @@ import {
   FixedCardActionButton,
   FixedCardLayout,
   FixedCardLoading,
-} from '@/components/ui';
-import { claimTestnetGas } from '@/lib/rooch/faucet';
-import { useHubDeposit } from '@/hooks/useHubDeposit';
+} from "@/components/ui";
+import { useHubDeposit } from "@/hooks/useHubDeposit";
+import { claimTestnetGas } from "@/lib/rooch/faucet";
 
 interface Props {
   agentDid: string;
@@ -27,13 +27,13 @@ export const ClaimGasStep: React.FC<Props> = ({ agentDid, onComplete }) => {
     setLoading(true);
     setError(null);
     try {
-      const address = agentDid.split(':')[2];
+      const address = agentDid.split(":")[2];
       const claimed = await claimTestnetGas(address);
 
       setClaimedAmount(claimed);
       // Try auto-deposit 50% of claimed amount to PaymentHub (non-blocking)
-      depositPercentOfClaimed(claimed, 50).catch(e =>
-        console.warn('Auto deposit to PaymentHub failed:', e)
+      await depositPercentOfClaimed(claimed, 50).catch((e) =>
+        console.warn("Auto deposit to PaymentHub failed:", e),
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -49,7 +49,12 @@ export const ClaimGasStep: React.FC<Props> = ({ agentDid, onComplete }) => {
   }, [error, claimGas, onComplete]);
 
   if (loading) {
-    return <FixedCardLoading title="Claiming Gas" message="Claiming gas for your agent..." />;
+    return (
+      <FixedCardLoading
+        title="Claiming Gas"
+        message="Claiming gas for your agent..."
+      />
+    );
   }
 
   // Success page
