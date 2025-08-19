@@ -28,18 +28,46 @@ const hubAddress = HUB_DID.split(":")[2];
  * @returns amount claimed (raw unit)
  */
 async function claimTestnetGas(agentAddress: string): Promise<number> {
-	const resp = await fetch(`${FAUCET_URL}/faucet`, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ claimer: agentAddress }),
-	});
+	console.log("Claiming gas for address:", agentAddress);
+	console.log("Faucet URL:", FAUCET_URL);
+	
+	const requestBody = JSON.stringify({ claimer: agentAddress });
+	console.log("Request body:", requestBody);
+	
+	// Add timeout to faucet request (30 seconds)
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 30000);
+	
+	try {
+		const resp = await fetch(`${FAUCET_URL}/faucet`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: requestBody,
+			signal: controller.signal,
+		});
+		clearTimeout(timeoutId);
 
+	console.log("Faucet response status:", resp.status);
+	console.log("Faucet response headers:", Object.fromEntries(resp.headers.entries()));
+	
 	if (!resp.ok) {
 		const data = await resp.json().catch(() => ({}));
+		console.log("Faucet error response:", data);
 		throw new Error(data.error || `Claim failed with status ${resp.status}`);
 	}
-	const data = await resp.json();
-	return data.gas || 5_000_000_000; // default fallback
+	
+		const data = await resp.json();
+		console.log("Faucet success response:", data);
+		return data.gas || 5_000_000_000; // default fallback
+	} catch (error) {
+		clearTimeout(timeoutId);
+		if (error.name === 'AbortError') {
+			console.log("Faucet request timed out after 30 seconds");
+			throw new Error("Faucet request timed out");
+		}
+		console.log("Faucet request failed:", error);
+		throw error;
+	}
 }
 
 /**
