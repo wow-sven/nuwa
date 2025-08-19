@@ -90,12 +90,10 @@ async function transferFromHub(
 }
 
 /**
- * Use edge runtime which is faster, cheaper, and has no cold-boot.
- * If you want to use node runtime, you can change this to `node`, but you'll also have to polyfill fetch (and maybe other things).
- *
  * @see https://nextjs.org/docs/app/building-your-application/rendering/edge-and-nodejs-runtimes
  */
-export const runtime = "edge";
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 /**
  * Handle Discord interactions. Discord will send interactions to this endpoint.
