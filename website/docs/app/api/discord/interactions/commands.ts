@@ -5,7 +5,15 @@ const PING_COMMAND = {
 
 const FAUCET_COMMAND = {
 	name: "faucet",
-	description: "Get testnet balance on Nuwa AI",
+	description: "Get testnet RGAS on Nuwa AI",
+	options: [
+		{
+			name: "did",
+			description: "Your DID (did:rooch:address)",
+			type: 3, // STRING type
+			required: true,
+		},
+	],
 } as const;
 
 export const commands = {
