@@ -1,3 +1,8 @@
+import { KeyManager } from "@nuwa-ai/identity-kit";
+import {
+	PaymentHubClient,
+	RoochPaymentChannelContract,
+} from "@nuwa-ai/payment-kit";
 import {
 	InteractionResponseType,
 	InteractionType,
@@ -5,19 +10,18 @@ import {
 import { NextResponse } from "next/server";
 import { commands } from "./commands";
 import { verifyInteractionRequest } from "./verify-discord-request";
-import { RoochPaymentChannelContract, PaymentHubClient } from "@nuwa-ai/payment-kit";
-import {KeyManager} from "@nuwa-ai/identity-kit";
 
 const DISCORD_APP_PUBLIC_KEY = process.env.DISCORD_APP_PUBLIC_KEY;
-const FAUCET_URL =process.env.FAUCET_URL || "https://test-faucet.rooch.network";
-const ROOCH_RPC_URL = process.env.ROOCH_RPC_URL || "https://test-seed.rooch.network";
+const FAUCET_URL =
+	process.env.FAUCET_URL || "https://test-faucet.rooch.network";
+const ROOCH_RPC_URL =
+	process.env.ROOCH_RPC_URL || "https://test-seed.rooch.network";
 const DEFAULT_ASSET_ID = "0x3::gas_coin::RGas";
 // Hub account configuration
 const HUB_PRIVATE_KEY = process.env.HUB_PRIVATE_KEY;
 const HUB_DID = process.env.HUB_DID;
 
-
-const hubAddress = HUB_DID.split(':')[2];
+const hubAddress = HUB_DID.split(":")[2];
 /**
  * Claim RGAS from Rooch testnet faucet
  * @param agentAddress hex address of agent (without 0x prefix is acceptable)
@@ -25,8 +29,8 @@ const hubAddress = HUB_DID.split(':')[2];
  */
 async function claimTestnetGas(agentAddress: string): Promise<number> {
 	const resp = await fetch(`${FAUCET_URL}/faucet`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify({ claimer: agentAddress }),
 	});
 
@@ -44,20 +48,24 @@ async function claimTestnetGas(agentAddress: string): Promise<number> {
  * @param amount Amount to transfer (in raw units)
  * @returns Transaction hash or null if transfer failed
  */
-async function transferFromHub(userDid: string, amount: number): Promise<string | null> {
+async function transferFromHub(
+	userDid: string,
+	amount: number,
+): Promise<string | null> {
 	try {
 		if (!HUB_PRIVATE_KEY) {
-			console.log('HUB_PRIVATE_KEY not configured, skipping transfer');
+			console.log("HUB_PRIVATE_KEY not configured, skipping transfer");
 			return null;
 		}
 
-		console.log(`Transferring ${amount} RGAS from hub ${HUB_DID} to user ${userDid}`);
+		console.log(
+			`Transferring ${amount} RGAS from hub ${HUB_DID} to user ${userDid}`,
+		);
 
+		const keyManager = new KeyManager({ did: HUB_DID });
+		await keyManager.importKeyFromString(HUB_PRIVATE_KEY);
 
-        const keyManager = new KeyManager({did: HUB_DID});
-        await keyManager.importKeyFromString(HUB_PRIVATE_KEY);
-
-        const hubSigner = keyManager;
+		const hubSigner = keyManager;
 
 		// Create contract and PaymentHubClient
 		const contract = new RoochPaymentChannelContract({ rpcUrl: ROOCH_RPC_URL });
@@ -67,12 +75,16 @@ async function transferFromHub(userDid: string, amount: number): Promise<string 
 			defaultAssetId: DEFAULT_ASSET_ID,
 		});
 
-		const result = await hubClient.deposit(DEFAULT_ASSET_ID, BigInt(amount), userDid);
+		const result = await hubClient.deposit(
+			DEFAULT_ASSET_ID,
+			BigInt(amount),
+			userDid,
+		);
 
-		console.log('Transfer successful:', result.txHash);
+		console.log("Transfer successful:", result.txHash);
 		return result.txHash;
 	} catch (error) {
-		console.error('Transfer from hub failed:', error);
+		console.error("Transfer from hub failed:", error);
 		return null;
 	}
 }
@@ -120,15 +132,16 @@ export async function POST(request: Request) {
 				const options = (interaction.data as any).options;
 				if (options?.[0]?.value) {
 					const did = options[0].value;
-					
+
 					try {
 						// Extract address from DID (format: did:rooch:address)
-						const userAddress = did.split(':')[2];
+						const userAddress = did.split(":")[2];
 						if (!userAddress) {
 							return NextResponse.json({
 								type: InteractionResponseType.ChannelMessageWithSource,
 								data: {
-									content: "❌ Invalid DID format. Please provide a valid DID in format: did:rooch:address",
+									content:
+										"❌ Invalid DID format. Please provide a valid DID in format: did:rooch:address",
 								},
 							});
 						}
@@ -137,7 +150,7 @@ export async function POST(request: Request) {
 						processInteractionAsync(did, interaction);
 
 						// Return immediate response
-						let responseMessage = `🎉 Processing RGAS claim and transfer for \`${did}\`...\n\n⏳ Please wait for the confirmation.`;
+						const responseMessage = `🎉 Processing the request for \`${did}\`...`;
 
 						return NextResponse.json({
 							type: InteractionResponseType.ChannelMessageWithSource,
@@ -146,9 +159,10 @@ export async function POST(request: Request) {
 							},
 						});
 					} catch (error) {
-						console.error('Faucet claim failed:', error);
-						const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-						
+						console.error("Faucet claim failed:", error);
+						const errorMessage =
+							error instanceof Error ? error.message : "Unknown error occurred";
+
 						return NextResponse.json({
 							type: InteractionResponseType.ChannelMessageWithSource,
 							data: {
@@ -157,11 +171,12 @@ export async function POST(request: Request) {
 						});
 					}
 				}
-				
+
 				return NextResponse.json({
 					type: InteractionResponseType.ChannelMessageWithSource,
 					data: {
-						content: "❌ Please provide a DID value to claim RGAS.\n\nUsage: `/faucet did:rooch:your_address_here`",
+						content:
+							"❌ Please provide a DID value to claim RGAS.\n\nUsage: `/faucet did:rooch:your_address_here`",
 					},
 				});
 			}
@@ -197,80 +212,87 @@ export async function PATCH() {
 }
 
 async function processInteractionAsync(userDid: string, interaction: any) {
+	// 构建 webhook URL
+	const applicationId = interaction.application_id;
+	const interactionToken = interaction.token;
+	const webhookUrl = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`;
 
-  // 构建 webhook URL
-  const applicationId = interaction.application_id;
-  const interactionToken = interaction.token;
-  const webhookUrl = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}`;
+	try {
+		// 1. Claim gas from faucet to hub address
+		const claimedAmount = await claimTestnetGas(hubAddress);
+		const rgasAmount = Math.floor(claimedAmount / 100000000);
 
-  try {
-    // 1. Claim gas from faucet to hub address
-    const claimedAmount = await claimTestnetGas(hubAddress);
-    const rgasAmount = Math.floor(claimedAmount / 100000000);
+		// 2. Calculate transfer amount (50% of claimed)
+		const transferAmount = Math.floor((claimedAmount * 50) / 100);
+		const transferRgasAmount = Math.floor(transferAmount / 100000000);
+		const transferUsdAmount = transferRgasAmount / 100;
 
-    // 2. Calculate transfer amount (50% of claimed)
-    const transferAmount = Math.floor((claimedAmount * 50) / 100);
-    const transferRgasAmount = Math.floor(transferAmount / 100000000);
+		// 3. Transfer from hub account to user
+		const result = await transferFromHub(userDid, transferAmount);
 
-    // 3. Transfer from hub account to user
-    const result = await transferFromHub(userDid, transferAmount);
+		if (result) {
+			// 发送成功响应，@用户
+			const userId = interaction.member?.user?.id || interaction.user?.id;
+			const mention = userId ? `<@${userId}>` : userDid;
 
-    if (result) {
-      // 发送成功响应，@用户
-      const userId = interaction.member?.user?.id || interaction.user?.id;
-      const mention = userId ? `<@${userId}>` : userDid;
-      
-      await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: `${mention} 🎉 Successfully claimed **${rgasAmount} RGAS** to account and transferred **${transferRgasAmount} RGAS** to your did hub!\n\nTransaction: \`${result}\``,
-          embeds: [{
-            title: "Claim & Transfer Successful",
-            description: `✅ Claimed ${rgasAmount} RGAS to hub\n✅ Transferred ${transferRgasAmount} RGAS to your wallet`,
-            color: 0x00ff00
-          }]
-        })
-      });
-    } else {
-      const userId = interaction.member?.user?.id || interaction.user?.id;
-      const mention = userId ? `<@${userId}>` : userDid;
-      
-      await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          content: `${mention} ❌ Successfully claimed **${rgasAmount} RGAS** to hub account, but failed to transfer to your wallet. Please try again later.`,
-          embeds: [{
-            title: "Claim Success, Transfer Failed",
-            description: `✅ Claimed ${rgasAmount} RGAS to hub\n❌ Failed to transfer to user wallet`,
-            color: 0xffaa00
-          }]
-        })
-      });
-    }
-  } catch (error) {
-    console.error('Process interaction error:', error);
-    const userId = interaction.member?.user?.id || interaction.user?.id;
-    const mention = userId ? `<@${userId}>` : userDid;
-    
-    await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        content: `${mention} ❌ Error occurred while processing claim and transfer: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        embeds: [{
-          title: "Error",
-          description: "An error occurred during the claim and transfer process",
-          color: 0xff0000
-        }]
-      })
-    });
-  }
+			await fetch(webhookUrl, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					content: `${mention}`,
+					embeds: [
+						{
+							title: `Claim Successful 🎉`,
+							description: `**$${transferUsdAmount}** USD test balance has been sent to your account.\n\n**Check your balance on [Nuwa AI Beta](https://test-app.nuwa.dev)**`,
+							color: 0x00ff00,
+						},
+					],
+				}),
+			});
+		} else {
+			const userId = interaction.member?.user?.id || interaction.user?.id;
+			const mention = userId ? `<@${userId}>` : userDid;
+
+			await fetch(webhookUrl, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					content: `${mention} ❌ Successfully claimed **${rgasAmount} RGAS** to hub account, but failed to transfer to your wallet. Please try again later.`,
+					embeds: [
+						{
+							title: "Claim Success, Transfer Failed",
+							description: `✅ Claimed ${rgasAmount} RGAS to hub\n❌ Failed to transfer to user wallet`,
+							color: 0xffaa00,
+						},
+					],
+				}),
+			});
+		}
+	} catch (error) {
+		console.error("Process interaction error:", error);
+		const userId = interaction.member?.user?.id || interaction.user?.id;
+		const mention = userId ? `<@${userId}>` : userDid;
+
+		await fetch(webhookUrl, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				content: `${mention} ❌ Error occurred while processing claim and transfer: ${error instanceof Error ? error.message : "Unknown error"}`,
+				embeds: [
+					{
+						title: "Error",
+						description:
+							"An error occurred during the claim and transfer process",
+						color: 0xff0000,
+					},
+				],
+			}),
+		});
+	}
 }
