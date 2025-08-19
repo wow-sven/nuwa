@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Check } from 'lucide-react';
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
   SpinnerContainer,
 } from '@/components/ui';
 import { useAuth } from '../lib/auth/AuthContext';
@@ -58,25 +54,54 @@ export function AgentSelector({ onSelect, autoSelectFirst = true }: AgentSelecto
     }
   };
 
-  const handleChange = (value: string) => {
-    setSelected(value);
-    onSelect(value);
+  const handleSelect = (did: string) => {
+    setSelected(did);
+    onSelect(did);
   };
 
+  if (loading) {
+    return <SpinnerContainer loading={true} />;
+  }
+
+  if (agents.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <p>No agent DIDs found</p>
+        <p className="text-sm mt-1">Create an agent first to continue</p>
+      </div>
+    );
+  }
+
   return (
-    <SpinnerContainer loading={loading}>
-      <Select value={selected} onValueChange={handleChange}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="Select an Agent DID" />
-        </SelectTrigger>
-        <SelectContent>
-          {agents.map(agent => (
-            <SelectItem key={agent} value={agent}>
-              {agent}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </SpinnerContainer>
+    <div className="space-y-3">
+      {agents.map(agent => (
+        <button
+          key={agent}
+          onClick={() => handleSelect(agent)}
+          className={`
+            w-full p-4 text-left rounded-lg border transition-all duration-200
+            hover:border-primary-300 hover:bg-primary-50
+            ${selected === agent 
+              ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500' 
+              : 'border-gray-200 bg-white'
+            }
+          `}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-900 truncate">
+                Agent DID
+              </div>
+              <div className="text-xs text-gray-500 font-mono">
+                {agent.slice(0, 20)}...{agent.slice(-10)}
+              </div>
+            </div>
+            {selected === agent && (
+              <Check className="ml-3 h-5 w-5 text-primary-600 flex-shrink-0" />
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
   );
 }
