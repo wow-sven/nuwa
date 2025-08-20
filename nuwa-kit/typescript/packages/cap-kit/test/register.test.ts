@@ -77,10 +77,10 @@ describe("CapKit", () => {
     const did = await signer.getDid();
     const result = await capKit.registerCap(buildCap(did, 'test_cap'));
     await new Promise(resolve => setTimeout(resolve, 10000));
-    const download1 = await capKit.downloadCap(result);
+    const download1 = await capKit.downloadCapWithCID(result);
     const result2 = await capKit.registerCap(buildCap(did, 'test_cap1'));
     await new Promise(resolve => setTimeout(resolve, 10000));
-    const download2 = await capKit.downloadCap(result2);
+    const download2 = await capKit.downloadCapWithCID(result2);
     console.log(result)
     console.log(result2)
     console.log(download1)

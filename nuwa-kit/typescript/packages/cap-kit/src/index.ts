@@ -2,7 +2,7 @@ import { RoochClient, Transaction, Args } from "@roochnetwork/rooch-sdk";
 import { type SignerInterface, DidAccountSigner } from "@nuwa-ai/identity-kit";
 import * as yaml from 'js-yaml';
 import { buildClient } from "./client";
-import {Cap, CapThumbnail, CapThumbnailSchema, Page, Result, ResultCap, ResultCapMetadataSchema} from "./type";
+import {Cap, Page, Result, ResultCap } from "./type";
 
 export * from './type'
 
@@ -222,7 +222,9 @@ export class CapKit {
       }
 
       // Convert content to base64
-      const fileData = Buffer.from(content, 'utf8').toString('base64');
+      const fileData = btoa(
+        new TextEncoder().encode(content).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
       const fileName = `${name}.cap.yaml`;
 
       // Upload file to IPFS
