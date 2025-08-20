@@ -4,7 +4,7 @@ import { VDRRegistry } from '@nuwa-ai/identity-kit';
 // Core types and utilities
 export * from './core/types';
 export * from './core/SubRav';
-export * from './core/ClaimScheduler';
+// Legacy ClaimScheduler export removed; use ClaimTriggerService for reactive claims
 
 // Payment processor architecture
 export * from './core/PaymentProcessor';
@@ -85,7 +85,7 @@ export {
   PersistedHttpClientStateSchema,
   // Other essential schemas not conflicting with core types
   ServiceDiscoverySchema,
-  ClaimsStatusSchema,
+  SystemStatusSchema,
   ClaimTriggerRequestSchema,
   ClaimTriggerResponseSchema,
   RecoveryRequestSchema,
@@ -97,7 +97,7 @@ export {
   SubRavRequestSchema,
   SubRavResponseSchema,
   AdminRequestSchema,
-  ClaimsStatusResponseSchema,
+  SystemStatusResponseSchema,
   DiscoveryRequestSchema,
   DiscoveryResponseSchema,
 } from './schema';

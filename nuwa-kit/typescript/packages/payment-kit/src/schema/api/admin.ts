@@ -1,17 +1,16 @@
 import { z } from 'zod';
 import {
-  ClaimsStatusSchema,
+  SystemStatusSchema,
   ClaimTriggerRequestSchema as CoreClaimTriggerRequestSchema,
   ClaimTriggerResponseSchema as CoreClaimTriggerResponseSchema,
 } from '../core';
 
 /**
- * Schema for GET /admin/claims response
- * Uses the core ClaimsStatusSchema for consistency
+ * Schema for GET /admin/status response
  */
-export const ClaimsStatusResponseSchema = ClaimsStatusSchema;
+export const SystemStatusResponseSchema = SystemStatusSchema;
 
-export type ClaimsStatusResponse = z.infer<typeof ClaimsStatusResponseSchema>;
+export type SystemStatusResponse = z.infer<typeof SystemStatusResponseSchema>;
 
 /**
  * Schema for POST /admin/claim-trigger request

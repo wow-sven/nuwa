@@ -8,7 +8,7 @@ import {
   handleRecovery,
   handleCommit,
   handleHealth,
-  handleAdminClaims,
+  handleAdminStatus,
   handleAdminClaimTrigger,
   handleSubRavQuery,
 } from './handlers';
@@ -24,8 +24,7 @@ import {
   SubRavRequestSchema,
   SubRavResponseSchema,
   AdminRequestSchema,
-  ClaimsStatusResponseSchema,
-  // Import admin schemas from core since they're the same
+  SystemStatusResponseSchema,
   ClaimTriggerRequestSchema,
   ClaimTriggerResponseSchema,
 } from '../schema';
@@ -110,18 +109,18 @@ export const BuiltInApiHandlers: Record<string, ApiHandlerConfig> = {
   },
 
   // Admin operations
-  adminClaims: {
+  adminStatus: {
     handler: createValidatedHandler({
       schema: {
         request: AdminRequestSchema,
-        response: ClaimsStatusResponseSchema,
+        response: SystemStatusResponseSchema,
       },
-      handler: handleAdminClaims,
+      handler: handleAdminStatus,
     }),
     method: 'GET',
-    path: '/admin/claims',
+    path: '/admin/status',
     options: { pricing: '0', adminOnly: true },
-    description: 'Get claims status and statistics (admin only)',
+    description: 'Get system internal status (claims, processor, etc.) (admin only)',
   },
 
   adminClaimTrigger: {
