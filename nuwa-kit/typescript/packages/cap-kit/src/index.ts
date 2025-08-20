@@ -24,21 +24,21 @@ export class CapKit {
     this.signer = option.signer;
   }
 
-  async queryCapWithCID(cid: string) {
+  async queryCapWithID(id?: string, cid?: string):Promise<Result<ResultCap>> {
     const client = await buildClient(this.mcpUrl, this.signer);
 
     try {
       // Get tools from MCP server
       const tools = await client.tools();
-      const queryWithCID = tools.queryWithCID;
+      const queryWithCID = tools.queryWithID;
 
       if (!queryWithCID) {
-        throw new Error("uploadFile tool not available on MCP server");
+        throw new Error("Query with id tool not available on MCP server");
       }
 
       // Upload file to IPFS
-      const result = await queryWithCID.execute({cid}, {
-        toolCallId: "queryWithCID",
+      const result = await queryWithCID.execute({id, cid}, {
+        toolCallId: "queryWithID",
         messages: [],
       });
 
@@ -48,8 +48,8 @@ export class CapKit {
 
       const queryResult = JSON.parse((result.content as any)[0].text);
       
-      if (queryResult.code !== 200) {
-        throw new Error(`Upload failed: ${queryResult.error || 'Unknown error'}`);
+      if (queryResult.code !== 200 && queryResult.code !== 404) {
+        throw new Error(`Query with id failed: ${queryResult.error || 'Unknown error'}`);
       }
 
       return queryResult;
@@ -139,7 +139,16 @@ export class CapKit {
     }
   }
 
-  async downloadCap(cid: string, format?: 'base64' | 'utf8'): Promise<Cap> {
+  async downloadCapWithID(id: string, format?: 'base64' | 'utf8'): Promise<Cap> {
+    const result = await this.queryCapWithID(id)
+
+    if (result.code === 200) {
+      return this.downloadCapWithCID(result.data!.cid, format)
+    } else {
+      throw new Error('Invalid Cap ID')
+    }
+  }
+  async downloadCapWithCID(cid: string, format?: 'base64' | 'utf8'): Promise<Cap> {
     const client = await buildClient(this.mcpUrl, this.signer);
 
     try {

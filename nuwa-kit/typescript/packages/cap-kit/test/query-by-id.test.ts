@@ -1,5 +1,5 @@
 import { CapKit } from "../src/index";
-import { describe, it } from '@jest/globals';
+import {describe, expect, it} from '@jest/globals';
 import {setupEnv} from "./setup";
 
 describe("CapKit", () => {
@@ -10,7 +10,11 @@ describe("CapKit", () => {
   })
 
   it("should query cap by id", async () => {
-    const result = await capKit.queryCapWithCID('QmdirjyLVKQUo2xYsTSkWAfoPmnwdp8wn4W7Z8SW4V4LEy')
+    const all = await capKit.queryWithName()
+
+    const cap = all.data?.items[0]
+    const result = await capKit.queryCapWithID(cap?.cid || '')
+    const result1 = await capKit.queryCapWithID(cap?.id || '')
 
     console.log(result)
   }, 150000);

@@ -215,6 +215,7 @@ export async function storeToSupabase(
  * @returns Promise with query results including pagination information
  */
 export async function queryFromSupabase(
+  id?: string | null,
   name?: string | null,
   cid?: string | null,
   tags?: string[] | null,
@@ -246,7 +247,10 @@ export async function queryFromSupabase(
       query = query.ilike('name', `%${name}%`);
     }
     if (cid && cid.trim()) {
-      query = query.ilike('cid', `%${cid}%`);
+      query = query.eq('cid', `%${cid}%`);
+    }
+    if (id && id.trim()) {
+      query = query.eq('id', id);
     }
     
     // Add tags filtering using PostgreSQL JSONB operators

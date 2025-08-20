@@ -8,8 +8,8 @@ import { z } from "zod";
 
 import { DIDAuth, VDRRegistry, initRoochVDR } from "@nuwa-ai/identity-kit";
 
-import {IPFS_NODE, IPFS_NODE_PORT, IPFS_NODE_URL, TARGET} from "./constant.js";
-import {setupRoochEventListener, syncCap} from './event-handle.js';
+import { IPFS_NODE, IPFS_NODE_PORT, IPFS_NODE_URL, TARGET } from "./constant.js";
+import { setupRoochEventListener } from './event-handle.js';
 import { queryFromSupabase } from "./supabase.js";
 import type { Result } from "./type.js";
 
@@ -95,10 +95,11 @@ const ipfsService = new FastMCP({
 });
 
 ipfsService.addTool({
-  name: "queryWithCID",
-  description: "Query CID",
+  name: "queryWithID",
+  description: "Query CD",
   parameters: z.object({
-    cid: z.string().describe("Resource identifier"),
+    id: z.string().optional().describe("Resource identifier"),
+    cid: z.string().optional().describe("Resource identifier"),
   }),
   annotations: {
     readOnlyHint: true,
@@ -106,8 +107,8 @@ ipfsService.addTool({
   },
   async execute(args) {
     try {
-      const { cid } = args;
-      const result = await queryFromSupabase(null, cid);
+      const { id, cid } = args;
+      const result = await queryFromSupabase(id, null, cid);
 
       if (!result.success || !result.items || result.items.length === 0) {
         return {
@@ -121,19 +122,19 @@ ipfsService.addTool({
         };
       }
 
-      if (!result.items || result.items.length === 0) {
-        await syncCap(cid)
+      // if (!result.items || result.items.length === 0) {
+      //   await syncCap(cid)
 
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              code: 404,
-              error: 'No matching records found',
-            } as Result)
-          }]
-        };
-      }
+      //   return {
+      //     content: [{
+      //       type: "text",
+      //       text: JSON.stringify({
+      //         code: 404,
+      //         error: 'No matching records found',
+      //       } as Result)
+      //     }]
+      //   };
+      // }
 
       const item = result.items[0]
       // MCP standard response with pagination info
@@ -179,7 +180,7 @@ ipfsService.addTool({
   async execute(args) {
     try {
       const { name, tags, page, pageSize } = args;
-      const result = await queryFromSupabase(name, null, tags, page, pageSize);
+      const result = await queryFromSupabase(null, name, null, tags, page, pageSize);
 
       if (!result.success) {
         return {
