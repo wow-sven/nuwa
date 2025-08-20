@@ -127,9 +127,9 @@ export class CapKit {
       return {
         code: queryResult.code,
         data: {
-          totalItems: queryResult.data.total_items,
+          totalItems: queryResult.data.totalItems,
           page: queryResult.data.page,
-          pageSize: queryResult.data.page_size,
+          pageSize: queryResult.data.pageSize,
           items: transformedItems
         }
       } as Result<Page<ResultCap>>;
