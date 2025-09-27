@@ -4,7 +4,7 @@ import type { Result } from "../type.js";
 
 async function rateCap({ capId, rating }: { capId: string, rating: number }, context: any) {
   try {
-    const userDID = context.session.did;
+    const userDID = context.session?.did || null;
     const result = await queryFromSupabase(capId, null);
 
     if (!result.success || !result.items || result.items.length === 0) {

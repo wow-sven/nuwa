@@ -6,18 +6,6 @@ async function queryCapRatingDistribution({ capId }: { capId: string }, context:
   try {
     const userDID = context.session?.did;
 
-    if (!userDID) {
-      return {
-        content: [{
-          type: "text",
-          text: JSON.stringify({
-            code: 401,
-            error: 'User DID is required',
-          } as Result)
-        }]
-      };
-    }
-
     if (!capId || capId.trim() === '') {
       return {
         content: [{

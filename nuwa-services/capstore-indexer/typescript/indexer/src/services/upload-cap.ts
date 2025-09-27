@@ -6,19 +6,6 @@ import { Result } from "../type.js";
 
 async function uploadCap({ fileName, fileData, pin }: { fileName: string, fileData: string, pin: boolean }, context: any) {
   try {
-    // Authentication check
-    if (!context.session?.did) {
-      return {
-        content: [{
-          type: "text",
-          text: JSON.stringify({
-            code: 401,
-            error: "Authentication required"
-          })
-        }]
-      };
-    }
-
     const uploaderDid = context.session.did;
     console.log(`📤 Upload request from DID: ${uploaderDid}, File: ${fileName}`);
 

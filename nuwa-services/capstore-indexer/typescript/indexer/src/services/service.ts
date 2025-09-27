@@ -51,15 +51,48 @@ export let ipfsClient: any;
 const registry = VDRRegistry.getInstance();
 initRoochVDR(TARGET, undefined, registry);
 
+// Define which tools require authentication (write operations)
+const AUTH_REQUIRED_TOOLS = new Set([
+  'uploadCap',
+  'favoriteCap', 
+  'rateCap',
+  'updateEnableCap',
+  'queryMyFavoriteCap'
+]);
+
 export const authenticateRequest = async (request: any) => {
+  // Extract tool name from request
+  const toolName = request.toolName || request.name;
+  
   // Extract authorization header
   const header =
     typeof request.headers?.get === "function"
       ? request.headers.get("authorization")
       : request.headers["authorization"] ?? request.headers["Authorization"];
 
-  const prefix = "DIDAuthV1 ";
-  if (!header || !header.startsWith(prefix)) {
+  // For read-only tools, authentication is optional
+  if (!AUTH_REQUIRED_TOOLS.has(toolName)) {
+    if (!header || !header.startsWith("DIDAuthV1 ")) {
+      return { did: null }; // No authentication provided, return null
+    }
+    
+    // Try to verify authentication if provided
+    try {
+      const verify = await DIDAuth.v1.verifyAuthHeader(header, registry);
+      if (verify.ok) {
+        const signerDid = verify.signedObject.signature.signer_did;
+        return { did: signerDid };
+      }
+    } catch (error) {
+      // If verification fails, just return null for read operations
+      console.warn(`Authentication verification failed for read operation ${toolName}:`, error);
+    }
+    
+    return { did: null };
+  }
+
+  // For write operations, authentication is required
+  if (!header || !header.startsWith("DIDAuthV1 ")) {
     throw new Response(undefined, { status: 401, statusText: "Missing DIDAuthV1 header" });
   }
 
